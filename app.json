@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "sentient",
+    "slug": "sentient",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sentient.app",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Sentient requires access to your health data (Heart Rate, Sleep, Activity) to analyze your physiological state and generate daily directives.",
+        "NSHealthUpdateUsageDescription": "Sentient requires permission to update your health data for syncing sessions."
+      }
+    },
+    "plugins": [
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "healthSharePermission": "Sentient needs access to your health data to create your Digital Physiology Twin.",
+          "healthUpdatePermission": "Sentient needs permission to write health data for verification purposes."
+        }
+      ]
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
