@@ -12,62 +12,110 @@ export class Planner {
    * Generates a "Day Zero" contract for immediate use
    * Used when no API is available or for first launch
    */
-  static generateDayZeroContract(status: SystemStatus): LogicChainContract {
-     // Default recommendations based on state
-     let directive = "Establish baseline metrics. No high intensity.";
-     let type = "CALIBRATION";
+  /**
+   * Generates the 3-Day Strategic Arc (Today, Tomorrow, Horizon)
+   * Based on current System Status and Recovery Trends
+   */
+  static generateStrategicArc(status: SystemStatus, trends?: { recovery_trend: 'RISING' | 'FALLING' | 'STABLE' }): LogicChainContract {
+     const todayContract = this.determineDailyDirective(status.current_state, 0);
      
-     if (status.current_state === 'RECOVERY_MODE') {
-         directive = "System requires restoration. Rest authorized.";
-         type = "REST";
-     } else if (status.current_state === 'READY_FOR_LOAD') {
-         directive = "System primed. Assessment protocol authorized.";
-         type = "ASSESSMENT";
-     }
+     // FORECAST TOMORROW (Day 1)
+     const tomorrowState = this.predictNextState(status.current_state, trends?.recovery_trend || 'STABLE', 1);
+     const tomorrowContract = this.determineDailyDirective(tomorrowState, 1);
+     
+     // FORECAST HORIZON (Day 2)
+     const horizonState = this.predictNextState(tomorrowState, trends?.recovery_trend || 'STABLE', 2);
+     const horizonContract = this.determineDailyDirective(horizonState, 2);
 
      return {
-         horizon: [
-             {
-                 dayOffset: 0,
-                 state: status.current_state,
-                 directive: {
-                     category: 'REGULATION',
-                     stimulus_type: 'TEST'
-                 },
-                 constraints: { allow_impact: true, required_equipment: [] }
-             },
-             {
-                 dayOffset: 1,
-                 state: 'CALCULATING',
-                 directive: {
-                     category: 'ENDURANCE',
-                     stimulus_type: 'MAINTENANCE'
-                 },
-                 constraints: { allow_impact: true, required_equipment: [] }
-             },
-             {
-                 dayOffset: 2,
-                 state: 'CALCULATING',
-                 directive: {
-                     category: 'STRENGTH',
-                     stimulus_type: 'OVERLOAD'
-                 },
-                 constraints: { allow_impact: true, required_equipment: [] }
-             }
-         ],
-         // Legacy mapping
+         horizon: [todayContract, tomorrowContract, horizonContract],
+         
+         // Legacy mapping for compatibility
          state: status.current_state,
          dominant_factors: [],
-         directive: {
-             category: 'REGULATION',
-             stimulus_type: 'TEST' 
-         },
-         quest_type: type,
-         constraints: {
-             allow_impact: true,
-             required_equipment: []
-         }
+         directive: todayContract.directive,
+         quest_type: todayContract.directive.stimulus_type,
+         constraints: todayContract.constraints
      };
+  }
+
+  /**
+   * Predicts the likely next state based on current state and trend
+   */
+  private static predictNextState(currentState: string, trend: string, dayOffset: number): string {
+      // Simple Markov-like chain for V3.0
+      switch (currentState) {
+          case 'RECOVERY_MODE':
+              return trend === 'RISING' ? 'BUILDING_CAPACITY' : 'RECOVERY_MODE';
+          
+          case 'BUILDING_CAPACITY':
+              return trend === 'FALLING' ? 'RECOVERY_MODE' : 'READY_FOR_LOAD';
+              
+          case 'READY_FOR_LOAD':
+              // If we load today, tomorrow we might be recovering or metabolic
+              return dayOffset === 1 ? 'METABOLIC_HEALTH' : 'READY_FOR_LOAD';
+              
+          case 'METABOLIC_HEALTH':
+              return trend === 'RISING' ? 'PRIMED_TO_PERFORM' : 'BUILDING_CAPACITY';
+              
+          case 'PRIMED_TO_PERFORM':
+              // Peak state usually followed by necessary recovery if leveraged
+              return dayOffset === 1 ? 'RECOVERY_MODE' : 'PRIMED_TO_PERFORM';
+              
+          case 'OVERREACHING':
+              return 'RECOVERY_MODE';
+              
+          default:
+              return 'BUILDING_CAPACITY';
+      }
+  }
+
+  /**
+   * Maps a State to a Directive
+   */
+  private static determineDailyDirective(state: string, dayOffset: number): any { // Returns DailyDirective-like object
+      let category = 'REGULATION';
+      let stimulus = 'MAINTENANCE';
+      
+      switch (state) {
+          case 'RECOVERY_MODE':
+              category = 'REGULATION';
+              stimulus = 'FLUSH';
+              break;
+          case 'BUILDING_CAPACITY':
+              category = 'ENDURANCE';
+              stimulus = 'MAINTENANCE';
+              break;
+          case 'READY_FOR_LOAD':
+              category = 'STRENGTH';
+              stimulus = 'OVERLOAD';
+              break;
+          case 'METABOLIC_HEALTH':
+              category = 'ENDURANCE';
+              stimulus = 'OVERLOAD';
+              break;
+          case 'PRIMED_TO_PERFORM':
+              category = 'NEURAL';
+              stimulus = 'TEST';
+              break;
+          case 'OVERREACHING':
+              category = 'REGULATION';
+              stimulus = 'FLUSH';
+              break;
+      }
+      
+      return {
+          dayOffset,
+          state,
+          directive: {
+              category,
+              stimulus_type: stimulus
+          },
+          constraints: { 
+              allow_impact: state !== 'RECOVERY_MODE', 
+              required_equipment: [] 
+          }
+      };
   }
 
   /**

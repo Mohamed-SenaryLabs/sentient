@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "sentient",
+    "name": "Sentient",
     "slug": "sentient",
-    "version": "1.0.0",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0F0F1A"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.sentient.app",
+      "supportsTablet": false,
+      "bundleIdentifier": "io.sentient.app",
       "infoPlist": {
-        "NSHealthShareUsageDescription": "Sentient requires access to your health data (Heart Rate, Sleep, Activity) to analyze your physiological state and generate daily directives.",
+        "NSHealthShareUsageDescription": "Sentient requires access to your health data (Heart Rate, Sleep, Activity) to analyze your physiological state and generate personalized insights.",
         "NSHealthUpdateUsageDescription": "Sentient requires permission to update your health data for syncing sessions."
       }
     },
@@ -32,13 +32,19 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0F0F1A"
       },
+      "package": "io.sentient.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "sentient-app"
+      }
     }
   }
 }

@@ -9,7 +9,7 @@
 
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import { SleepData, Biometrics } from './schema';
+import { SleepData, Biometrics, Workout } from './schema';
 
 const IS_SIMULATOR = !Device.isDevice;
 const IS_IOS = Platform.OS === 'ios';
@@ -40,6 +40,16 @@ export interface HealthKitPermissions {
   status: any;
 }
 
+/**
+ * Request HealthKit permissions
+ * 
+ * IMPORTANT: iOS does NOT re-prompt for new data types if permissions were already granted.
+ * If workouts show 0 calories, manually check:
+ * iOS Settings > Health > Data Access & Devices > [App Name] > Active Energy (must be ON)
+ * 
+ * Even though 'HKQuantityTypeIdentifierActiveEnergyBurned' is requested here, iOS may have
+ * silently denied it if permissions were granted before this identifier was added.
+ */
 export async function requestPermissions(): Promise<HealthKitPermissions> {
   if (!IS_IOS || IS_SIMULATOR || _healthKitDisabled) return { authorized: false, status: null };
   if (!loadHealthKitModule()) return { authorized: false, status: null };
@@ -56,7 +66,7 @@ export async function requestPermissions(): Promise<HealthKitPermissions> {
         'HKQuantityTypeIdentifierBodyTemperature',
         'HKQuantityTypeIdentifierAppleSleepingWristTemperature',
         'HKQuantityTypeIdentifierStepCount',
-        'HKQuantityTypeIdentifierActiveEnergyBurned',
+        'HKQuantityTypeIdentifierActiveEnergyBurned', // Required for workout calories
         'HKQuantityTypeIdentifierBasalEnergyBurned',
         'HKQuantityTypeIdentifierAppleExerciseTime',
         'HKQuantityTypeIdentifierDistanceWalkingRunning',
@@ -248,7 +258,10 @@ export async function fetchTimeInDaylight(date: Date): Promise<number> {
 
 // --- Sleep ---
 
-export async function fetchSleep(date: Date): Promise<SleepData> {
+/**
+ * Fetch sleep for a specific date (single day only)
+ */
+async function fetchSingleDaySleep(date: Date): Promise<SleepData> {
   const empty: SleepData = { 
     totalDurationSeconds: 0, 
     awakeSeconds: 0, 
@@ -317,6 +330,57 @@ export async function fetchSleep(date: Date): Promise<SleepData> {
   } catch (error: any) {
     return empty;
   }
+}
+
+/**
+ * Fetch sleep data for today, falling back to 7-day average if unavailable
+ */
+export async function fetchSleep(date: Date): Promise<SleepData> {
+  const data = await fetchSingleDaySleep(date);
+  
+  if (data.totalDurationSeconds > 0) {
+      return data;
+  }
+
+  // Fallback to weekly average
+  console.log('[HealthKit] No sleep data for today, fetching 7-day average...');
+  return await fetchWeeklySleepAverage(date);
+}
+
+async function fetchWeeklySleepAverage(endDate: Date): Promise<SleepData> {
+    const daysToLogin = 7;
+    let totalDuration = 0;
+    let totalScore = 0;
+    let daysWithData = 0;
+    
+    // Scan last 7 days (skipping today since we already checked it)
+    for (let i = 1; i <= daysToLogin; i++) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        const daily = await fetchSingleDaySleep(d);
+        if (daily.totalDurationSeconds > 0) {
+            totalDuration += daily.totalDurationSeconds;
+            totalScore += daily.score;
+            daysWithData++;
+        }
+    }
+
+    if (daysWithData === 0) {
+        return { 
+            totalDurationSeconds: 0, awakeSeconds: 0, remSeconds: 0, 
+            coreSeconds: 0, deepSeconds: 0, score: 0, source: 'manual' 
+        };
+    }
+
+    return {
+        totalDurationSeconds: Math.round(totalDuration / daysWithData),
+        awakeSeconds: 0, // Averages don't preserve stages accurately
+        remSeconds: 0,
+        coreSeconds: 0,
+        deepSeconds: 0,
+        score: Math.round(totalScore / daysWithData),
+        source: 'average'
+    };
 }
 
 // --- Biometrics ---
@@ -427,6 +491,165 @@ export async function fetchBiometrics(date: Date): Promise<Biometrics> {
   }
 }
 
+
+// --- Workouts ---
+
+// HealthKit Activity Type Enum Mapping
+const ActivityTypeMap: Record<number, string> = {
+  13: 'Cycling',
+  20: 'Functional Strength Training',
+  24: 'Hiking',
+  37: 'Running',
+  50: 'Traditional Strength Training',
+  52: 'Walking',
+  56: 'Yoga',
+  62: 'High Intensity Interval Training',
+  82: 'Swimming',
+  // Add more as needed
+};
+
+function formatActivityName(rawType: any): string {
+    if (typeof rawType === 'number') {
+        return ActivityTypeMap[rawType] || `Workout (${rawType})`;
+    }
+    if (typeof rawType === 'string') {
+         const clean = rawType.replace('HKWorkoutActivityType', '');
+         return clean.replace(/([A-Z])/g, ' $1').trim();
+    }
+    return 'Workout';
+}
+
+// Helper to handle { quantity: 100, unit: 'kcal' } OR simple numbers
+function getSafeValue(field: any): number {
+  if (typeof field === 'number') return field;
+  
+  // Handle nested HKQuantity objects
+  if (typeof field === 'object' && field !== null) {
+      if (typeof field.quantity === 'number') return field.quantity;
+      if (typeof field.value === 'number') return field.value;
+  }
+  return 0;
+}
+
+/**
+ * Query Active Energy Burned for a specific time interval
+ * Used to "hydrate" workout objects that are missing totalEnergyBurned
+ * (due to a bug in the HealthKit library's native bridge)
+ * 
+ * NOTE: Minor rounding differences observed vs Apple Health app (e.g., 339 vs 337 kcal)
+ * Possible causes to investigate:
+ * - Timezone offset affecting query window boundaries
+ * - Apple Health may use different aggregation (workout-attributed vs time-window sum)
+ * - Rounding at different precision points (we round at the end, Apple may round per-sample)
+ * - strictStartDate behavior affecting which samples are included
+ */
+async function queryEnergyForInterval(startDateInput: string | Date, endDateInput: string | Date): Promise<number> {
+  if (!Healthkit || _healthKitDisabled) return 0;
+  
+  // Convert to Date objects (matching queryCumulativeQuantity format)
+  const startDate = new Date(startDateInput);
+  const endDate = new Date(endDateInput);
+  
+  try {
+    const result = await Healthkit.queryStatisticsForQuantity(
+      'HKQuantityTypeIdentifierActiveEnergyBurned',
+      ['cumulativeSum'],
+      {
+        filter: {
+          date: {
+            startDate,
+            endDate,
+            // Don't use strictStartDate - we want all energy in this window
+          }
+        },
+        unit: 'kcal'
+      }
+    );
+    
+    const calories = result?.sumQuantity?.quantity ?? 0;
+    return calories > 0 ? Math.round(calories) : 0;
+  } catch (e) {
+    console.warn('[HealthKit] queryEnergyForInterval failed:', e);
+    return 0;
+  }
+}
+
+/**
+ * Fetch workouts with hydration fix
+ * The HealthKit library doesn't return totalEnergyBurned in the workout object,
+ * so we query Active Energy directly for each workout's time window
+ */
+export async function fetchWorkouts(date: Date): Promise<Workout[]> {
+  if (!Healthkit || _healthKitDisabled || IS_SIMULATOR) return [];
+
+  try {
+    const { startDate, endDate } = getDayBounds(date, false);
+    
+    // Dates at ROOT level (library requirement)
+    const options = {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      limit: 100,
+      ascending: false,
+      energyUnit: 'kcal',
+      distanceUnit: 'km',
+    };
+
+    const samples = await Healthkit.queryWorkoutSamples(options);
+
+    if (!samples || samples.length === 0) return [];
+
+    // 🛡️ MANUAL FILTER: The flattened options structure sometimes causes
+    // HealthKit to ignore the date filter. We manually filter here to be safe.
+    const filteredSamples = samples.filter((s: any) => {
+        const start = new Date(s.startDate);
+        return start >= startDate && start <= endDate;
+    });
+
+    if (filteredSamples.length === 0) return [];
+
+    // Use Promise.all to backfill energy in parallel for all workouts
+    const hydratedWorkouts = await Promise.all(filteredSamples.map(async (sample: any) => {
+      // 1. Activity Name
+      const rawType = sample.workoutActivityType || sample.activityType || 0;
+      const name = formatActivityName(rawType);
+      
+      // 2. Duration (Always in seconds)
+      const duration = getSafeValue(sample.duration);
+      
+      // 3. Active Calories - Try direct fields first (in case future library versions fix this)
+      let calories = getSafeValue(sample.totalEnergyBurned);
+      if (calories === 0) calories = getSafeValue(sample.activeEnergyBurned);
+      if (calories === 0) calories = getSafeValue(sample.calories);
+
+      // 🚨 HYDRATION FIX: If still 0, query Active Energy for this workout's exact time window
+      // The HealthKit library doesn't return totalEnergyBurned, so we query it directly
+      if (calories === 0 && sample.startDate && sample.endDate) {
+        calories = await queryEnergyForInterval(sample.startDate, sample.endDate);
+      }
+
+      // 4. Distance
+      let distance = getSafeValue(sample.totalDistance);
+      if (distance === 0) distance = getSafeValue(sample.totalSwimmingStrokeCount);
+
+      return {
+        id: sample.uuid || Math.random().toString(),
+        type: name,
+        durationSeconds: duration > 0 ? duration : 0,
+        activeCalories: Math.round(calories),
+        distance: distance > 0 ? distance : undefined,
+        startDate: sample.startDate
+      };
+    }));
+
+    return hydratedWorkouts;
+  } catch (error) {
+    console.warn('[HealthKit] Error fetching workouts:', error);
+    return [];
+  }
+}
+
+
 /**
  * Fetch all Activity Data in parallel
  */
@@ -438,8 +661,9 @@ export async function fetchActivityData(date: Date): Promise<{
   walkingRunningDistance: number;
   swimmingDistance: number;
   timeInDaylight: number;
+  workouts: Workout[];
 }> {
-  const [steps, active, resting, exercise, distance, swimming, daylight] = await Promise.all([
+  const [steps, active, resting, exercise, distance, swimming, daylight, workouts] = await Promise.all([
     fetchSteps(date),
     fetchActiveEnergy(date),
     fetchRestingEnergy(date),
@@ -447,6 +671,7 @@ export async function fetchActivityData(date: Date): Promise<{
     fetchWalkingRunningDistance(date),
     fetchSwimmingDistance(date),
     fetchTimeInDaylight(date),
+    fetchWorkouts(date),
   ]);
 
   return { 
@@ -456,6 +681,222 @@ export async function fetchActivityData(date: Date): Promise<{
     exerciseMinutes: exercise, 
     walkingRunningDistance: distance, 
     swimmingDistance: swimming, 
-    timeInDaylight: daylight 
+    timeInDaylight: daylight,
+    workouts
   };
+}
+
+// --- Historical Data for Day Zero Protocol ---
+
+export interface HistoricalDayData {
+  date: string; // YYYY-MM-DD
+  hrv: number | null;
+  rhr: number | null;
+  steps: number;
+  activeCalories: number;
+  sleepSeconds: number;
+  sleepScore: number;
+  workoutMinutes: number; // NEW
+  vo2Max: number | null;  // NEW
+  workouts: Workout[];    // NEW - For export granularity
+}
+
+export interface HistoricalBaselines {
+  days: HistoricalDayData[];
+  averages: {
+    hrv: number;
+    rhr: number;
+    steps: number;
+    activeCalories: number;
+    sleepSeconds: number;
+    workoutMinutes: number; // NEW
+    vo2Max: number;         // NEW
+  };
+  daysFetched: number;
+  daysWithData: number;
+}
+
+/**
+ * Day Zero Protocol: Fetch historical data for instant baselines
+ * Queries the past N days of HRV, RHR, Steps, Calories, Sleep, Workouts, and VO2Max
+ */
+export async function fetchHistoricalData(days: number = 30): Promise<HistoricalBaselines> {
+  const emptyResult: HistoricalBaselines = {
+    days: [],
+    averages: { hrv: 0, rhr: 0, steps: 0, activeCalories: 0, sleepSeconds: 0, workoutMinutes: 0, vo2Max: 0 },
+    daysFetched: 0,
+    daysWithData: 0
+  };
+
+  if (!Healthkit || _healthKitDisabled || IS_SIMULATOR) {
+    console.log('[HealthKit] Historical fetch skipped (not available)');
+    return emptyResult;
+  }
+
+  console.log(`[HealthKit] Day Zero: Fetching ${days} days of historical data...`);
+
+  const results: HistoricalDayData[] = [];
+  const today = new Date();
+
+  // Fetch each day in parallel (batch of 7 at a time to avoid overwhelming)
+  for (let batchStart = 1; batchStart <= days; batchStart += 7) {
+    const batch: Promise<HistoricalDayData>[] = [];
+    
+    for (let offset = 0; offset < 7 && (batchStart + offset) <= days; offset++) {
+      const dayOffset = batchStart + offset;
+      const date = new Date(today);
+      date.setDate(date.getDate() - dayOffset);
+      
+      batch.push(fetchSingleDayHistorical(date));
+    }
+
+    const batchResults = await Promise.all(batch);
+    results.push(...batchResults);
+  }
+
+  // Calculate averages (only from days with data)
+  const daysWithHRV = results.filter(d => d.hrv !== null && d.hrv > 0);
+  const daysWithRHR = results.filter(d => d.rhr !== null && d.rhr > 0);
+  const daysWithSteps = results.filter(d => d.steps > 0);
+  const daysWithCalories = results.filter(d => d.activeCalories > 0);
+  const daysWithSleep = results.filter(d => d.sleepSeconds > 0);
+  const daysWithWorkouts = results.filter(d => d.workoutMinutes > 0);
+  const daysWithVO2 = results.filter(d => d.vo2Max !== null && d.vo2Max > 0);
+
+  const averages = {
+    hrv: daysWithHRV.length > 0 
+      ? Math.round(daysWithHRV.reduce((sum, d) => sum + (d.hrv || 0), 0) / daysWithHRV.length)
+      : 0,
+    rhr: daysWithRHR.length > 0
+      ? Math.round(daysWithRHR.reduce((sum, d) => sum + (d.rhr || 0), 0) / daysWithRHR.length)
+      : 0,
+    steps: daysWithSteps.length > 0
+      ? Math.round(daysWithSteps.reduce((sum, d) => sum + d.steps, 0) / daysWithSteps.length)
+      : 0,
+    activeCalories: daysWithCalories.length > 0
+      ? Math.round(daysWithCalories.reduce((sum, d) => sum + d.activeCalories, 0) / daysWithCalories.length)
+      : 0,
+    sleepSeconds: daysWithSleep.length > 0
+      ? Math.round(daysWithSleep.reduce((sum, d) => sum + d.sleepSeconds, 0) / daysWithSleep.length)
+      : 0,
+    workoutMinutes: daysWithWorkouts.length > 0
+      ? Math.round(daysWithWorkouts.reduce((sum, d) => sum + d.workoutMinutes, 0) / daysWithWorkouts.length)
+      : 0,
+    vo2Max: daysWithVO2.length > 0
+      ? Math.round((daysWithVO2.reduce((sum, d) => sum + (d.vo2Max || 0), 0) / daysWithVO2.length) * 10) / 10
+      : 0,
+  };
+
+  const daysWithAnyData = results.filter(d => 
+    d.hrv || d.rhr || d.steps > 0 || d.activeCalories > 0 || d.sleepSeconds > 0
+  ).length;
+
+  console.log(`[HealthKit] Day Zero complete: ${daysWithAnyData}/${days} days with data`);
+  console.log(`[HealthKit] Baselines: HRV=${averages.hrv}ms, RHR=${averages.rhr}bpm, Steps=${averages.steps}, Sleep=${Math.round(averages.sleepSeconds/3600)}h, Workouts=${averages.workoutMinutes}min, VO2=${averages.vo2Max}`);
+
+  return {
+    days: results,
+    averages,
+    daysFetched: days,
+    daysWithData: daysWithAnyData
+  };
+}
+
+/**
+ * Helper: Fetch a single day's historical metrics
+ */
+async function fetchSingleDayHistorical(date: Date): Promise<HistoricalDayData> {
+  const dateStr = date.toISOString().split('T')[0];
+  
+  try {
+    const { startDate, endDate } = getDayBounds(date, false);
+    
+    // Parallel fetch for speed
+    const [hrvSamples, rhrSample, steps, activeCalories, sleep, exerciseMin, vo2Sample, workouts] = await Promise.all([
+      // HRV average for the day
+      Healthkit.queryQuantitySamples(
+        'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+        { limit: 0, unit: 'ms', filter: { date: { startDate, endDate } } }
+      ).catch(() => []),
+      // RHR for the day
+      queryLatestQuantity('HKQuantityTypeIdentifierRestingHeartRate', startDate, endDate, 'count/min'),
+      // Steps (cumulative)
+      queryCumulativeQuantity('HKQuantityTypeIdentifierStepCount', date, 'count'),
+      // Active calories (cumulative)
+      queryCumulativeQuantity('HKQuantityTypeIdentifierActiveEnergyBurned', date, 'kcal'),
+      // Sleep
+      fetchSingleDaySleep(date),
+      // Workout Minutes (Exercise Time)
+      queryCumulativeQuantity('HKQuantityTypeIdentifierAppleExerciseTime', date, 'min'), // Using Cumulative for speed in history
+      // VO2 Max (Latest sample for that day)
+      queryLatestQuantity('HKQuantityTypeIdentifierVO2Max', startDate, endDate, 'ml/(kg*min)'),
+      // Workouts List
+      fetchWorkouts(date),
+    ]);
+
+    // Calculate HRV average if multiple samples
+    let hrv: number | null = null;
+    if (hrvSamples && hrvSamples.length > 0) {
+      const total = hrvSamples.reduce((acc: number, s: any) => acc + (s.quantity || 0), 0);
+      hrv = Math.round(total / hrvSamples.length);
+    }
+
+    return {
+      date: dateStr,
+      hrv,
+      rhr: rhrSample ? Math.round(rhrSample) : null,
+      steps,
+      activeCalories,
+      sleepSeconds: sleep.totalDurationSeconds,
+      sleepScore: sleep.score,
+      workoutMinutes: exerciseMin,
+      vo2Max: vo2Sample,
+      workouts: workouts || [],
+    };
+  } catch (e) {
+    return {
+      date: dateStr,
+      hrv: null,
+      rhr: null,
+      steps: 0,
+      activeCalories: 0,
+      sleepSeconds: 0,
+      sleepScore: 0,
+      workoutMinutes: 0,
+      vo2Max: null,
+      workouts: [],
+    };
+  }
+}
+
+/**
+ * Debug function to test workout calorie hydration
+ * Call this to verify workouts are fetching calories correctly
+ */
+export async function debugWorkoutFetch() {
+  console.log('═══════════════════════════════════════');
+  console.log('   DEBUG: WORKOUT CALORIE CHECK        ');
+  console.log('═══════════════════════════════════════');
+
+  try {
+    const now = new Date();
+    const workouts = await fetchWorkouts(now);
+    
+    if (workouts.length > 0) {
+      const withCalories = workouts.filter(w => w.activeCalories > 0).length;
+      console.log(`Found ${workouts.length} workout(s), ${withCalories} with calories`);
+      
+      // Show first 3 workouts as sample
+      workouts.slice(0, 3).forEach((w, i) => {
+        console.log(`  [${i + 1}] ${w.type}: ${Math.round(w.durationSeconds / 60)}min, ${w.activeCalories}kcal`);
+        console.log(`      Date: ${w.startDate}`);
+        console.log(`      Date: ${w.startDate}`);
+      });
+    } else {
+      console.log('No workouts found today');
+    }
+  } catch (e) {
+    console.error('Debug failed:', e);
+  }
+  console.log('═══════════════════════════════════════');
 }
