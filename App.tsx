@@ -26,12 +26,15 @@ import { calculateProgression } from './src/engine/Progression';
 import { checkDailyAlignment } from './src/engine/AlignmentTracker';
 import { SessionManager } from './src/intelligence/SessionManager';
 import { OperatorDailyStats } from './src/data/schema';
-import { createSystemStatus } from './src/engine/StateEngine'; // Added
+import { createSystemStatus } from './src/engine/StateEngine';
+import { DataViewerModal } from './src/ui/DataViewerModal'; // Added
 
 export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState('Idle');
-  const [currentView, setCurrentView] = useState<'DASHBOARD' | 'SETTINGS'>('DASHBOARD'); // Added
+  const [currentView, setCurrentView] = useState<'DASHBOARD' | 'SETTINGS'>('DASHBOARD');
+  const [showDataModal, setShowDataModal] = useState(false); // Added
+  const [historicalData, setHistoricalData] = useState<OperatorDailyStats[]>([]); // Added
 
   const addLog = (msg: string) => {
     console.log(msg);
@@ -262,6 +265,18 @@ export default function App() {
     }
   };
 
+  const handleViewData = async () => {
+    try {
+      const history = await get30DayHistory();
+      // Sort by date descending
+      const sorted = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setHistoricalData(sorted);
+      setShowDataModal(true);
+    } catch (error) {
+       Alert.alert('Error', 'Could not load data.');
+    }
+  };
+
   const handleExport = async () => {
     try {
       const history = await get30DayHistory();
@@ -320,6 +335,11 @@ export default function App() {
                 <Text style={styles.buttonSubtext}>Copy raw JSON to clipboard/share</Text>
               </TouchableOpacity>
 
+              <TouchableOpacity style={styles.button} onPress={handleViewData}>
+                <Text style={styles.buttonText}>View Stored Data</Text>
+                <Text style={styles.buttonSubtext}>Inspect historical records</Text>
+              </TouchableOpacity>
+
               <View style={styles.divider} />
 
               <Text style={styles.sectionTitle}>DANGER ZONE</Text>
@@ -350,6 +370,11 @@ export default function App() {
       </View>
 
       <StatusBar barStyle="light-content" />
+      <DataViewerModal 
+        visible={showDataModal} 
+        onClose={() => setShowDataModal(false)} 
+        data={historicalData} 
+      />
     </SafeAreaView>
   );
 }
