@@ -59,7 +59,7 @@ export interface SystemStatus {
     regulation: number;  // 0-100
   };
   current_state: string; 
-  active_lens: string;   // Operator Class / Archetype
+  active_lens: string;   // Archetype (e.g. RANGER, OPERATOR)
   state_confidence?: number; // 0-100
   archetype_confidence?: number; // 0-100
   valid_from?: string; // ISO timestamp
@@ -71,7 +71,7 @@ export interface AdherenceLog {
   status: 'ALIGNED' | 'MISALIGNED' | 'SKIPPED' | 'REST_DAY';
 }
 
-// Replaces Quest
+// Core work unit (formerly Quest)
 export interface Session {
   id: string;
   status: 'PENDING' | 'COMPLETED' | 'MISSED';
@@ -95,7 +95,7 @@ export interface Session {
 
   impact: {
     primary_axis: 'METABOLIC' | 'MECHANICAL' | 'NEURAL' | 'RECOVERY';
-    load_score: number; // 1-10 scale. Canonical Term: "Physiological Load"
+    physiological_load: number; // 1-10 scale
   };
 
   intensity: 'LOW' | 'MODERATE' | 'HIGH';
@@ -138,7 +138,19 @@ export interface LogicChainContract {
     stimulus_type: 'OVERLOAD' | 'MAINTENANCE' | 'FLUSH' | 'TEST';
     target_rpe?: number;
   };
-  quest_type: string;
+  session_focus: string; // Renamed from quest_type
+  
+  // [NEW] LLM Session Details (passed through from Gemimi)
+  llm_generated_session?: Session;
+  session_focus_refinement?: string;
+
+  // [NEW] Decision Trace (for Engine Screen)
+  trace?: {
+      winner_score: number;
+      rejected_alternatives: string[];
+      constraints: string[];
+  };
+
   constraints: {
     allow_impact: boolean;
     required_equipment: string[];

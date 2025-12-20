@@ -1,5 +1,5 @@
-import { StatusBar } from 'react-native'; // Changed from 'expo-status-bar'
-import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Share, Alert } from 'react-native'; // Added SafeAreaView, TouchableOpacity, Share, Alert; Removed Button
+import { StatusBar } from 'react-native'; 
+import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Share, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { 
   initDatabase, 
@@ -10,7 +10,7 @@ import {
   saveBaselines,
   getBaselines,
   get30DayHistory,
-  resetDatabase, // Added
+  resetDatabase,
 } from './src/data/database';
 import { 
   requestPermissions, 
@@ -21,69 +21,70 @@ import {
   debugWorkoutFetch 
 } from './src/data/healthkit';
 import { calculateAxes } from './src/engine/AxesCalculator';
+import { VitalityScorer } from './src/engine/VitalityScorer';
 import { Planner } from './src/intelligence/Planner';
 import { calculateProgression } from './src/engine/Progression';
 import { checkDailyAlignment } from './src/engine/AlignmentTracker';
 import { SessionManager } from './src/intelligence/SessionManager';
 import { OperatorDailyStats } from './src/data/schema';
 import { createSystemStatus } from './src/engine/StateEngine';
-import { DataViewerModal } from './src/ui/DataViewerModal'; // Added
+import { DataViewerModal } from './src/ui/DataViewerModal';
+import { DevConsoleScreen } from './src/ui/DevConsoleScreen';
+import { FocusScreen } from './src/ui/FocusScreen';
+import { DataScreen } from './src/ui/DataScreen';
 
 export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState('Idle');
-  const [currentView, setCurrentView] = useState<'DASHBOARD' | 'SETTINGS'>('DASHBOARD');
-  const [showDataModal, setShowDataModal] = useState(false); // Added
-  const [historicalData, setHistoricalData] = useState<OperatorDailyStats[]>([]); // Added
+  const [currentView, setCurrentView] = useState<'FOCUS' | 'DATA' | 'SETTINGS'>('FOCUS');
+  const [showDataModal, setShowDataModal] = useState(false);
+  const [showDevConsole, setShowDevConsole] = useState(false);
+  const [historicalData, setHistoricalData] = useState<OperatorDailyStats[]>([]);
+  const [mockStatsState, setMockStatsState] = useState<OperatorDailyStats | null>(null);
 
   const addLog = (msg: string) => {
     console.log(msg);
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
   };
 
-  // Added useEffect to run Dawn Protocol on mount
   useEffect(() => {
     runDawnProtocol();
   }, []);
 
   const runDawnProtocol = async () => {
-    setStatus('Running Dawn Protocol...');
-    addLog('═══════════════════════════════════════');
-    addLog('SENTIENT V3 - DAWN PROTOCOL');
-    addLog('═══════════════════════════════════════');
-    
-    try {
-      // 1. DB Init
-      addLog('Initializing Database...');
-      await initDatabase();
-      addLog('Database Ready.');
+     setStatus('Running Dawn Protocol...');
+     addLog('═══════════════════════════════════════');
+     addLog('SENTIENT V3 - DAWN PROTOCOL');
+     
+     try {
+       // 1. Database Init
+       addLog('Initializing Database...');
+       await initDatabase();
+       addLog('Database Ready.');
 
-      // 2. Permissions
-      addLog('Requesting HealthKit Permissions...');
-      const perm = await requestPermissions();
-      addLog(`Permissions: ${perm.authorized ? 'GRANTED' : 'DENIED/FAILED'}`);
+       // 2. Permissions
+       addLog('Requesting HealthKit Permissions...');
+       const perm = await requestPermissions();
+       addLog(`Permissions: ${perm.authorized ? 'GRANTED' : 'DENIED/FAILED'}`);
 
-      if (!perm.authorized) {
-        addLog('Cannot proceed without HealthKit.');
-        setStatus('Failed');
-        return;
-      }
+       if (!perm.authorized) {
+         addLog('Cannot proceed without HealthKit.');
+         setStatus('Failed');
+         return;
+       }
 
       // 3. Day Zero Check
       const firstLaunch = await isFirstLaunch();
       let baselines = await getBaselines();
       
-      // Force re-run if we have baselines but missing new V3.1 fields (workoutMinutes)
       const needsUpdate = baselines && (!baselines.workoutMinutes || !baselines.vo2Max);
       addLog(`First Launch: ${firstLaunch ? 'YES' : 'NO'}`);
       addLog(`Baselines Update Needed: ${needsUpdate ? 'YES' : 'NO'}`);
       
       if (firstLaunch || !baselines || needsUpdate) {
-        // --- DAY ZERO PROTOCOL ---
         addLog('─── DAY ZERO PROTOCOL ───────────────');
         const historical = await fetchHistoricalData(30);
         
-        // Save Baselines
         baselines = {
           hrv: historical.averages.hrv,
           rhr: historical.averages.rhr,
@@ -98,63 +99,31 @@ export default function App() {
         await saveBaselines(baselines);
         await setFirstLaunchComplete();
 
-        // [NEW] Persist Historical Data to Daily Stats for Export/Progression
+        // Persist History
         addLog(`Persisting ${historical.daysWithData} daily records...`);
         let savedCount = 0;
-        
         for (const day of historical.days) {
-            // Only save if day has meaningful data
             if (day.hrv || day.steps > 0 || day.activeCalories > 0) {
-                // Construct a partial OperatorDailyStats object for storage
-                // Note: We don't have full physics engine run for history yet, 
-                // but we store raw metrics.
-                try {
-                    // Minimal stats object for history
-                   const historicalStats: any = {
-                        id: day.date,
-                        date: day.date,
-                        missionVariables: [],
-                        sleep: {
-                          totalDurationSeconds: day.sleepSeconds,
-                          awakeSeconds: 0, remSeconds: 0, coreSeconds: 0, deepSeconds: 0, // Detail lost in history summary
-                          score: day.sleepScore || 0,
-                          source: 'biometric'
-                        },
-                        activity: {
-                          steps: day.steps,
-                          activeCalories: day.activeCalories,
-                          activeMinutes: day.workoutMinutes,
-                          restingCalories: 1500, // Estimate for history
-                          workouts: day.workouts || []
-                        },
-                        biometrics: {
-                          hrv: day.hrv || 0,
-                          restingHeartRate: day.rhr || 0,
-                          respiratoryRate: 0,
-                          vo2Max: day.vo2Max || 0,
-                          oxygenSaturation: 0,
-                          bloodGlucose: 0
-                        },
-                        // Mock calculated stats since we didn't run engine on history
-                        stats: {
-                           vitality: 0, vitalityZScore: 0, isVitalityEstimated: true,
-                           adaptiveCapacity: { current: 100, max: 100 },
-                           physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
-                           systemStatus: {
-                               axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 },
-                               current_state: 'HISTORICAL',
-                               active_lens: 'UNKNOWN'
-                           }
-                        }
+                 try {
+                    const historicalStats: any = {
+                         id: day.date,
+                         date: day.date,
+                         missionVariables: [],
+                         sleep: { totalDurationSeconds: day.sleepSeconds, score: day.sleepScore || 0, source: 'biometric', awakeSeconds: 0, remSeconds: 0, coreSeconds: 0, deepSeconds: 0 },
+                         activity: { steps: day.steps, activeCalories: day.activeCalories, activeMinutes: day.workoutMinutes, restingCalories: 1500, workouts: day.workouts || [] },
+                         biometrics: { hrv: day.hrv || 0, restingHeartRate: day.rhr || 0, respiratoryRate: 0, vo2Max: day.vo2Max || 0, oxygenSaturation: 0, bloodGlucose: 0 },
+                         stats: {
+                            vitality: 0, vitalityZScore: 0, isVitalityEstimated: true,
+                            adaptiveCapacity: { current: 100, max: 100 },
+                            physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
+                            systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'HISTORICAL', active_lens: 'UNKNOWN' }
+                         }
                     };
                     await saveDailyStats(historicalStats);
                     savedCount++;
-                } catch (err) {
-                    console.error('Failed to save history day', day.date, err);
-                }
+                } catch (err) { console.error('Failed to save history day', day.date, err); }
             }
         }
-
         addLog(`Baselines calculated & ${savedCount} days saved.`);
         addLog(`Avg Workouts: ${baselines.workoutMinutes}min | Avg VO2: ${baselines.vo2Max}`);
       } else {
@@ -165,22 +134,13 @@ export default function App() {
       const now = new Date();
       addLog('─── TODAY\'S DATA ────────────────────');
       addLog(`Fetching Data for ${now.toDateString()}...`);
-      
       const activity = await fetchActivityData(now);
-      addLog(`Steps: ${activity.steps} | Distance: ${activity.walkingRunningDistance}km`);
-      addLog(`Active: ${activity.activeCalories}kcal | Resting: ${activity.restingCalories}kcal`);
-      addLog(`Exercise: ${activity.exerciseMinutes}min | Daylight: ${activity.timeInDaylight}min`);
-      
-
-      
       const sleepData = await fetchSleep(now);
-      addLog(`Sleep: ${Math.round(sleepData.totalDurationSeconds/60)}min (Score: ${sleepData.score})`);
-      
       const bioData = await fetchBiometrics(now);
-      addLog(`HRV: ${bioData.hrv}ms | RHR: ${bioData.restingHeartRate}bpm`);
-      addLog(`SpO2: ${bioData.oxygenSaturation ?? 'N/A'}% | VO2Max: ${bioData.vo2Max ?? 'N/A'}`);
 
-      // 5. Construct Operator Stats
+      addLog(`Steps: ${activity.steps} | Active: ${activity.activeCalories}kcal`);
+      addLog(`Sleep: ${(sleepData.totalDurationSeconds/3600).toFixed(1)}h | HRV: ${bioData.hrv}ms`);
+
       const mockStats: OperatorDailyStats = {
         id: now.toISOString().split('T')[0],
         date: now.toISOString().split('T')[0],
@@ -191,61 +151,74 @@ export default function App() {
           activeCalories: activity.activeCalories,
           activeMinutes: activity.exerciseMinutes,
           restingCalories: activity.restingCalories,
-          workouts: []
+          workouts: activity.workouts
         },
         biometrics: bioData,
         stats: {
-           vitality: 80, vitalityZScore: 0, isVitalityEstimated: true,
+           vitality: 0, 
+           vitalityZScore: 0, isVitalityEstimated: true, 
            adaptiveCapacity: { current: 100, max: 100 },
            physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
-           systemStatus: {
-               axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 },
-               current_state: 'CALCULATING',
-               active_lens: 'CALCULATING'
-           }
-        }
+           systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'CALCULATING', active_lens: 'CALCULATING' }
+        },
+        dailySummary: null
       };
 
       // 6. Run Physics Engine
       addLog('─── PHYSICS ENGINE ──────────────────');
+      
+      // Calculate Vitality
+      const vitalityResult = VitalityScorer.calculate(mockStats, { 
+          avgHrv: baselines.hrv, 
+          avgRhr: baselines.rhr,
+          // We could pass stdDev if we had it stored in baselines
+      });
+      mockStats.stats.vitality = vitalityResult.vitality;
+      mockStats.stats.vitalityZScore = vitalityResult.zScore;
+      mockStats.stats.isVitalityEstimated = vitalityResult.isEstimated;
+      
+      addLog(`Vitality: ${vitalityResult.vitality}% (Z: ${vitalityResult.zScore})`);
+
       const result = calculateAxes(mockStats);
       mockStats.stats.systemStatus = result.systemStatus;
       
       addLog(`State: ${result.systemStatus.current_state}`);
       addLog(`Lens: ${result.systemStatus.active_lens}`);
 
-      // 7. Generate Logic Contract (3-Day Arc)
+      // 7. Intelligence Layer
       addLog('─── INTELLIGENCE LAYER ──────────────');
-      const contract = Planner.generateStrategicArc(result.systemStatus, result.trends);
+      const contract = await Planner.generateStrategicArc(mockStats, result.trends);
       mockStats.logicContract = contract;
       
       addLog(`Today: ${contract.directive.category} / ${contract.directive.stimulus_type}`);
       if (contract.horizon.length > 1) {
         addLog(`Tomorrow: ${contract.horizon[1].directive.category} / ${contract.horizon[1].directive.stimulus_type}`);
       }
-      if (contract.horizon.length > 2) {
-        addLog(`Horizon: ${contract.horizon[2].directive.category} / ${contract.horizon[2].directive.stimulus_type}`);
-      }
       
-      // Generate Session
-      const session = SessionManager.generateSession(contract.directive, result.systemStatus.active_lens);
+      const session = SessionManager.generateSession(
+          contract.directive, 
+          result.systemStatus.active_lens, 
+          contract.session_focus,
+          contract.llm_generated_session
+      );
       mockStats.activeSession = session;
       addLog(`Session: ${session.display.title} [${session.display.subtitle}]`);
-      addLog(`Focus: ${session.instructions}`);
 
       // 8. Calculate Alignment & Progression
       addLog('─── PROGRESSION ─────────────────────');
       
       // Check TODAY'S Alignment
       const alignmentStatus = checkDailyAlignment(mockStats.activity, contract);
-      mockStats.stats.alignmentStatus = alignmentStatus === 'PENDING' ? 'MISALIGNED' : alignmentStatus; // Store as simple string for DB
+      mockStats.stats.alignmentStatus = alignmentStatus === 'PENDING' ? 'MISALIGNED' : alignmentStatus;
       addLog(`Today's Alignment: ${alignmentStatus}`);
 
       const history = await get30DayHistory();
+      const sortedHistory = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setHistoricalData(sortedHistory);
+      
       const progression = calculateProgression(history);
       
       addLog(`Class: ${progression.rank}`);
-      addLog(`Alignment Score: ${progression.alignmentScore}%`);
       addLog(`Streak: ${progression.consistencyStreak} days`);
       
       mockStats.stats.alignmentScore = progression.alignmentScore;
@@ -257,18 +230,19 @@ export default function App() {
       addLog('Saved Successfully.');
       addLog('═══════════════════════════════════════');
 
+      setMockStatsState(mockStats);
       setStatus('Complete');
 
-    } catch (e: any) {
-      addLog(`ERROR: ${e.message}`);
-      setStatus('Error');
-    }
+     } catch (e: any) {
+        addLog(`ERROR: ${e.message}`);
+        console.error(e);
+        setStatus('Error');
+     }
   };
 
   const handleViewData = async () => {
     try {
       const history = await get30DayHistory();
-      // Sort by date descending
       const sorted = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistoricalData(sorted);
       setShowDataModal(true);
@@ -318,16 +292,32 @@ export default function App() {
 
       {/* Main Content */}
       <View style={{ flex: 1 }}>
-        {currentView === 'DASHBOARD' ? (
-          <ScrollView style={styles.scrollView}>
-            {/* Logs Console */}
-            {logs.map((log, index) => (
-              <Text key={index} style={styles.logText}>{log}</Text>
-            ))}
-          </ScrollView>
+        {currentView === 'FOCUS' ? (
+          <FocusScreen 
+            stats={mockStatsState} 
+            status={status} 
+            onRefresh={runDawnProtocol}
+            refreshing={status.startsWith('Running')}
+          />
+        ) : currentView === 'DATA' ? (
+           <DataScreen
+            stats={mockStatsState}
+            history={historicalData}
+            onRefresh={runDawnProtocol}
+            refreshing={status.startsWith('Running')}
+           />
         ) : (
           <ScrollView style={styles.scrollView}>
             <View style={styles.settingsContainer}>
+              <Text style={styles.sectionTitle}>DEVELOPER TOOLS</Text>
+              
+              <TouchableOpacity style={styles.button} onPress={() => setShowDevConsole(true)}>
+                 <Text style={styles.buttonText}>Open System Console</Text>
+                 <Text style={styles.buttonSubtext}>View Live Logistics & Engine Output</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
               <Text style={styles.sectionTitle}>DATA MANAGEMENT</Text>
               
               <TouchableOpacity style={styles.button} onPress={handleExport}>
@@ -355,10 +345,17 @@ export default function App() {
       {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity 
-          style={[styles.tab, currentView === 'DASHBOARD' && styles.activeTab]} 
-          onPress={() => setCurrentView('DASHBOARD')}
+          style={[styles.tab, currentView === 'FOCUS' && styles.activeTab]} 
+          onPress={() => setCurrentView('FOCUS')}
         >
-          <Text style={[styles.tabText, currentView === 'DASHBOARD' && styles.activeTabText]}>DASHBOARD</Text>
+          <Text style={[styles.tabText, currentView === 'FOCUS' && styles.activeTabText]}>HOME</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tab, currentView === 'DATA' && styles.activeTab]} 
+          onPress={() => setCurrentView('DATA')}
+        >
+          <Text style={[styles.tabText, currentView === 'DATA' && styles.activeTabText]}>DATA</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -374,6 +371,11 @@ export default function App() {
         visible={showDataModal} 
         onClose={() => setShowDataModal(false)} 
         data={historicalData} 
+      />
+      <DevConsoleScreen
+        visible={showDevConsole}
+        onBack={() => setShowDevConsole(false)}
+        logs={logs}
       />
     </SafeAreaView>
   );
@@ -402,6 +404,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1,
     marginTop: 4,
+  },
+  dashboardPlaceholder: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
   },
   scrollView: {
     flex: 1,

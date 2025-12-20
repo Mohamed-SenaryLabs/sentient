@@ -6,6 +6,8 @@
  */
 
 import { LogicChainContract, OperatorDailyStats, SystemStatus } from '../data/schema';
+import { ScoringEngine } from './ScoringEngine';
+import { GeminiClient } from './GeminiClient';
 
 export class Planner {
   /**
@@ -14,29 +16,74 @@ export class Planner {
    */
   /**
    * Generates the 3-Day Strategic Arc (Today, Tomorrow, Horizon)
-   * Based on current System Status and Recovery Trends
+   * V3.1 Update: Uses ScoringEngine for Today (Tier 1) -> Gemini (Tier 2) -> Forecast (Tier 3)
    */
-  static generateStrategicArc(status: SystemStatus, trends?: { recovery_trend: 'RISING' | 'FALLING' | 'STABLE' }): LogicChainContract {
-     const todayContract = this.determineDailyDirective(status.current_state, 0);
+  static async generateStrategicArc(context: OperatorDailyStats, trends?: { recovery_trend: 'RISING' | 'FALLING' | 'STABLE' }): Promise<LogicChainContract> {
+     // 1. TODAY (Tier 1 Utility AI - The Guardrails)
+     const tier1Result = ScoringEngine.evaluate(context);
+     const winner = tier1Result.rankedDirectives[0];
      
-     // FORECAST TOMORROW (Day 1)
-     const tomorrowState = this.predictNextState(status.current_state, trends?.recovery_trend || 'STABLE', 1);
+     // 2. TODAY (Tier 2 LLM - The Consultant)
+     // We run this in parallel or sequence. For safety, sequence: Get Tier 1, then ask LLM to refine.
+     const consultantResult = await GeminiClient.generateInsight(context, {
+         category: winner.category,
+         stimulus: winner.stimulus,
+         reason: winner.reason,
+         technical_trace: {
+             winner_score: winner.score,
+             rejected_alternatives: tier1Result.rankingAnalysis.rejected,
+             constraints: tier1Result.safetyConstraint.allowedTypes
+         }
+     });
+
+     const todayContract = {
+         dayOffset: 0,
+         state: context.stats.systemStatus.current_state,
+         directive: {
+             category: winner.category,
+             stimulus_type: winner.stimulus
+         },
+         constraints: {
+             allow_impact: tier1Result.safetyConstraint.allowedTypes.includes('ALL') || tier1Result.safetyConstraint.allowedTypes.includes('RUNNING'),
+             required_equipment: [],
+             heart_rate_cap: tier1Result.safetyConstraint.maxLoad < 5 ? 135 : undefined
+         },
+         // Store the consultant advise in session focus or summary
+         session_focus_refinement: consultantResult.specific_advice
+     };
+     
+     // 3. FORECAST TOMORROW (Day 1)
+     const currentState = context.stats.systemStatus.current_state;
+     const tomorrowState = this.predictNextState(currentState, trends?.recovery_trend || 'STABLE', 1);
      const tomorrowContract = this.determineDailyDirective(tomorrowState, 1);
      
-     // FORECAST HORIZON (Day 2)
+     // 4. FORECAST HORIZON (Day 2)
      const horizonState = this.predictNextState(tomorrowState, trends?.recovery_trend || 'STABLE', 2);
      const horizonContract = this.determineDailyDirective(horizonState, 2);
 
      return {
-         horizon: [todayContract, tomorrowContract, horizonContract],
+         horizon: [todayContract as any, tomorrowContract, horizonContract],
          
-         // Legacy mapping for compatibility
-         state: status.current_state,
-         dominant_factors: [],
-         directive: todayContract.directive,
-         quest_type: todayContract.directive.stimulus_type,
-         constraints: todayContract.constraints
+         // Flat mapping for Day 0
+         state: currentState,
+         dominant_factors: [consultantResult.rationale], // Use LLM Rationale here
+         directive: todayContract.directive as any,
+         session_focus: consultantResult.specific_advice || this.getHumanReadableFocus(todayContract.directive.category, todayContract.directive.stimulus_type), // Use LLM advice here
+         constraints: todayContract.constraints,
+         // [NEW] Pass through the LLM Session Details
+         llm_generated_session: consultantResult.session
      };
+  }
+
+  private static getHumanReadableFocus(category: string, stimulus: string): string {
+      if (category === 'STRENGTH') {
+          return stimulus === 'OVERLOAD' ? 'Prioritize heavy resistance.' : 'Maintain strength levels.';
+      }
+      if (category === 'ENDURANCE') {
+          return stimulus === 'OVERLOAD' ? 'Push aerobic duration.' : 'Build aerobic base.';
+      }
+      if (category === 'REGULATION') return 'Focus on active recovery.';
+      return `Execute ${category.toLowerCase()} protocol.`;
   }
 
   /**

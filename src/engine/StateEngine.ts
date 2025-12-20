@@ -17,7 +17,7 @@ export type SystemState =
   | 'PHYSICAL_STRAIN'    // Red: Structural/Mechanical failure risk
   | 'RECOVERY_MODE';     // Purple: Sickness/Deep fatigue
 
-export type OperatorClass = 
+export type Archetype = 
   | 'INITIATE'
   | 'TANK'
   | 'RANGER'
@@ -74,7 +74,7 @@ export function determineArchetypeLens(
     workouts: OperatorDailyStats['activity']['workouts'];
     locationChanged?: boolean;
   }
-): OperatorClass {
+): Archetype {
   const { metabolic, mechanical, neural, recovery, regulation } = axes;
 
   // Context Overrides

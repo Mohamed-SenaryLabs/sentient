@@ -9,7 +9,18 @@ import { DailyDirective, Session } from '../data/schema';
 
 export class SessionManager {
   
-  static generateSession(directive: DailyDirective['directive'], lens: string): Session {
+  static generateSession(
+      directive: DailyDirective['directive'], 
+      lens: string, 
+      focusRefinement?: string,
+      llmSession?: {
+          title: string;
+          subtitle: string;
+          instructions: string;
+          type: 'DURATION' | 'CALORIES' | 'STEPS' | 'HEART_RATE';
+          target_value: number;
+      }
+  ): Session {
       const { category, stimulus_type } = directive;
   
       let title = "General Session";
@@ -19,71 +30,84 @@ export class SessionManager {
       let type: 'DURATION' | 'CALORIES' | 'HEART_RATE' | 'STEPS' = 'DURATION';
       let target = 30;
 
-      // 1. Determine Base Properties by Stimulus
-      switch (stimulus_type) {
-          case 'FLUSH':
-              title = "Recovery Protocol";
-              intensity = 'LOW';
-              type = 'STEPS'; // Active recovery
-              target = 5000;
-              break;
-          case 'MAINTENANCE':
-              title = "Maintenance Work";
-              intensity = 'MODERATE';
-              break;
-          case 'OVERLOAD':
-              title = "High Intensity Block";
-              intensity = 'HIGH';
-              break;
-          case 'TEST':
-              title = "Benchmark Assessment";
-              intensity = 'HIGH';
-              break;
-      }
-
-      // 2. Flavor by Category & Lens (Archetype)
-      // Archetypes: RANGER, HYBRID, PALADIN, MONK, OPERATOR (Default)
-      
-      const archetype = lens.toUpperCase();
-
-      if (category === 'STRENGTH') {
-          type = 'CALORIES'; // Proxy for work done
-          target = 400;
+      // --- 1. LLM OVERRIDE (Dynamic) ---
+      if (llmSession) {
+          title = llmSession.title;
+          subtitle = llmSession.subtitle;
+          instructions = llmSession.instructions;
+          type = llmSession.type;
+          target = llmSession.target_value;
           
-          if (archetype === 'PALADIN' || archetype === 'HYBRID') {
-              subtitle = "Heavy Resistance";
-              instructions = "Focus on compound movements: Squat, Deadlift, Press. 5x5 Rep Scheme.";
-          } else if (archetype === 'MONK' || archetype === 'RANGER') {
-              subtitle = "functional Strength";
-              instructions = "Bodyweight calisthenics, weighted vest work, or kettlebells.";
-          } else {
-              subtitle = "General Resistance";
-              instructions = "Full body resistance training.";
-          }
+          // Infer intensity from Category/Stimulus (Safety Guardrail)
+          if (category === 'STRENGTH' || stimulus_type === 'OVERLOAD') intensity = 'HIGH';
+          else if (category === 'REGULATION' || stimulus_type === 'FLUSH') intensity = 'LOW';
+          else intensity = 'MODERATE';
       } 
-      else if (category === 'ENDURANCE') {
-          type = 'DURATION';
-          target = 45; // minutes
-          
-          if (archetype === 'RANGER') {
-              subtitle = "Ruck / Long Run";
-              instructions = "Maintain Zone 2 HR. Ruck with 35lb+ or Long Distance Run.";
-              target = 60;
-          } else if (archetype === 'MONK') {
-              subtitle = "Flow / Run";
-              instructions = "Continuous movement. Running or sustained flow.";
-          } else {
-              subtitle = "Cardiovascular Output";
-              instructions = "Steady state cardio (Zone 2).";
+      // --- 2. RIGID FALLBACK (Static) ---
+      else {
+          // ... (Existing Switch Logic could remain here as fallback, but for brevity I'll keep the core structure)
+          // 1. Determine Base Properties by Stimulus
+          switch (stimulus_type) {
+              case 'FLUSH':
+                  title = "Recovery Protocol";
+                  intensity = 'LOW';
+                  type = 'STEPS'; 
+                  target = 5000;
+                  break;
+              case 'MAINTENANCE':
+                  title = "Maintenance Work";
+                  intensity = 'MODERATE';
+                  break;
+              case 'OVERLOAD':
+                  title = "High Intensity Block";
+                  intensity = 'HIGH';
+                  break;
+              case 'TEST':
+                  title = "Benchmark Assessment";
+                  intensity = 'HIGH';
+                  break;
           }
-      }
-      else if (category === 'REGULATION') {
-          type = 'DURATION';
-          target = 20;
-          title = "CNS Regulation";
-          subtitle = "Breathwork / Mobility";
-          instructions = "Focus on nasal breathing and parasympathetic activation.";
-          intensity = 'LOW';
+
+          // 2. Flavor by Category & Lens
+           const archetype = lens.toUpperCase();
+
+          if (category === 'STRENGTH') {
+              type = 'CALORIES'; 
+              target = 400;
+              if (archetype === 'PALADIN' || archetype === 'HYBRID') {
+                  subtitle = "Heavy Resistance";
+                  instructions = "Focus on compound movements: Squat, Deadlift, Press. 5x5 Rep Scheme.";
+              } else if (archetype === 'MONK' || archetype === 'RANGER') {
+                  subtitle = "Functional Strength";
+                  instructions = "Bodyweight calisthenics, weighted vest work, or kettlebells.";
+              } else {
+                  subtitle = "General Resistance";
+                  instructions = "Full body resistance training.";
+              }
+          } 
+          else if (category === 'ENDURANCE') {
+              type = 'DURATION';
+              target = 45; 
+              if (archetype === 'RANGER') {
+                  subtitle = "Ruck / Long Run";
+                  instructions = "Maintain Zone 2 HR. Ruck with 35lb+ or Long Distance Run.";
+                  target = 60;
+              } else if (archetype === 'MONK') {
+                  subtitle = "Flow / Run";
+                  instructions = "Continuous movement. Running or sustained flow.";
+              } else {
+                  subtitle = "Cardiovascular Output";
+                  instructions = "Steady state cardio (Zone 2).";
+              }
+          }
+          else if (category === 'REGULATION') {
+              type = 'DURATION';
+              target = 20;
+              title = "CNS Regulation";
+              subtitle = "Breathwork / Mobility";
+              instructions = "Focus on nasal breathing and parasympathetic activation.";
+              intensity = 'LOW';
+          }
       }
 
       // 3. Construct Session Object
@@ -97,7 +121,7 @@ export class SessionManager {
               color: intensity === 'HIGH' ? '#EF4444' : intensity === 'MODERATE' ? '#F59E0B' : '#10B981',
               label: `${category} // ${stimulus_type}`
           },
-          instructions,
+          instructions: focusRefinement ? `${instructions}\n\nAnalyst Insight: ${focusRefinement}` : instructions, // Use Insight label
           validation: {
               type,
               target_value: target,
@@ -106,7 +130,7 @@ export class SessionManager {
           },
           impact: {
               primary_axis: category === 'STRENGTH' ? 'MECHANICAL' : category === 'REGULATION' ? 'RECOVERY' : 'METABOLIC',
-              load_score: intensity === 'HIGH' ? 8 : intensity === 'MODERATE' ? 5 : 2
+              physiological_load: intensity === 'HIGH' ? 8 : intensity === 'MODERATE' ? 5 : 2
           },
           intensity,
           created_at: new Date().toISOString(),

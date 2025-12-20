@@ -8,9 +8,9 @@
 import { OperatorDailyStats } from '../data/schema';
 
 export type ConsistencyRank = 
-  | 'OPERATOR'       // 90-100%
-  | 'CANDIDATE'      // 70-89%
-  | 'UNCALIBRATED';  // <70%
+  | 'OPERATOR_CLASS'   // 90-100%
+  | 'CANDIDATE_CLASS'  // 70-89%
+  | 'UNCALIBRATED';    // <70%
 
 export interface ProgressionResult {
   alignmentScore: number; // 0-100
@@ -43,8 +43,8 @@ export function calculateProgression(
 
   // 2. Determine Rank
   let rank: ConsistencyRank = 'UNCALIBRATED';
-  if (alignmentScore >= 90) rank = 'OPERATOR';
-  else if (alignmentScore >= 70) rank = 'CANDIDATE';
+  if (alignmentScore >= 90) rank = 'OPERATOR_CLASS';
+  else if (alignmentScore >= 70) rank = 'CANDIDATE_CLASS';
 
   // 3. Calculate Streak
   // Count backwards from most recent

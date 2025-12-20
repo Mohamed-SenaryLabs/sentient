@@ -1,0 +1,2033 @@
+[
+  {
+    "id": "2025-12-20",
+    "date": "2025-12-20",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 19390,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 68,
+      "source": "average"
+    },
+    "activity": {
+      "steps": 5504,
+      "activeCalories": 594,
+      "activeMinutes": 94,
+      "restingCalories": 1208,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 74,
+      "restingHeartRate": 57,
+      "respiratoryRate": 17.5,
+      "vo2Max": 38.67,
+      "oxygenSaturation": 91,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 80,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 100,
+          "mechanical": 28,
+          "neural": 0,
+          "recovery": 94,
+          "regulation": 0
+        },
+        "current_state": "BUILDING_CAPACITY",
+        "active_lens": "RANGER",
+        "state_confidence": 80,
+        "archetype_confidence": 70,
+        "valid_from": "2025-12-20T19:31:04.747Z",
+        "valid_to": "2025-12-21T19:31:04.747Z"
+      }
+    },
+    "dailySummary": null,
+    "activeSession": {
+      "id": "sess_1766259067169",
+      "status": "PENDING",
+      "display": {
+        "title": "Compound Power Development",
+        "subtitle": "5x5 Major Lifts",
+        "icon": "dumbbell",
+        "color": "#EF4444",
+        "label": "STRENGTH // OVERLOAD"
+      },
+      "instructions": "Select your Squat, Deadlift, Bench Press, and Overhead Press. Perform 5 sets of 5 repetitions at approximately 80% of your 1-Rep Max. Rest 3-5 minutes between sets to ensure full recovery and maximal effort on each set.\n\nAnalyst Insight: Execute each rep with maximal intent and focus on controlled deceleration.",
+      "validation": {
+        "type": "STRENGTH",
+        "target_value": 30,
+        "min_hr": 140,
+        "max_hr": null
+      },
+      "impact": {
+        "primary_axis": "MECHANICAL",
+        "physiological_load": 8
+      },
+      "intensity": "HIGH",
+      "created_at": "2025-12-20T19:31:07.169Z",
+      "expires_at": "2025-12-20T21:59:59.169Z"
+    },
+    "logicContract": {
+      "horizon": [
+        {
+          "dayOffset": 0,
+          "state": "BUILDING_CAPACITY",
+          "directive": {
+            "category": "STRENGTH",
+            "stimulus_type": "OVERLOAD"
+          },
+          "constraints": {
+            "allow_impact": true,
+            "required_equipment": []
+          },
+          "session_focus_refinement": "Execute each rep with maximal intent and focus on controlled deceleration."
+        },
+        {
+          "dayOffset": 1,
+          "state": "READY_FOR_LOAD",
+          "directive": {
+            "category": "STRENGTH",
+            "stimulus_type": "OVERLOAD"
+          },
+          "constraints": {
+            "allow_impact": true,
+            "required_equipment": []
+          }
+        },
+        {
+          "dayOffset": 2,
+          "state": "READY_FOR_LOAD",
+          "directive": {
+            "category": "STRENGTH",
+            "stimulus_type": "OVERLOAD"
+          },
+          "constraints": {
+            "allow_impact": true,
+            "required_equipment": []
+          }
+        }
+      ],
+      "state": "BUILDING_CAPACITY",
+      "dominant_factors": [
+        "Your Vitality score, while within a healthy range, indicates your system is primed for significant mechanical stress. However, your sleep debt, evident in the 68 score and insufficient total sleep time, means your nervous system's ability to recover and adapt is compromised. We are prioritizing an STRENGTH // OVERLOAD protocol to stimulate muscle and neural adaptation without incurring excessive metabolic fatigue. This approach leverages your current capacity for mechanical work while minimizing the risk of overtraining due to insufficient recovery resources. The 'Ranger' archetype lens suggests a need for robust, primal movements that build resilience and power."
+      ],
+      "directive": {
+        "category": "STRENGTH",
+        "stimulus_type": "OVERLOAD"
+      },
+      "session_focus": "Execute each rep with maximal intent and focus on controlled deceleration.",
+      "constraints": {
+        "allow_impact": true,
+        "required_equipment": []
+      },
+      "llm_generated_session": {
+        "title": "Compound Power Development",
+        "subtitle": "5x5 Major Lifts",
+        "instructions": "Select your Squat, Deadlift, Bench Press, and Overhead Press. Perform 5 sets of 5 repetitions at approximately 80% of your 1-Rep Max. Rest 3-5 minutes between sets to ensure full recovery and maximal effort on each set.",
+        "type": "STRENGTH",
+        "target_value": 30
+      }
+    }
+  },
+  {
+    "id": "2025-12-19",
+    "date": "2025-12-19",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 14520,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 70,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 3182,
+      "activeCalories": 378,
+      "activeMinutes": 20,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 74,
+      "restingHeartRate": 57,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-18",
+    "date": "2025-12-18",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 12343,
+      "activeCalories": 1283,
+      "activeMinutes": 162,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "AC3084D7-0425-4869-AC84-A14F4AC7156E",
+          "type": "Workout (63)",
+          "durationSeconds": 7357.645257949829,
+          "activeCalories": 657,
+          "startDate": "2025-12-18T13:06:34.012Z"
+        },
+        {
+          "id": "47AFC2F8-6D35-4F65-BC96-A72B07113347",
+          "type": "Running",
+          "durationSeconds": 2075.0120750665665,
+          "activeCalories": 379,
+          "startDate": "2025-12-18T12:13:47.808Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 53,
+      "restingHeartRate": 69,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-17",
+    "date": "2025-12-17",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 19650,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 70,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 1869,
+      "activeCalories": 56,
+      "activeMinutes": 2,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 64,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-16",
+    "date": "2025-12-16",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 24000,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 65,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 10087,
+      "activeCalories": 865,
+      "activeMinutes": 81,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "66872E3D-E43A-4FCE-83EB-293BDCF5F2B4",
+          "type": "Functional Strength Training",
+          "durationSeconds": 1092.280053973198,
+          "activeCalories": 109,
+          "startDate": "2025-12-16T13:16:11.001Z"
+        },
+        {
+          "id": "B10D69DB-863E-4CA3-9AB9-B7380150B2CC",
+          "type": "Running",
+          "durationSeconds": 2113.3742320537567,
+          "activeCalories": 293,
+          "startDate": "2025-12-16T12:40:48.679Z"
+        },
+        {
+          "id": "5C52A565-A8F6-471E-BDAB-E66998F010F0",
+          "type": "Functional Strength Training",
+          "durationSeconds": 497.2880349159241,
+          "activeCalories": 50,
+          "startDate": "2025-12-16T12:32:21.757Z"
+        },
+        {
+          "id": "A23665EA-A0A6-4B8E-B117-49C9FD00031A",
+          "type": "Walking",
+          "durationSeconds": 488.75367391109467,
+          "activeCalories": 14,
+          "startDate": "2025-12-16T12:02:56.680Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 84,
+      "restingHeartRate": 60,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-15",
+    "date": "2025-12-15",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 3674,
+      "activeCalories": 388,
+      "activeMinutes": 17,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 58,
+      "restingHeartRate": 59,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-14",
+    "date": "2025-12-14",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 7781,
+      "activeCalories": 765,
+      "activeMinutes": 90,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "02F82DE6-B158-40CA-A169-BD827D07AFD4",
+          "type": "Functional Strength Training",
+          "durationSeconds": 3886.5689849853516,
+          "activeCalories": 408,
+          "startDate": "2025-12-14T10:59:58.924Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 61,
+      "restingHeartRate": 61,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-13",
+    "date": "2025-12-13",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 11568,
+      "activeCalories": 1284,
+      "activeMinutes": 136,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "7E6D6E5D-C987-4D3B-A0C3-202839BFA726",
+          "type": "Functional Strength Training",
+          "durationSeconds": 6395.424124956131,
+          "activeCalories": 831,
+          "startDate": "2025-12-13T11:00:21.802Z"
+        },
+        {
+          "id": "FF368053-E05F-418D-925B-D451D3117283",
+          "type": "Running",
+          "durationSeconds": 1291.901911020279,
+          "activeCalories": 119,
+          "startDate": "2025-12-13T10:38:39.033Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 60,
+      "restingHeartRate": 66,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-12",
+    "date": "2025-12-12",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 4476,
+      "activeCalories": 302,
+      "activeMinutes": 9,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 45,
+      "restingHeartRate": 61,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-11",
+    "date": "2025-12-11",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 9749,
+      "activeCalories": 812,
+      "activeMinutes": 77,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "26513BF9-1E7E-498E-90A4-EF45AC402AC3",
+          "type": "Functional Strength Training",
+          "durationSeconds": 813.3185570240021,
+          "activeCalories": 112,
+          "startDate": "2025-12-11T08:54:54.644Z"
+        },
+        {
+          "id": "B96EF110-1920-49A1-9829-EBD3AB0B3488",
+          "type": "Running",
+          "durationSeconds": 1904.546602010727,
+          "activeCalories": 234,
+          "startDate": "2025-12-11T08:22:48.084Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 52,
+      "restingHeartRate": 66,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-10",
+    "date": "2025-12-10",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 10969,
+      "activeCalories": 732,
+      "activeMinutes": 65,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "52D501AA-EF56-40B1-AA82-48F0FD6F06CB",
+          "type": "Running",
+          "durationSeconds": 2318.520625948906,
+          "activeCalories": 292,
+          "startDate": "2025-12-10T08:08:17.349Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 49,
+      "restingHeartRate": 73,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-09",
+    "date": "2025-12-09",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 6120,
+      "activeCalories": 382,
+      "activeMinutes": 40,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 63,
+      "restingHeartRate": 66,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-08",
+    "date": "2025-12-08",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 7535,
+      "activeCalories": 570,
+      "activeMinutes": 35,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 74,
+      "restingHeartRate": 67,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-07",
+    "date": "2025-12-07",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 8226,
+      "activeCalories": 714,
+      "activeMinutes": 65,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "0892E89F-8D0F-492B-90D0-E1C81025F224",
+          "type": "Functional Strength Training",
+          "durationSeconds": 2013.4258890151978,
+          "activeCalories": 253,
+          "startDate": "2025-12-07T13:09:51.441Z"
+        },
+        {
+          "id": "03CC8B5F-C032-4026-9B8E-6A9E26EB7E93",
+          "type": "Running",
+          "durationSeconds": 814.7915750741959,
+          "activeCalories": 145,
+          "startDate": "2025-12-07T12:56:04.879Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 61,
+      "restingHeartRate": 62,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-06",
+    "date": "2025-12-06",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 9061,
+      "activeCalories": 859,
+      "activeMinutes": 74,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "A6750978-9FAA-4634-97B5-D6F5675BE7C4",
+          "type": "Functional Strength Training",
+          "durationSeconds": 1511.2656090259552,
+          "activeCalories": 249,
+          "startDate": "2025-12-06T09:19:21.836Z"
+        },
+        {
+          "id": "8805F460-9756-4C25-AA64-585C4DF5ECB6",
+          "type": "Running",
+          "durationSeconds": 2105.3722879886627,
+          "activeCalories": 319,
+          "startDate": "2025-12-06T08:44:08.544Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 43,
+      "restingHeartRate": 66,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-05",
+    "date": "2025-12-05",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 2167,
+      "activeCalories": 16,
+      "activeMinutes": 7,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-04",
+    "date": "2025-12-04",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 2458,
+      "activeCalories": 29,
+      "activeMinutes": 8,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 55,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-03",
+    "date": "2025-12-03",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 5079,
+      "activeCalories": 630,
+      "activeMinutes": 71,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "199E9841-BAA5-486A-93A4-5BD21615F5DB",
+          "type": "Functional Strength Training",
+          "durationSeconds": 3471.915216088295,
+          "activeCalories": 339,
+          "startDate": "2025-12-03T11:08:41.514Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 76,
+      "restingHeartRate": 64,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-02",
+    "date": "2025-12-02",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 8692,
+      "activeCalories": 563,
+      "activeMinutes": 47,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "0E5B5253-1094-411C-94C5-81F9360285FC",
+          "type": "Running",
+          "durationSeconds": 1986.2157530784607,
+          "activeCalories": 284,
+          "startDate": "2025-12-02T10:50:58.874Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 49,
+      "restingHeartRate": 62,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-12-01",
+    "date": "2025-12-01",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 7625,
+      "activeCalories": 317,
+      "activeMinutes": 33,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "ECFEFAF6-DE43-46A7-B1FC-A4EAE8B80709",
+          "type": "Running",
+          "durationSeconds": 1385.073352098465,
+          "activeCalories": 24,
+          "startDate": "2025-12-01T18:31:59.698Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 51,
+      "restingHeartRate": 66,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-30",
+    "date": "2025-11-30",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 14914,
+      "activeCalories": 843,
+      "activeMinutes": 69,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "568CC8DF-B51B-42A0-BC05-D05A9ADE34C3",
+          "type": "Walking",
+          "durationSeconds": 1501.8390527963638,
+          "activeCalories": 99,
+          "startDate": "2025-11-30T12:12:50.023Z"
+        },
+        {
+          "id": "B5B55EF0-44A9-4286-AF5A-CCDE72B14055",
+          "type": "Running",
+          "durationSeconds": 1636.2233670949936,
+          "activeCalories": 309,
+          "startDate": "2025-11-30T10:38:40.520Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 41,
+      "restingHeartRate": 57,
+      "respiratoryRate": 0,
+      "vo2Max": 38.67,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-29",
+    "date": "2025-11-29",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 11180,
+      "activeCalories": 369,
+      "activeMinutes": 32,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "E40BB17F-B271-4409-862D-EA97C2C0FB87",
+          "type": "Running",
+          "durationSeconds": 1547.282572388649,
+          "activeCalories": 274,
+          "startDate": "2025-11-29T09:11:59.269Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 49,
+      "restingHeartRate": 64,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-28",
+    "date": "2025-11-28",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 14290,
+      "activeCalories": 653,
+      "activeMinutes": 42,
+      "restingCalories": 1500,
+      "workouts": [
+        {
+          "id": "EE54BA0D-C2D9-442C-A75C-406081412E60",
+          "type": "Running",
+          "durationSeconds": 1807.6044429540634,
+          "activeCalories": 352,
+          "startDate": "2025-11-28T12:14:31.876Z"
+        }
+      ]
+    },
+    "biometrics": {
+      "hrv": 71,
+      "restingHeartRate": 61,
+      "respiratoryRate": 0,
+      "vo2Max": 39.45,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-27",
+    "date": "2025-11-27",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 9228,
+      "activeCalories": 124,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-26",
+    "date": "2025-11-26",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 7960,
+      "activeCalories": 0,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-25",
+    "date": "2025-11-25",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 9033,
+      "activeCalories": 0,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-24",
+    "date": "2025-11-24",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 20807,
+      "activeCalories": 0,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-23",
+    "date": "2025-11-23",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 16878,
+      "activeCalories": 0,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-22",
+    "date": "2025-11-22",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 9474,
+      "activeCalories": 0,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  },
+  {
+    "id": "2025-11-21",
+    "date": "2025-11-21",
+    "missionVariables": [],
+    "sleep": {
+      "totalDurationSeconds": 0,
+      "awakeSeconds": 0,
+      "remSeconds": 0,
+      "coreSeconds": 0,
+      "deepSeconds": 0,
+      "score": 0,
+      "source": "biometric"
+    },
+    "activity": {
+      "steps": 2975,
+      "activeCalories": 0,
+      "activeMinutes": 0,
+      "restingCalories": 1500,
+      "workouts": []
+    },
+    "biometrics": {
+      "hrv": 0,
+      "restingHeartRate": 0,
+      "respiratoryRate": 0,
+      "vo2Max": null,
+      "oxygenSaturation": null,
+      "bloodGlucose": null
+    },
+    "stats": {
+      "vitality": 0,
+      "vitalityZScore": 0,
+      "isVitalityEstimated": true,
+      "adaptiveCapacity": {
+        "current": 100,
+        "max": 100
+      },
+      "physiologicalLoad": 0,
+      "alignmentScore": 0,
+      "alignmentStatus": null,
+      "consistency": 0,
+      "shieldsBreached": false,
+      "systemStatus": {
+        "axes": {
+          "metabolic": 0,
+          "mechanical": 0,
+          "neural": 0,
+          "recovery": 0,
+          "regulation": 0
+        },
+        "current_state": "HISTORICAL",
+        "active_lens": "UNKNOWN",
+        "state_confidence": null,
+        "archetype_confidence": null,
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    "dailySummary": null
+  }
+]
