@@ -71,7 +71,15 @@ export class Planner {
          session_focus: consultantResult.specific_advice || this.getHumanReadableFocus(todayContract.directive.category, todayContract.directive.stimulus_type), // Use LLM advice here
          constraints: todayContract.constraints,
          // [NEW] Pass through the LLM Session Details
-         llm_generated_session: consultantResult.session
+         llm_generated_session: {
+             ...(consultantResult.session || {}), // Spreads any provided overrides
+             
+             // Crucial: Map the Rationale to the Insight field
+             analyst_insight: consultantResult.rationale,
+             
+             // Map generated avoid cue if present (fallback generation adds this)
+             avoid_cue: consultantResult.avoid_cue
+         }
      };
   }
 

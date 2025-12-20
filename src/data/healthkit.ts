@@ -880,7 +880,10 @@ export async function fetchHistoricalData(days: number = 30): Promise<Historical
  * Helper: Fetch a single day's historical metrics
  */
 async function fetchSingleDayHistorical(date: Date): Promise<HistoricalDayData> {
-  const dateStr = date.toISOString().split('T')[0];
+  // Fix for Timezone/Midnight bug: Use Local Date, not UTC
+  const offset = date.getTimezoneOffset() * 60000;
+  const localDate = new Date(date.getTime() - offset);
+  const dateStr = localDate.toISOString().split('T')[0];
   
   try {
     const { startDate, endDate } = getDayBounds(date, false);

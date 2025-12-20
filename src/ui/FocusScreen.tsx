@@ -16,6 +16,7 @@ interface FocusScreenProps {
 
 export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScreenProps) {
   const [showContext, setShowContext] = useState(false);
+  const [expandedInsight, setExpandedInsight] = useState(false);
 
   // Safe access to nested data
   const directive = stats?.logicContract?.directive;
@@ -47,12 +48,17 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
   const avoid = getConstraints(systemStatus.current_state, directive.category);
 
   // 4. Analyst Context
-  const analystNote = extractAnalystNote(stats.activeSession?.instructions);
+  const analystNote = stats.activeSession?.analyst_insight;
 
   const toggleContext = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowContext(!showContext);
   };
+  
+  const toggleInsight = () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setExpandedInsight(!expandedInsight);
+  }
 
   return (
     <ScrollView 
@@ -92,13 +98,26 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
       {showContext && (
           <View style={styles.contextCard}>
               <Text style={styles.contextLabel}>ANALYST INSIGHT</Text>
-              <Text style={styles.contextText}>
-                  "{analystNote || "Your system is in a regulation phase. Keep the session low-cost and controlled today."}"
+              <Text 
+                style={styles.contextText} 
+                numberOfLines={expandedInsight ? undefined : 3}
+                ellipsizeMode="tail"
+              >
+                  "{analystNote || "Updating Intelligence..."}"
               </Text>
+              
+              {analystNote && analystNote.length > 100 && (
+                  <TouchableOpacity onPress={toggleInsight} style={{ marginTop: 8 }}>
+                      <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>
+                          {expandedInsight ? "Show less" : "Read complete analysis"}
+                      </Text>
+                  </TouchableOpacity>
+              )}
+
               
               <View style={styles.metaContainer}>
                   <Text style={styles.metaText}>
-                      STATE: {getReadableState(systemStatus.current_state)} ({systemStatus.current_state})
+                      STATE: {getReadableState(systemStatus.current_state)}
                   </Text>
                   <Text style={styles.metaText}>
                       VITALITY: {stats.stats.vitality > 0 ? `${stats.stats.vitality}%` : "Estimating..."}
@@ -125,7 +144,7 @@ function getConstraints(state: string, category: string): string {
 
 const extractAnalystNote = (text?: string) => {
     if (!text) return '';
-    const parts = text.split('Analyst Note:');
+    const parts = text.split('Analyst Insight:');
     return parts.length > 1 ? parts[1].trim() : null;
 };
 
@@ -236,7 +255,16 @@ const styles = StyleSheet.create({
       lineHeight: 22,
       fontStyle: 'italic',
   },
-  metaContainer: {
+    sessionFocus: {
+        fontSize: 24, // Hero size
+        fontFamily: 'System', // Use system font for bold weight
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        textAlign: 'left',
+        marginBottom: 20,
+        lineHeight: 32,
+    },
+    metaContainer: {
       marginTop: 16,
       paddingTop: 16,
       borderTopWidth: 1,

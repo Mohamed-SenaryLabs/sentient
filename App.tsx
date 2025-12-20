@@ -31,12 +31,20 @@ import { createSystemStatus } from './src/engine/StateEngine';
 import { DataViewerModal } from './src/ui/DataViewerModal';
 import { DevConsoleScreen } from './src/ui/DevConsoleScreen';
 import { FocusScreen } from './src/ui/FocusScreen';
-import { DataScreen } from './src/ui/DataScreen';
+import { BiologyScreen } from './src/ui/BiologyScreen';
+
+// Helper for Local Date ID (YYYY-MM-DD)
+// Crucial for midnight rollover: toISOString() uses UTC and causes 'Yesterday' bug in UTC+ timezones.
+const getLocalYYYYMMDD = (d: Date) => {
+    const offset = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() - offset);
+    return local.toISOString().split('T')[0];
+};
 
 export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState('Idle');
-  const [currentView, setCurrentView] = useState<'FOCUS' | 'DATA' | 'SETTINGS'>('FOCUS');
+  const [currentView, setCurrentView] = useState<'FOCUS' | 'BIOLOGY' | 'SETTINGS'>('FOCUS');
   const [showDataModal, setShowDataModal] = useState(false);
   const [showDevConsole, setShowDevConsole] = useState(false);
   const [historicalData, setHistoricalData] = useState<OperatorDailyStats[]>([]);
@@ -47,22 +55,40 @@ export default function App() {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
   };
 
+  // ... (useEffect)
   useEffect(() => {
-    runDawnProtocol();
+    runDawnProtocol(false); // Default: Load from Cache if available
   }, []);
 
-  const runDawnProtocol = async () => {
+  const runDawnProtocol = async (forceRefresh: boolean = false) => {
      setStatus('Running Dawn Protocol...');
      addLog('═══════════════════════════════════════');
-     addLog('SENTIENT V3 - DAWN PROTOCOL');
+     addLog(`SENTIENT V3 - DAWN PROTOCOL ${forceRefresh ? '(FORCED)' : '(CACHED)'}`);
      
      try {
        // 1. Database Init
-       addLog('Initializing Database...');
        await initDatabase();
-       addLog('Database Ready.');
+       
+       const now = new Date();
+       const todayId = getLocalYYYYMMDD(now);
 
-       // 2. Permissions
+       // 2. PERSISTENCE CHECK
+       if (!forceRefresh) {
+           addLog('Checking Persistence...');
+           const existing = await getDailyStats(todayId);
+           
+           // STALENESS CHECK: Ensure we only use cache if it has the new Vault data (biometric_trends)
+           if (existing && existing.logicContract && existing.stats.vitality > 0 && existing.stats.biometric_trends) {
+               addLog('Loaded valid session from DB.');
+               setMockStatsState(existing);
+               setStatus('Complete');
+               return; 
+           }
+           addLog('Cache stale or missing. Running full protocol.');
+       }
+
+       // 3. Permissions
+       // ... (Rest of function)
        addLog('Requesting HealthKit Permissions...');
        const perm = await requestPermissions();
        addLog(`Permissions: ${perm.authorized ? 'GRANTED' : 'DENIED/FAILED'}`);
@@ -127,11 +153,52 @@ export default function App() {
         addLog(`Baselines calculated & ${savedCount} days saved.`);
         addLog(`Avg Workouts: ${baselines.workoutMinutes}min | Avg VO2: ${baselines.vo2Max}`);
       } else {
-        addLog(`Using stored baselines from ${baselines.calculatedAt.split('T')[0]}`);
+      // 3. Upgrade: Sync Yesterday (Catch Late Activity)
+      addLog('Syncing Yesterday\'s Data...');
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const yActivity = await fetchActivityData(yesterday);
+      const ySleep = await fetchSleep(yesterday);
+      const yBio = await fetchBiometrics(yesterday);
+      
+      if (yActivity.steps > 0 || yActivity.workouts.length > 0) {
+          const yStats: any = {
+              id: getLocalYYYYMMDD(yesterday),
+              date: getLocalYYYYMMDD(yesterday),
+              missionVariables: [], // Preserve existing? (Simplified for now)
+              sleep: ySleep,
+              activity: {
+                  steps: yActivity.steps,
+                  activeCalories: yActivity.activeCalories,
+                  activeMinutes: yActivity.exerciseMinutes,
+                  restingCalories: yActivity.restingCalories,
+                  workouts: yActivity.workouts
+              },
+              biometrics: yBio,
+              stats: {
+                  vitality: 0, vitalityZScore: 0, isVitalityEstimated: true,
+                  adaptiveCapacity: { current: 100, max: 100 },
+                  physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
+                  systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'HISTORICAL', active_lens: 'UNKNOWN' }
+              }
+          };
+          
+          // Physics for Yesterday
+          const yVitality = VitalityScorer.calculate(yStats, { avgHrv: baselines.hrv, avgRhr: baselines.rhr, avgSleepSeconds: 25200 });
+          yStats.stats.vitality = yVitality.vitality;
+          yStats.stats.vitalityZScore = yVitality.zScores.hrv;
+          
+          const yAxes = calculateAxes(yStats);
+          yStats.stats.systemStatus = yAxes.systemStatus;
+
+          // Preserve existing logic contract if possible, but for now just saving the data
+          await saveDailyStats(yStats);
+          addLog(`Yesterday Saved: ${yActivity.steps} steps`);
       }
+    }
 
       // 4. Fetch Today's Data
-      const now = new Date();
       addLog('─── TODAY\'S DATA ────────────────────');
       addLog(`Fetching Data for ${now.toDateString()}...`);
       const activity = await fetchActivityData(now);
@@ -142,8 +209,8 @@ export default function App() {
       addLog(`Sleep: ${(sleepData.totalDurationSeconds/3600).toFixed(1)}h | HRV: ${bioData.hrv}ms`);
 
       const mockStats: OperatorDailyStats = {
-        id: now.toISOString().split('T')[0],
-        date: now.toISOString().split('T')[0],
+        id: getLocalYYYYMMDD(now),
+        date: getLocalYYYYMMDD(now),
         missionVariables: [],
         sleep: sleepData,
         activity: {
@@ -161,7 +228,7 @@ export default function App() {
            physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
            systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'CALCULATING', active_lens: 'CALCULATING' }
         },
-        dailySummary: null
+        dailySummary: undefined
       };
 
       // 6. Run Physics Engine
@@ -171,13 +238,32 @@ export default function App() {
       const vitalityResult = VitalityScorer.calculate(mockStats, { 
           avgHrv: baselines.hrv, 
           avgRhr: baselines.rhr,
-          // We could pass stdDev if we had it stored in baselines
+          avgSleepSeconds: 25200 // Mock/Default if baseline missing
       });
       mockStats.stats.vitality = vitalityResult.vitality;
-      mockStats.stats.vitalityZScore = vitalityResult.zScore;
+      mockStats.stats.vitalityZScore = vitalityResult.zScores.hrv;
       mockStats.stats.isVitalityEstimated = vitalityResult.isEstimated;
       
-      addLog(`Vitality: ${vitalityResult.vitality}% (Z: ${vitalityResult.zScore})`);
+      addLog(`Vitality: ${vitalityResult.vitality}% (Z: ${vitalityResult.zScores.hrv})`);
+      
+      // Populate Vault Evidence (Biometric Trends)
+      // This was missing, causing 'CALCULATING' state even if data existed
+      mockStats.stats.biometric_trends = {
+          hrv: {
+              baseline: baselines.hrv,
+              today_z_score: vitalityResult.zScores.hrv,
+              trend: vitalityResult.zScores.hrv > 0.5 ? 'RISING' : vitalityResult.zScores.hrv < -0.5 ? 'FALLING' : 'STABLE'
+          },
+          rhr: {
+              baseline: baselines.rhr,
+              today_z_score: vitalityResult.zScores.rhr,
+              trend: vitalityResult.zScores.rhr < -0.5 ? 'RISING' : vitalityResult.zScores.rhr > 0.5 ? 'FALLING' : 'STABLE' // Inverted logic for labeling
+          },
+          sleep: {
+              baseline_duration: 25200, // TODO: Store actual sleep baseline in DB
+              trend: 'STABLE'
+          }
+      };
 
       const result = calculateAxes(mockStats);
       mockStats.stats.systemStatus = result.systemStatus;
@@ -285,10 +371,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>SENTIENT</Text>
-        <Text style={styles.headerSubtitle}>INTELLIGENCE ENGINE V3.0</Text>
-      </View>
+
 
       {/* Main Content */}
       <View style={{ flex: 1 }}>
@@ -296,14 +379,14 @@ export default function App() {
           <FocusScreen 
             stats={mockStatsState} 
             status={status} 
-            onRefresh={runDawnProtocol}
+            onRefresh={() => runDawnProtocol(true)}
             refreshing={status.startsWith('Running')}
           />
-        ) : currentView === 'DATA' ? (
-           <DataScreen
+        ) : currentView === 'BIOLOGY' ? (
+           <BiologyScreen
             stats={mockStatsState}
             history={historicalData}
-            onRefresh={runDawnProtocol}
+            onRefresh={() => runDawnProtocol(true)}
             refreshing={status.startsWith('Running')}
            />
         ) : (
@@ -352,10 +435,10 @@ export default function App() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.tab, currentView === 'DATA' && styles.activeTab]} 
-          onPress={() => setCurrentView('DATA')}
+          style={[styles.tab, currentView === 'BIOLOGY' && styles.activeTab]} 
+          onPress={() => setCurrentView('BIOLOGY')}
         >
-          <Text style={[styles.tabText, currentView === 'DATA' && styles.activeTabText]}>DATA</Text>
+          <Text style={[styles.tabText, currentView === 'BIOLOGY' && styles.activeTabText]}>BIOLOGY</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -387,24 +470,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A', // Slate-900
     paddingTop: 0,
   },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#E2E8F0', // Slate-200
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-  },
-  headerSubtitle: {
-    color: '#64748B', // Slate-500
-    fontSize: 10,
-    letterSpacing: 1,
-    marginTop: 4,
-  },
+
   dashboardPlaceholder: {
       flex: 1,
       justifyContent: 'center',

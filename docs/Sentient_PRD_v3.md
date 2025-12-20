@@ -42,6 +42,7 @@ Strict semantic enforcement across DB, UI, and AI. This table is the **Absolute 
 | **Biometrics** | Baseline Recovery | `VITALITY` | Baseline capacity to absorb stress (0–100). | System Integrity (❌ Health, HP) |
 |  | Daily Energy | `ADAPTIVE_CAPACITY` | Fuel available for today's stress (0-100%). | Daily Tank (❌ Mana, Battery) |
 |  | Work Cost | `PHYSIOLOGICAL_LOAD` | The metabolic/neural cost of work. | Load, Cost (❌ XP, Strain, Score) |
+|  | Autonomic Arousal | `STRESS` | A time-series index (0–100) estimating autonomic arousal (sympathetic load) across the day. | Stress Index (❌ Mood, Anxiety diagnosis) |
 | **Work** | Activity Block | `SESSION` | A bounded period of physical exertion. | Workout, Activity (❌ Quest) |
 |  | Daily Goal | `DIRECTIVE` | The strategic objective for the 24h window. | Orders, Plan (❌ Mission) |
 |  | Specific Intent | `SESSION_FOCUS` | The physiological stimulus target (e.g., "Zone 2"). | Target, Intent (❌ Challenge) |
@@ -63,7 +64,7 @@ Strict semantic enforcement across DB, UI, and AI. This table is the **Absolute 
 |  | Planning Window | `3_DAY_ARC` | The Strategy: Today (Exec), Tomorrow (Prep), Horizon (Outlook). | The Plan |
 |  | Validation | `CHECK_IN` | Scanning sensors to verify Session completion. | "Verify, Sync" |
 | **UX Features** | Education | `CONTEXTUAL_INTEL` | Tap-to-Explain interaction pattern (Concept Modals). | "Insight, Info" |
-|  | Data Proof | `THE_VAULT` | Secondary view showing raw trend lines for trust. | "Trends, Charts" |
+|  | Data Proof | `BIOLOGY` | Evidence view showing baselines and trends for trust. | "Trends, Charts" (❌ Vault, Trust Layer) |
 |  | User Input | `MISSION_VARIABLES` | User tags (Alcohol, Caffeine, Injury). | "Journal, Tags" |
 
 ### 2.1 The Two-Layer Language Standard (Canonical vs. Human-Readable)
@@ -87,7 +88,7 @@ This is a **two-layer system**:
 - **Metrics:** `VITALITY`, `ADAPTIVE_CAPACITY`, `PHYSIOLOGICAL_LOAD` receive stable labels + units.
 
 **Traceability Rule (where canonical tokens may appear):**
-- Canonical tokens MAY be shown in **THE_VAULT** (data proof), developer tools, export, and diagnostics.
+- Canonical tokens MAY be shown in **BIOLOGY** (data proof), developer tools, export, and diagnostics.
 - Canonical tokens MUST NOT be the primary language of the main experience. The main experience must remain human-readable and calm.
 
 ---
@@ -148,6 +149,84 @@ The plan must change if reality changes.
 1.  **Today:** Execution (The strict Directive).
 2.  **Tomorrow:** Forecast (Preparation).
 3.  **Horizon:** Outlook (Trend direction).
+
+#### 3.4.1 Intelligence Narrative Flow (Planner → Analyst → Operator)
+
+**Goal:** Preserve the PRD’s separation: deterministic decision loop (Planner) vs generative narrative (Analyst/Oracle), while keeping the UI calm and directive-first.
+
+**Non-Negotiable Outputs (by layer):**
+- **PLANNER (Deterministic)** produces:
+  - **Canonical `DIRECTIVE`** (category + stimulus_type)
+  - **Hard constraints** (safety bounds)
+  - A minimal **risk/priority explanation** (machine-readable is allowed internally)
+- **ORACLE / ANALYST (Narrative)** produces:
+  - **Analyst Insight (WHY):** 1–3 sentences explaining the trade-off in operator language
+  - **SESSION_FOCUS (HOW):** 1 sentence tactical cue (operator-friendly, non-coercive)
+  - Optional session formatting (title/subtitle/instructions) that **cannot change** the `DIRECTIVE`
+
+**Copy rules (enforced in narrative + UI):**
+- Forbidden terms in user-facing text: “protocol”, “execute”, “briefing”, “mission”, “orders”, “proceed”.
+- Forbidden tone: coercive hype headlines (e.g., “MAXIMIZE”, “IGNITE”, “EXTEND LIMITS”).
+- Required tone: calm, clinical, precise, non-judgmental Analyst voice.
+
+**UI surfacing requirement:**
+- The Focus/Home experience must always be able to render:
+  - The **Directive label** (Appendix A.2 format)
+  - One **SESSION_FOCUS** line
+  - One **AVOID** line
+  - One **Analyst Insight** paragraph inside `CONTEXTUAL_INTEL` (“Why this directive?”)
+
+**Failure-safe requirement:**
+- If narrative generation fails or is unavailable, the system must fall back to deterministic, PRD-safe defaults for `SESSION_FOCUS` and Analyst Insight (no empty state).
+
+#### 3.4.2 Narrative Output Constraints (Hard Limits — Ship Gate)
+
+**Purpose:** Prevent narrative drift and cognitive overload. These constraints apply to any user-facing narrative produced by the Analyst/Oracle or any fallback system.
+
+##### A) `SESSION_FOCUS` (Hero secondary line)
+
+- **Intent:** One highest-leverage execution cue. Calm. Minimal.
+- **Hard limit:** 1 sentence.  
+  - **Preferred:** ≤ 120 characters  
+  - **Maximum:** 160 characters
+- **Forbidden language:** “execute”, “protocol”, “briefing”, “mission”, “orders”, “proceed”, “maximize”, “ignite”, “crush”, “absolutely”.
+- **Forbidden content:** prescriptive strength programming details (e.g., “5x5”, “80% 1RM”) unless the UI is explicitly in a Session Details view; Home is not.
+- **Must be directive-consistent:** The cue must match the current `DIRECTIVE` pair (no regulation cues under “Strength — Overload”, etc.).
+
+##### B) `AVOID` (Visible constraint line)
+
+- **Intent:** Prevent the most likely failure mode (misalignment or excessive cost).
+- **Hard limit:** 1 sentence.  
+  - **Preferred:** ≤ 90 characters  
+  - **Maximum:** 120 characters
+- **Tone:** constraint/risk framing. No shame. No moral judgment.
+- **Must be state-aware:** “Avoid” should tighten when the system is in high-risk states.
+
+##### C) Analyst Insight (WHY — inside `CONTEXTUAL_INTEL`)
+
+- **Intent:** Explain the trade-off so the Operator trusts the Directive, without turning Home into a lecture.
+- **Length:** Analyst Insight MAY be long **only inside** `CONTEXTUAL_INTEL`. However, it must be structured as:
+  - **Summary (required):** 1–2 sentences that stand alone as the complete answer.
+  - **Detail (optional):** additional context behind an explicit “More context” expansion.
+- **UI rule:** Home never shows the full detail by default; it shows the Summary only (via the Context panel’s collapsed state).
+- **Required content:** Must contain a trade-off structure:
+  - “X is strong / available, but Y is compromised, therefore the directive is Z.”
+- **Forbidden style:** long essays, excessive physiology jargon, or “robot-speak”.
+  - Examples of jargon to avoid: “myofibrillar disruption”, “parasympathetic tone”, “potentiation”.
+
+##### D) Quality Gate + Fallback
+
+If any generated narrative violates these limits or banned language:
+- The system must **regenerate once** (if generation is available), otherwise
+- It must **fallback deterministically** to PRD-safe templates keyed by `DIRECTIVE.category` + `stimulus_type`.
+- **No empty state** is permitted on Home.
+
+##### E) UI Clamp Rule (defensive rendering)
+
+Even if narrative exceeds constraints, the UI must:
+- Clamp `SESSION_FOCUS` to **1–2 lines max** (no paragraphs in the hero).
+- Clamp `AVOID` to **1–2 lines max**.
+- Long-form narrative belongs only in `BIOLOGY` or an explicit details surface, never the Home hero.
 
 ### 3.5 Agent Coordination System
 The Intelligence Layer is not a monolith. It is a system of specialized agents.
@@ -254,16 +333,104 @@ We analyze the *relationship* between biometric inputs to determine the Operator
 
 ### A.3 Metric Display Lock (Canonical → UI Label + Placement)
 
-**Rule:** The main experience prioritizes interpretation. Raw biometrics are secondary and belong in `THE_VAULT` unless surfaced via `CONTEXTUAL_INTEL` as narrative.
+**Rule:** The main experience prioritizes interpretation. Raw biometrics are secondary and belong in `BIOLOGY` unless surfaced via `CONTEXTUAL_INTEL` as narrative.
 
 | Canonical Metric | Display Label | Unit / Range | Placement Rule |
 | :--- | :--- | :--- | :--- |
 | `VITALITY` | Vitality | 0–100 | Primary (Home allowed) |
 | `ADAPTIVE_CAPACITY` | Adaptive Capacity | 0–100% | Primary (Home allowed) |
-| `PHYSIOLOGICAL_LOAD` | Physiological Load | relative | Secondary (Vault-first) |
-| HRV / RHR / Sleep (raw) | (human-friendly labels) | ms / bpm / hours | Vault-first; Home via `CONTEXTUAL_INTEL` only |
+| `PHYSIOLOGICAL_LOAD` | Physiological Load | relative | Secondary (Biology-first) |
+| HRV / RHR / Sleep (raw) | (human-friendly labels) | ms / bpm / hours | Biology-first; Home via `CONTEXTUAL_INTEL` only |
 
 ---
+
+## Appendix B — Scoring Inputs & Intelligence Evidence (Deterministic Requirements)
+
+**Purpose:** Expand Tier‑1 utility scoring beyond a single “sleep + HRV” snapshot, using additional sensor evidence while preserving deterministic, audit‑ready decisions.
+
+### B.1 Bevel Parity: What Sentient should learn from the screenshots
+
+The attached Bevel screens demonstrate two valuable patterns:
+
+- **Baseline-first Biology (Evidence view):**
+  - Visible baselines + trend direction for HRV and RHR (“HRV Baselines”, “RHR Baselines”)
+  - VO₂ Max shown with a simple qualitative band (“Good/Fair”) and a range context
+  - Body composition surfaces (Weight / Lean Body Mass / Body Fat) as available, non-blocking modules (“No data” allowed)
+- **Home = interpretation + narrative card:**
+  - A single narrative card that explains “what to do now” in plain language
+  - High-level day gauges (strain/recovery/sleep) without forcing the operator into raw charts
+
+Sentient must adopt the **pattern**, not the vocabulary: Sentient remains directive-first, `BIOLOGY` holds raw evidence, and the Analyst communicates the trade-off.
+
+### B.2 Required Evidence Categories for Tier‑1 Scoring (Guardrails)
+
+Tier‑1 scoring MUST be able to incorporate the following evidence categories when available. Each input is optional, but the scoring system must be designed to accept them without changing the canonical taxonomy.
+
+- **Recovery evidence**
+  - Sleep duration, sleep score/efficiency, sleep timing regularity
+  - HRV vs baseline (absolute + deviation + trend)
+  - Resting Heart Rate vs baseline (deviation + trend)
+  - Respiratory rate trend (if available)
+  - SpO₂ trend (if available)
+  - Temperature deviation (if available)
+
+- **Load evidence**
+  - Workout presence, duration, and caloric cost
+  - Intensity distribution (Zone 2 / threshold / intervals) when available
+  - Recent load density (e.g., number of sessions in last 72h)
+  - Day activity volume (steps, active minutes)
+
+- **Capacity modifiers (context)**
+  - Mission Variables (`MISSION_VARIABLES`): alcohol, caffeine, injury, illness, high stress, travel, etc.
+  - Environmental context (temperature extremes, timezone shift) when available
+
+- **Autonomic stress evidence**
+  - `STRESS` (0–100) computed as a time-series index across the day
+  - Summary outputs: average, highest, lowest, and % time elevated
+  - Must be interpretable as “autonomic arousal” (not a psychological diagnosis)
+
+- **Fitness / readiness modifiers (Vault-first)**
+  - VO₂ Max trend (slow-moving fitness signal; never a same-day whip)
+  - Weight / Lean Body Mass / Body Fat trends (slow-moving; Vault-first; never moralized)
+
+### B.3 How evidence should influence scoring (product rules)
+
+- **Deviations matter more than absolutes:** scoring should use “vs baseline” signals (Bevel’s baseline framing) wherever possible.
+- **Trends matter more than a single day:** include multi-day directionality (rising/falling/stable) for HRV/RHR/Sleep/Load.
+- **The system must remain audit‑ready:** every Tier‑1 directive must be explainable as a small set of evidence statements (“HRV down vs baseline”, “sleep short”, “recent load high”).
+- **No dashboard on Home:** these evidence signals are primarily surfaced in `BIOLOGY`; Home receives the interpretation.
+
+#### B.3.1 `STRESS` (Autonomic Arousal) — Product Requirements
+
+**Definition:** `STRESS` is a time-series evidence signal (0–100) estimating autonomic arousal across the day. It is not a mood score and not a medical diagnosis.
+
+**Computation (high-level, non-implementation):**
+- The system should estimate arousal from wearable signals available to the platform (e.g., heart rate dynamics relative to baseline, HRV when available, and optional respiratory/SpO₂/temperature signals where supported).
+- The system must reduce false positives by accounting for obvious exercise/movement context so “stress” does not simply mean “workout.”
+
+**Daily summary outputs (required):**
+- `STRESS.avg` (0–100)
+- `STRESS.highest` (0–100)
+- `STRESS.lowest` (0–100)
+- `STRESS.time_elevated_pct` (0–100%)
+
+**How Tier‑1 may use `STRESS` (guardrails):**
+- Persistent elevated `STRESS` may lower effective `ADAPTIVE_CAPACITY` and bias Tier‑1 away from high-cost directives.
+- `STRESS` must never override hard safety constraints (injury/illness flags remain dominant).
+
+**Where it appears:**
+- `BIOLOGY`: shows the evidence (summary + trend). This is “proof of trust.”
+- Home: the Analyst may reference stress only as a plain-language factor (“arousal has been elevated today”), never as a dashboard.
+
+### B.4 BIOLOGY requirement: Baselines view (Proof of Trust)
+
+`BIOLOGY` MUST include a Baselines view that can show:
+- HRV baseline + trend direction
+- RHR baseline + trend direction
+- VO₂ Max with range context (qualitative band allowed)
+- Body composition modules (Weight / Lean Body Mass / Body Fat) that degrade gracefully when missing
+
+This view exists to build trust in the Analyst’s narrative without turning Home into a dashboard.
 
 ## 4. The Physics Engine (Layer 0)
 

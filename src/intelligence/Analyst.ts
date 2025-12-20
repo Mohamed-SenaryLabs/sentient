@@ -25,87 +25,60 @@ export class Analyst {
   Translate the raw biometrics and the hard Directive into a cohesive, human narrative.
   
   STYLE GUIDE:
-  - **Explain the Trade-off:** "We are prioritizing recovery because your nervous system is saturated."
-  - **Context-Aware:** Reference specific data points (e.g. "HRV is down 10%").
-  - **No Robot-Speak:** Do not say "Based on the data". Just speak the insight.
-  `;
+  - **Explain the Trade-off:** You MUST explain the biological tension. (e.g. "Recovery is suppressed, but neural drive is high, creating a window for technical work but not metabolic load.")
+    # OUTPUT CONSTRAINTS
+    1. SESSION_FOCUS (Max 120 chars):
+       - A single, crisp tactical cue.
+       - Style: Low friction, high clarity.
+       - Example: "Crisp reps, long rests—stop before form degrades."
+       
+    2. AVOID_CUE (Max 120 chars):
+       - What to strictly avoid to protect the system.
+       - Example: "Glycolytic burnout—keep reps low; maintain quality."
+       
+    3. ANALYST_INSIGHT (Max 800 chars):
+       - PLAIN ENGLISH ONLY. NO JARGON.
+       - STRUCTURE: [1-2 Sentence Summary]. [Deep Context Paragraph].
+       - The first 2 sentences MUST stand alone as the decision summary.
+       - Usage: "Vitality is strong, but sleep is short. We’re using a focused strength stimulus to drive adaptation without adding unnecessary fatigue. Deep Sleep was only 45m (10%) which indicates specifically neural recovery is incomplete, so we are avoiding high-coordination complexity."
+
+    # INPUT DATA
+    `;
 
   /**
    * Composes the full prompt package (System + User) for a Daily Briefing
    */
-  static composeBriefing(
-    stats: OperatorDailyStats, 
-    tier1Directive: { 
-      category: string; 
-      stimulus: string; 
-      reason: string;
-      technical_trace?: {
-          winner_score: number;
-          rejected_alternatives: string[];
-          constraints: string[];
-      }
-    }
-  ): { system: string; user: string } {
-
-    // 1. Filter Library for Context
-    const lens = stats.stats.systemStatus.active_lens.toUpperCase();
+  static composeBriefing(stats: OperatorDailyStats, tier1Directive: any) {
+    const context = `
+    STATE: ${stats.stats.systemStatus.current_state}
+    VITALITY: ${Math.round(stats.stats.vitality)}%
+    SLEEP: ${Math.round(stats.sleep.totalDurationSeconds / 60)} min (Score: ${stats.sleep.score})
+    LOAD: ${stats.stats.physiologicalLoad}/10
     
-    const relevantRoutines = WORKOUT_LIBRARY.filter(r => 
-        r.category === tier1Directive.category && 
-        (r.archetypes.includes('ALL') || r.archetypes.includes(lens) || r.archetypes.includes('OPERATOR'))
-    ).slice(0, 5); // Take top 5 matching
+    DIRECTIVE: ${tier1Directive.category} // ${tier1Directive.stimulus}
+    REASON: ${tier1Directive.reason}
+    `;
 
-    // 2. Format Workouts for Causal Analysis
-    // We look at the last 24h of workouts to give context for fatigue/recovery
-    const recentWorkouts = stats.activity.workouts.length > 0
-        ? stats.activity.workouts.map(w => `${w.type} (${Math.round(w.durationSeconds/60)}min)`).join(', ')
-        : "No distinct sessions recorded recently";
-
-    // 3. Construct The Mission Briefing Payload
-    const payload = `
-    [MISSION BRIEFING DATA]
-    >> Current Time: ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-    >> Operator State: ${stats.stats.systemStatus.current_state}
-    >> Vitality: ${Math.round(stats.stats.vitality)}% (Homeostatic Integrity)
-    >> Sleep: ${stats.sleep.score} Score (${Math.round(stats.sleep.totalDurationSeconds/60)}m Total)
-    >> Recent Activity: ${recentWorkouts}
-    
-    [DIRECTIVE]
-    >> Protocol: ${tier1Directive.category} // ${tier1Directive.stimulus}
-    >> Technical Reason: ${tier1Directive.reason}
-    >> Archetype Lens: ${lens}
-
-    [THE LOGIC TRACE]
-    >> Winner Score: ${tier1Directive.technical_trace?.winner_score.toFixed(2) || 'N/A'}
-    >> Rejected Alternatives: 
-    ${tier1Directive.technical_trace?.rejected_alternatives.map(a => `   - ${a}`).join('\n') || 'None'}
-    >> Hard Constraints: ${tier1Directive.technical_trace?.constraints.join(', ') || 'None'}
-
-    [AVAILABLE TACTICS (ROUTINE LIBRARY)]
-    ${relevantRoutines.map(r => `> [${r.title}] ${r.subtitle}: ${r.description}`).join('\n')}
-
-    [OBJECTIVES]
-    1. TRANSLATE: The Planner has issued a Directive. You must explain WHY this specific biological state requires this specific protocol.
-    2. JUSTIFY: You MUST reference the tension between metrics (e.g. "HRV is high, BUT Sleep is low").
-    3. EXECUTE: Select the best routine.
-
-    [OUTPUT FORMAT JSON]
+    const instructions = `
+    Analyze the biometrics and generate the briefing based on the constraints.
+    Return JSON ONLY.
     {
-      "rationale": "STRICTLY PHYSIOLOGICAL REASONING. Do NOT give coaching cues here. Explain the trade-off. (e.g. 'Neural drive is preserved (HRV 74ms), but sleep debt is critical (5h), so we prioritize low-rep intensity to stimulate the CNS without draining metabolic reserves.')",
-      "specific_advice": "The Tactical Cue. (e.g. 'Focus on controlled eccentrics.')",
+      "rationale": "The Trade-Off Analysis. STRUCTURE: Start with a 1-2 sentence summary. Then optionally add deep context. DO NOT include tactical commands.",
+      "specific_advice": "The Tactical Focus Cue.",
+      "avoid_cue": "The Risk Constraint.",
       "session": {
-        "title": "...",
-        "subtitle": "...",
-        "instructions": "...",
+        "title": "Optional Override Title",
+        "subtitle": "Optional Override Subtitle",
+        "instructions": "Optional Override Instructions",
         "type": "DURATION", 
         "target_value": 30
       }
     }
     `;
 
-    return {
-        system: this.SYSTEM_PROMPT,
-        user: payload
+    return { 
+        system: this.SYSTEM_PROMPT, 
+        user: context + instructions 
     };
   }
 }

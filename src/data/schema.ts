@@ -85,6 +85,9 @@ export interface Session {
   };
   
   instructions: string; 
+  session_focus?: string;
+  avoid_cue?: string;
+  analyst_insight?: string; 
   
   validation: {
     type: 'DURATION' | 'CALORIES' | 'HEART_RATE' | 'STEPS';
@@ -126,6 +129,18 @@ export interface DailyDirective {
   };
 }
 
+// [NEW] Partial session details from LLM
+export interface SessionOverride {
+  title?: string;
+  subtitle?: string;
+  instructions?: string;
+  type?: 'DURATION' | 'CALORIES' | 'STEPS' | 'HEART_RATE';
+  target_value?: number;
+  focus_cue?: string;
+  avoid_cue?: string;
+  analyst_insight?: string;
+}
+
 export interface LogicChainContract {
   // v3.0 3-Day Strategic Arc
   horizon: DailyDirective[]; 
@@ -141,7 +156,7 @@ export interface LogicChainContract {
   session_focus: string; // Renamed from quest_type
   
   // [NEW] LLM Session Details (passed through from Gemimi)
-  llm_generated_session?: Session;
+  llm_generated_session?: SessionOverride;
   session_focus_refinement?: string;
 
   // [NEW] Decision Trace (for Engine Screen)
@@ -199,6 +214,24 @@ export interface OperatorDailyStats {
     trends?: {
       recovery_trend: 'RISING' | 'FALLING' | 'STABLE';
       load_trend: 'RISING' | 'FALLING' | 'STABLE';
+    };
+
+    // V3.0 Appendix B: Biometric Evidence (Biology)
+    biometric_trends?: {
+        hrv: {
+            baseline: number; // 30-day avg
+            today_z_score: number; 
+            trend: 'RISING' | 'FALLING' | 'STABLE';
+        };
+        rhr: {
+            baseline: number;
+            today_z_score: number;
+            trend: 'RISING' | 'FALLING' | 'STABLE';
+        };
+        sleep: {
+            baseline_duration: number; // seconds
+            trend: 'RISING' | 'FALLING' | 'STABLE';
+        }
     };
   };
 
