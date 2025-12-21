@@ -144,6 +144,67 @@ The plan must change if reality changes.
     3.  **Override:** Issue "Course Correction".
 *   **Analyst Output:** *"Capacity drain detected. Abort 'Overload'. New Directive: 'Regulation'."*
 
+### 3.3.1 Smart Cards (Home Interactivity Layer)
+
+**Purpose:** Provide low-friction Operator interactivity on Home **without** compromising directive-first UX. Smart Cards surface only high-leverage inputs that improve the system’s evidence quality, constraints, and day-level planning.
+
+**Non‑negotiables (Ship Gate):**
+- **Max 2 cards visible** on Home at any time.
+- Cards must be **calm, non-coercive**, and **single-decision** (one clear action).
+- Cards must be **persistent**: once **Completed** (or intentionally dismissed per policy), they must not reappear.
+- Cards must not push the Directive hero off-screen on a typical device; they belong **below** Directive/Focus/Avoid (or between Avoid and Context).
+
+#### A) Card lifecycle + persistence
+- **States:** `ACTIVE` → (`COMPLETED` | `DISMISSED`)
+- **Ledger requirement:** The system must persist a card ledger (storage implementation is flexible) with:
+  - `id`, `date`, `type`, `status`, `priority`, `payload`, timestamps
+- **Stable ID rule:** Cards must have stable IDs to prevent duplicates.
+  - Example: `${date}:${type}` (and append a context id for event-driven cards, e.g. workout id).
+
+#### B) Selection rules (max 2)
+- **Eligibility:** A card is eligible if its trigger condition is true **and** it is not `COMPLETED` **and** it is not blocked by its dismiss policy.
+- **Ranking:** Prioritize by **impact on accuracy/safety** first, convenience second:
+  1) Sleep confirmation (data quality)
+  2) Workout log (evidence capture)
+  3) Goals (longer-horizon tuning)
+  4) Workout suggestion (value-add)
+- **Tie-break:** Lowest numeric priority wins; then oldest `created_at`.
+
+#### C) Card types (requirements + acceptance criteria)
+
+##### 1) `SLEEP_CONFIRM` (Missing/Estimated Sleep Confirmation)
+- **Trigger:** Sleep is missing OR sleep is derived from `ESTIMATED_7D` / `DEFAULT_6H` and requires Operator confirmation.
+- **Action:** Operator confirms the estimate or sets a typical sleep duration (manual baseline preference).
+- **Persistence:** Once confirmed, mark `COMPLETED` and store the preference for future fallback behavior.
+- **Acceptance criteria:**
+  - If sleep is missing and fallback was used, Home shows this card.
+  - After confirm/set, the system updates the stored preference and the card does not reappear.
+
+##### 2) `WORKOUT_LOG` (Today’s Workout → Add Log)
+- **Trigger:** A workout is detected today AND no Operator workout log exists for it.
+- **Action:** Fast log (one-liner) with optional “add details” expansion (sets/reps/intervals).
+- **Data requirement:** Store logs in a dedicated “workout logs” store linked to the day, optionally linked to the detected workout id.
+- **Persistence:** After save, mark `COMPLETED`. If dismissed, do not re-show that day unless a new workout event occurs.
+- **Acceptance criteria:**
+  - Card appears once per detected workout event until logged or dismissed.
+  - Logging persists and becomes visible to downstream intelligence.
+
+##### 3) `WORKOUT_SUGGEST` (LLM Suggested Session from Logs)
+- **Trigger:** Enough recent logs exist (implementation threshold) AND system state/constraints allow suggestion AND no suggestion has been shown recently (rate limit).
+- **Agent requirement:** Must use a **new agent (not Analyst)** with a programming persona grounded to `docs/exercise taxonomy.md`.
+- **Non-negotiable:** Suggestions may not override Tier‑1 Directive/constraints; they can only propose a session that fits them.
+- **Acceptance criteria:**
+  - Suggestion is directive-consistent and constraint-compliant.
+  - Operator can accept (“Add to today”), save for later, or dismiss; outcome is persisted.
+
+##### 4) `GOALS` (Goals Intake / Update)
+- **Trigger:** No goals set OR goals are stale OR Operator initiates.
+- **Action:** Quick intake (guided prompts or micro-chat) to capture goals (e.g., fat loss, fitness, injury recovery).
+- **Persistence:** Once saved, mark `COMPLETED` and do not re-show until refresh policy.
+- **Acceptance criteria:**
+  - Operator can set/update goals in < 30 seconds.
+  - Goals are stored for future weighting/tuning (even if not yet used in scoring).
+
 ### 3.4 The 3-Day Strategic Arc (The Planner)
 **Requirement:** The Analyst generates a 3-Day Contract:
 1.  **Today:** Execution (The strict Directive).
@@ -213,7 +274,7 @@ The narrative layer must be grounded to the deterministic Evidence Summary and c
 
 ##### D) Regeneration + fallback
 
-If the LLM output fails validation (banned words, excessive length, directive inconsistency, constraint violations):
+If the LLM output fails validation (format/structure, excessive length, directive inconsistency, constraint violations):
 - Regenerate once (if available), otherwise fall back to deterministic templates keyed by `DIRECTIVE.category + stimulus_type`.
 
 #### 3.4.2 Narrative Output Constraints (Hard Limits — Ship Gate)
@@ -245,6 +306,9 @@ If the LLM output fails validation (banned words, excessive length, directive in
 - **Length:** Analyst Insight MAY be long **only inside** `CONTEXTUAL_INTEL`. However, it must be structured as:
   - **Summary (required):** 1–2 sentences that stand alone as the complete answer.
   - **Detail (optional):** additional context behind an explicit “More context” expansion.
+- **Hard caps (Ship Gate):**
+  - Summary: **≤ 300 characters**
+  - Detail (expanded only): **≤ 1,500 characters**
 - **UI rule:** Home never shows the full detail by default; it shows the Summary only (via the Context panel’s collapsed state).
 - **Required content:** Must contain a trade-off structure:
   - “X is strong / available, but Y is compromised, therefore the directive is Z.”
@@ -274,14 +338,11 @@ The Intelligence Layer is not a monolith. It is a system of specialized agents.
     *   *Role:* Determines the `System State` and `Vitality`.
     *   *Output:* "System is READY_FOR_LOAD."
 
-2.  **The Planner (Hybrid Consultant):**
+2.  **The Planner (Deterministic Decision Loop):**
     *   **Tier 1 (The Guardrails):** `[Mechanism: UTILITY SCORING]`
-        *   *Role:* Calculates deterministic safety bounds (e.g., "Max Load: 4.0").
-        *   *Output:* Safe Constraint Set.
-    *   **Tier 2 (The Strategist):** `[Mechanism: LLM (Temp 0)]`
-        *   *Role:* Analyzes rich context (History, Activity Names) to propose specific strategy.
-        *   *Output:* "Directive: Active Recovery Swim."
-    *   **Reconciliation:** If LLM Proposal fits Tier 1 Bounds -> **Adopt**. Else -> **Fallback to Tier 1**.
+        *   *Role:* Selects Today’s canonical `DIRECTIVE` and hard constraints using deterministic scoring.
+        *   *Output:* Directive + Constraint Set + machine-readable trace.
+    *   **Non‑negotiable:** The Planner does **not** call the LLM. It is predictable code.
 
 3.  **The Operative (Tactician):** `[Mechanism: LOGIC / CONSTRAINT SOLVER]`
     *   *Input:* Planner's Directive + User Archetype.
@@ -293,10 +354,14 @@ The Intelligence Layer is not a monolith. It is a system of specialized agents.
     *   *Role:* Calculates `Alignment Score` with zero ambiguity.
     *   *Output:* "ALIGNED" or "MISALIGNED".
 
-5.  **The Oracle (Narrator):** `[Mechanism: LLM]`
-    *   *Input:* The outputs of all above agents.
-    *   *Role:* Translates the raw logic into the "Analyst Persona" voice.
-    *   *Output:* "Your capacity is high, but your sleep debt is accumulating. We interpret this as a 'False Peak'..."
+5.  **The Analyst (Narrator):** `[Mechanism: LLM via Analyst gateway]`
+    *   *Input:* Directive + constraints + evidence bullets + state.
+    *   *Role:* Produces the Home narrative package (`SESSION_FOCUS`, `AVOID`, `Analyst Insight`) without changing the directive.
+    *   *Non‑negotiable:** All LLM calls that produce Home-facing narrative must route through the Analyst gateway.
+
+6.  **The Trainer (Optional, Non‑Home):** `[Mechanism: LLM]`
+    *   *Role:* Generates specific training suggestions and programming helpers grounded to the Exercise Taxonomy.
+    *   *Constraint:** Trainer outputs must be constrained by Tier‑1 directive/constraints and must not override them.
 
 ### 3.6 Dynamic Profiling Engine (Archetype Detection)
 **Concept:** The system does not rely on static "User Personas." Instead, it employs **Continuous Pattern Recognition** to construct a fluid Operator Profile. This ensures applicability across the entire human spectrum—from "Post-Partum Rehabilitation" to "Ultra-Endurance Competition."

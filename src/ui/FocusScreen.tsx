@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { OperatorDailyStats } from '../data/schema';
+import { OperatorDailyStats, SmartCard } from '../data/schema';
 import { getReadableState, getDirectiveLabel } from './DisplayTranslator';
+import { SmartCardsContainer } from './SmartCard';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -12,9 +13,21 @@ interface FocusScreenProps {
   status: string;
   onRefresh: () => void;
   refreshing: boolean;
+  // Smart Cards
+  smartCards?: SmartCard[];
+  onCardComplete?: (cardId: string, payload?: any) => void;
+  onCardDismiss?: (cardId: string) => void;
 }
 
-export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScreenProps) {
+export function FocusScreen({ 
+  stats, 
+  status, 
+  onRefresh, 
+  refreshing,
+  smartCards,
+  onCardComplete,
+  onCardDismiss 
+}: FocusScreenProps) {
   const [showContext, setShowContext] = useState(false);
   const [expandedInsight, setExpandedInsight] = useState(false);
 
@@ -189,6 +202,15 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
                   </View>
               </View>
           </View>
+      )}
+
+      {/* SMART CARDS (PRD Addendum) - Max 2, at bottom */}
+      {smartCards && smartCards.length > 0 && onCardComplete && onCardDismiss && (
+        <SmartCardsContainer
+          cards={smartCards}
+          onComplete={onCardComplete}
+          onDismiss={onCardDismiss}
+        />
       )}
 
     </ScrollView>

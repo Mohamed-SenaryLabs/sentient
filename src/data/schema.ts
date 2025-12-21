@@ -332,4 +332,107 @@ export interface OperatorDailyStats {
   oracleState?: OracleState;
   
   workoutFingerprints?: string[];
+  
+  // Smart Cards: workout logs linked to this day
+  workoutLogs?: WorkoutLog[];
+}
+
+// ============================================
+// SMART CARDS SYSTEM (PRD Addendum)
+// ============================================
+
+export type SmartCardType = 
+  | 'SLEEP_CONFIRM'      // Missing/estimated sleep confirmation
+  | 'WORKOUT_LOG'        // Log today's workout
+  | 'WORKOUT_SUGGESTION' // LLM-generated workout suggestion
+  | 'GOALS_INTAKE';      // Goals setting/update
+
+export type SmartCardStatus = 
+  | 'ACTIVE'     // Eligible and showable
+  | 'DISMISSED'  // "Not now" - with re-surface policy
+  | 'COMPLETED'; // Input received, do not return
+
+export interface SmartCard {
+  id: string;           // Format: ${date}:${type}[:${eventId}]
+  date: string;         // YYYY-MM-DD
+  type: SmartCardType;
+  status: SmartCardStatus;
+  priority: number;     // Higher = more important (1-100)
+  
+  // Card-specific payload
+  payload: SmartCardPayload;
+  
+  // Lifecycle timestamps
+  created_at: string;   // ISO
+  updated_at: string;   // ISO
+  dismissed_at?: string;
+  completed_at?: string;
+  
+  // Dismiss policy
+  dismissPolicy?: 'RESURFACE_DAILY' | 'RESURFACE_ON_EVENT' | 'PERMANENT';
+}
+
+export type SmartCardPayload = 
+  | SleepConfirmPayload
+  | WorkoutLogPayload
+  | WorkoutSuggestionPayload
+  | GoalsIntakePayload;
+
+export interface SleepConfirmPayload {
+  type: 'SLEEP_CONFIRM';
+  estimatedSleepSeconds: number;
+  sleepSource: 'ESTIMATED_7D' | 'DEFAULT_6H' | 'MANUAL';
+  confirmedValue?: number;  // Set after completion
+}
+
+export interface WorkoutLogPayload {
+  type: 'WORKOUT_LOG';
+  workoutId?: string;       // HealthKit workout ID if available
+  workoutType?: string;     // e.g., "Running", "Strength"
+  detectedAt?: string;      // When workout was detected
+  logEntry?: string;        // The operator's note after completion
+}
+
+export interface WorkoutSuggestionPayload {
+  type: 'WORKOUT_SUGGESTION';
+  suggestion: {
+    title: string;
+    summary: string;
+    why?: string;
+    duration?: number;      // minutes
+    intensity?: 'LOW' | 'MODERATE' | 'HIGH';
+  };
+  directiveCategory: string;
+  directiveStimulus: string;
+  accepted?: boolean;       // True if operator added to today
+  savedForLater?: boolean;  // True if operator saved
+}
+
+export interface GoalsIntakePayload {
+  type: 'GOALS_INTAKE';
+  currentGoals?: OperatorGoals;
+  lastUpdated?: string;
+}
+
+export interface OperatorGoals {
+  primary: string;          // Main optimization target
+  tags: string[];           // Canonical goal tags
+  description?: string;     // Free-form description
+  updatedAt: string;
+}
+
+// Workout Log: operator's note for a workout
+export interface WorkoutLog {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  workoutId?: string;       // Link to HealthKit workout
+  note: string;             // Quick note (e.g., "Norwegian 4x4 @ 14 km/h")
+  details?: {
+    sets?: number;
+    reps?: number;
+    intervals?: string;
+    weight?: string;
+    notes?: string;
+  };
+  created_at: string;
 }

@@ -359,7 +359,7 @@ export class DawnProtocol {
                 trend: vitalityResult.zScores.rhr < -0.5 ? 'RISING' : vitalityResult.zScores.rhr > 0.5 ? 'FALLING' : 'STABLE'
             },
             sleep: {
-                baseline_duration: 25200,
+                baseline_duration: baselines.sleepSeconds || 25200,
                 trend: 'STABLE'
             },
             steps: {

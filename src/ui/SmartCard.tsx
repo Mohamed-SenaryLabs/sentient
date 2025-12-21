@@ -1,0 +1,459 @@
+/**
+ * Smart Cards UI Component (PRD Addendum)
+ * 
+ * Renders interactive cards on Home screen.
+ * Max 2 cards visible, calm design, one action per card.
+ */
+
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  TextInput,
+  LayoutAnimation,
+  Platform,
+  UIManager
+} from 'react-native';
+import { 
+  SmartCard as SmartCardType,
+  SleepConfirmPayload,
+  WorkoutLogPayload,
+  WorkoutSuggestionPayload,
+  GoalsIntakePayload
+} from '../data/schema';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+interface SmartCardProps {
+  card: SmartCardType;
+  onComplete: (cardId: string, payload?: any) => void;
+  onDismiss: (cardId: string) => void;
+}
+
+export function SmartCardComponent({ card, onComplete, onDismiss }: SmartCardProps) {
+  switch (card.type) {
+    case 'SLEEP_CONFIRM':
+      return <SleepConfirmCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
+    case 'WORKOUT_LOG':
+      return <WorkoutLogCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
+    case 'WORKOUT_SUGGESTION':
+      return <WorkoutSuggestionCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
+    case 'GOALS_INTAKE':
+      return <GoalsIntakeCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
+    default:
+      return null;
+  }
+}
+
+// ============================================
+// SLEEP CONFIRM CARD
+// ============================================
+
+function SleepConfirmCard({ card, onComplete, onDismiss }: SmartCardProps) {
+  const payload = card.payload as SleepConfirmPayload;
+  const estimatedHours = (payload.estimatedSleepSeconds / 3600).toFixed(1);
+  const [customHours, setCustomHours] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  
+  const handleConfirm = () => {
+    onComplete(card.id, {
+      ...payload,
+      confirmedValue: payload.estimatedSleepSeconds
+    });
+  };
+  
+  const handleSetCustom = () => {
+    if (showCustomInput && customHours) {
+      const hours = parseFloat(customHours);
+      if (!isNaN(hours) && hours > 0 && hours < 24) {
+        onComplete(card.id, {
+          ...payload,
+          confirmedValue: hours * 3600
+        });
+      }
+    } else {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setShowCustomInput(true);
+    }
+  };
+  
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>Confirm sleep estimate</Text>
+      <Text style={styles.cardBody}>
+        No recent sleep data. Is ~{estimatedHours}h close to your sleep last night?
+      </Text>
+      
+      {showCustomInput && (
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 7.5"
+            placeholderTextColor="#64748B"
+            keyboardType="decimal-pad"
+            value={customHours}
+            onChangeText={setCustomHours}
+            autoFocus
+          />
+          <Text style={styles.inputLabel}>hours</Text>
+        </View>
+      )}
+      
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleConfirm}>
+          <Text style={styles.primaryButtonText}>Confirm</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryButton} onPress={handleSetCustom}>
+          <Text style={styles.secondaryButtonText}>
+            {showCustomInput ? 'Save' : 'Set my average'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
+          <Text style={styles.dismissButtonText}>Not now</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ============================================
+// WORKOUT LOG CARD
+// ============================================
+
+function WorkoutLogCard({ card, onComplete, onDismiss }: SmartCardProps) {
+  const payload = card.payload as WorkoutLogPayload;
+  const [note, setNote] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
+  
+  const handleSave = () => {
+    if (note.trim()) {
+      onComplete(card.id, {
+        ...payload,
+        logEntry: note.trim()
+      });
+    }
+  };
+  
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>Log today's session</Text>
+      <Text style={styles.cardBody}>
+        {payload.workoutType ? `${payload.workoutType} detected. ` : ''}
+        Want to add a quick note?
+      </Text>
+      
+      <TextInput
+        style={styles.noteInput}
+        placeholder="e.g., Norwegian 4x4 @ 14 km/h"
+        placeholderTextColor="#64748B"
+        value={note}
+        onChangeText={setNote}
+        multiline
+        numberOfLines={2}
+      />
+      
+      <View style={styles.actionRow}>
+        <TouchableOpacity 
+          style={[styles.primaryButton, !note.trim() && styles.disabledButton]} 
+          onPress={handleSave}
+          disabled={!note.trim()}
+        >
+          <Text style={styles.primaryButtonText}>Save</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => setShowDetails(!showDetails)}>
+          <Text style={styles.secondaryButtonText}>Add details</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
+          <Text style={styles.dismissButtonText}>Not now</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ============================================
+// WORKOUT SUGGESTION CARD
+// ============================================
+
+function WorkoutSuggestionCard({ card, onComplete, onDismiss }: SmartCardProps) {
+  const payload = card.payload as WorkoutSuggestionPayload;
+  const { suggestion } = payload;
+  
+  const handleAddToToday = () => {
+    onComplete(card.id, {
+      ...payload,
+      accepted: true
+    });
+  };
+  
+  const handleSaveForLater = () => {
+    onComplete(card.id, {
+      ...payload,
+      savedForLater: true
+    });
+  };
+  
+  return (
+    <View style={styles.card}>
+      <View style={styles.suggestionHeader}>
+        <Text style={styles.cardTitle}>{suggestion.title}</Text>
+        {suggestion.duration && (
+          <Text style={styles.durationBadge}>{suggestion.duration} min</Text>
+        )}
+      </View>
+      <Text style={styles.cardBody}>{suggestion.summary}</Text>
+      {suggestion.why && (
+        <Text style={styles.whyText}>{suggestion.why}</Text>
+      )}
+      
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleAddToToday}>
+          <Text style={styles.primaryButtonText}>Add to today</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryButton} onPress={handleSaveForLater}>
+          <Text style={styles.secondaryButtonText}>Save for later</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
+          <Text style={styles.dismissButtonText}>Not now</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ============================================
+// GOALS INTAKE CARD
+// ============================================
+
+function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
+  const payload = card.payload as GoalsIntakePayload;
+  const [goal, setGoal] = useState(payload.currentGoals?.primary || '');
+  
+  const handleSave = () => {
+    if (goal.trim()) {
+      onComplete(card.id, {
+        ...payload,
+        currentGoals: {
+          primary: goal.trim(),
+          tags: inferGoalTags(goal.trim()),
+          updatedAt: new Date().toISOString()
+        }
+      });
+    }
+  };
+  
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>What are you optimizing for?</Text>
+      <Text style={styles.cardBody}>
+        {payload.currentGoals 
+          ? 'Update your training focus.' 
+          : 'Set your primary goal to personalize guidance.'}
+      </Text>
+      
+      <TextInput
+        style={styles.noteInput}
+        placeholder="e.g., Build endurance for a marathon, Gain strength..."
+        placeholderTextColor="#64748B"
+        value={goal}
+        onChangeText={setGoal}
+        multiline
+        numberOfLines={2}
+      />
+      
+      <View style={styles.actionRow}>
+        <TouchableOpacity 
+          style={[styles.primaryButton, !goal.trim() && styles.disabledButton]} 
+          onPress={handleSave}
+          disabled={!goal.trim()}
+        >
+          <Text style={styles.primaryButtonText}>Save</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
+          <Text style={styles.dismissButtonText}>Not now</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// Helper: infer goal tags from text
+function inferGoalTags(text: string): string[] {
+  const tags: string[] = [];
+  const lower = text.toLowerCase();
+  
+  if (lower.includes('strength') || lower.includes('strong') || lower.includes('lift')) {
+    tags.push('STRENGTH');
+  }
+  if (lower.includes('endurance') || lower.includes('cardio') || lower.includes('run') || lower.includes('marathon')) {
+    tags.push('ENDURANCE');
+  }
+  if (lower.includes('weight') || lower.includes('lean') || lower.includes('fat')) {
+    tags.push('BODY_COMP');
+  }
+  if (lower.includes('health') || lower.includes('longevity') || lower.includes('recovery')) {
+    tags.push('HEALTH');
+  }
+  if (lower.includes('performance') || lower.includes('compete') || lower.includes('race')) {
+    tags.push('PERFORMANCE');
+  }
+  
+  return tags.length > 0 ? tags : ['GENERAL'];
+}
+
+// ============================================
+// CONTAINER FOR MULTIPLE CARDS
+// ============================================
+
+interface SmartCardsContainerProps {
+  cards: SmartCardType[];
+  onComplete: (cardId: string, payload?: any) => void;
+  onDismiss: (cardId: string) => void;
+}
+
+export function SmartCardsContainer({ cards, onComplete, onDismiss }: SmartCardsContainerProps) {
+  if (!cards || cards.length === 0) {
+    return null;
+  }
+  
+  // Max 2 cards
+  const visibleCards = cards.slice(0, 2);
+  
+  return (
+    <View style={styles.container}>
+      {visibleCards.map((card, index) => (
+        <SmartCardComponent
+          key={card.id}
+          card={card}
+          onComplete={onComplete}
+          onDismiss={onDismiss}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ============================================
+// STYLES
+// ============================================
+
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 24,
+    gap: 16,
+  },
+  card: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6', // Blue accent
+  },
+  cardTitle: {
+    color: '#E2E8F0',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  cardBody: {
+    color: '#94A3B8',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  durationBadge: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '600',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  whyText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  secondaryButtonText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  dismissButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  dismissButtonText: {
+    color: '#64748B',
+    fontSize: 14,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    borderRadius: 6,
+    padding: 12,
+    color: '#E2E8F0',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  inputLabel: {
+    color: '#64748B',
+    fontSize: 14,
+  },
+  noteInput: {
+    backgroundColor: '#0F172A',
+    borderRadius: 6,
+    padding: 12,
+    color: '#E2E8F0',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 12,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+});
