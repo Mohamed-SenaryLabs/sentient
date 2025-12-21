@@ -432,6 +432,49 @@ async function fetchHeartRate(date: Date): Promise<number | null> {
   } catch (e) { return null; }
 }
 
+export async function fetchStress(date: Date, baselineHrv: number): Promise<{ avg: number; highest: number; lowest: number; time_elevated_pct: number } | undefined> {
+   if (!Healthkit || _healthKitDisabled || IS_SIMULATOR) return undefined;
+   try {
+     const { startDate, endDate } = getDayBounds(date);
+     // Need granular HRV samples
+     const samples = await Healthkit.queryQuantitySamples(
+        'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+        { limit: 0, unit: 'ms', filter: { date: { startDate, endDate } } }
+     );
+
+     if (!samples || samples.length === 0) return undefined;
+
+     // Extract values
+     const values = samples.map((s: any) => s.quantity);
+     
+     // 1. Calculate Stats
+     const sum = values.reduce((a: number, b: number) => a + b, 0);
+     const avgHrv = sum / values.length;
+     const maxHrv = Math.max(...values); // Lowest Stress
+     const minHrv = Math.min(...values); // Highest Stress
+
+     // 2. Calculate Elevation
+     // Stress is Elevated when HRV is significantly LOWER than baseline.
+     // Threshold: 10% below baseline (or use SD if available, but simple % is robust fallback)
+     const stressThreshold = baselineHrv > 0 ? baselineHrv * 0.9 : 40; 
+     const elevatedSamples = values.filter((v: number) => v < stressThreshold).length;
+     const time_elevated_pct = Math.round((elevatedSamples / values.length) * 100);
+
+     // Return Stress Metrics (Inverse of HRV)
+     // For "Stress Level" generic mapping: 100 - HRV? No, stick to raw for now or defined range.
+     // Accuracy Spec just asks for time_elevated_pct. 
+     // We will pass the HRV values but interpreted as Stress context if needed.
+     
+     return {
+         avg: Math.round(avgHrv),
+         highest: Math.round(minHrv), // Low HRV = High Stress
+         lowest: Math.round(maxHrv),  // High HRV = Low Stress
+         time_elevated_pct
+     };
+
+   } catch (e) { console.error('Error fetching stress:', e); return undefined; }
+}
+
 async function queryLatestQuantity(
   type: string, 
   startDate: Date, 

@@ -19,7 +19,8 @@ import {
   fetchActivityData, 
   fetchSleep,
   fetchHistoricalData,
-  debugWorkoutFetch 
+  debugWorkoutFetch,
+  fetchStress
 } from './src/data/healthkit';
 import { calculateAxes } from './src/engine/AxesCalculator';
 import { VitalityScorer } from './src/engine/VitalityScorer';
@@ -106,7 +107,7 @@ export default function App() {
   const runDawnProtocol = async (forceRefresh: boolean = false) => {
      setStatus('Running Dawn Protocol...');
      addLog('═══════════════════════════════════════');
-     addLog(`SENTIENT V3 - DAWN PROTOCOL ${forceRefresh ? '(FORCED)' : '(CACHED)'}`);
+     addLog(`DAWN PROTOCOL ${forceRefresh ? '(FORCED)' : '(CACHED)'}`);
      
      try {
        // 1. Database Init
@@ -274,7 +275,14 @@ export default function App() {
       addLog(`Fetching Data for ${now.toDateString()}...`);
       const activity = await fetchActivityData(now);
       const sleepData = await fetchSleep(now);
-      const bioData = await fetchBiometrics(now);
+      let bioData = await fetchBiometrics(now);
+      
+      // 4.1. Stress Pipe (New)
+      const stressMetrics = await fetchStress(now, baselines.hrv);
+      if (stressMetrics) {
+          bioData = { ...bioData, stress: stressMetrics };
+          addLog(`Stress: ${stressMetrics.time_elevated_pct}% Elevated (Min HRV: ${stressMetrics.lowest})`);
+      }
 
       addLog(`Steps: ${activity.steps} | Active: ${activity.activeCalories}kcal`);
       addLog(`Sleep: ${(sleepData.totalDurationSeconds/3600).toFixed(1)}h | HRV: ${bioData.hrv}ms`);
@@ -311,6 +319,10 @@ export default function App() {
           sampleCountSleep: baselines.sampleCountSleep
       });
 
+      // Log Inputs for Debugging
+      addLog(`Inputs -> Sleep: ${(vitalityResult.zScores.sleep).toFixed(2)}z | Source: ${vitalityResult.isEstimated ? 'EST/DEF' : 'MEASURED'}`);
+      addLog(`Inputs -> HRV: ${vitalityResult.zScores.hrv.toFixed(2)}z | RHR: ${vitalityResult.zScores.rhr.toFixed(2)}z`);
+
       // Handle availability (PRD §4.X.5)
       if (vitalityResult.availability === 'UNAVAILABLE') {
         currentStats.stats.vitalityAvailability = 'UNAVAILABLE';
@@ -332,6 +344,10 @@ export default function App() {
         }
         
         addLog(`Vitality: ${vitalityResult.vitality}% (Conf: ${vitalityResult.confidence})`);
+        addLog(`Scores -> Sleep: ${vitalityResult.scores.sleep_score} | HRV: ${vitalityResult.scores.hrv_score} | RHR: ${vitalityResult.scores.rhr_score}`);
+        if(vitalityResult.evidenceSummary.length > 0) {
+             addLog(`Evidence: ${vitalityResult.evidenceSummary[0]}`); // Log primary evidence
+        }
       }
       
       // Populate Vault Evidence (Biometric Trends)
@@ -537,7 +553,7 @@ export default function App() {
             setCurrentView('BIOLOGY');
           }}
         >
-          <Text style={[styles.tabText, currentView === 'BIOLOGY' && styles.activeTabText]}>BIOLOGY</Text>
+          <Text style={[styles.tabText, currentView === 'BIOLOGY' && styles.activeTabText]}>DASHBOARD</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
