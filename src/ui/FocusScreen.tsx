@@ -149,7 +149,7 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
                   "{analystNote || "Updating Intelligence..."}"
               </Text>
               
-              {analystNote && analystNote.length > 100 && (
+              {!!(analystNote && analystNote.length > 100) && (
                   <TouchableOpacity onPress={toggleInsight} style={{ marginTop: 8 }}>
                       <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>
                           {expandedInsight ? "Show less" : "Read complete analysis"}
@@ -176,7 +176,7 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
                             ? new Date(stats.logicContract.last_recal_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
                             : 'Initial Generation'}
                     </Text>
-                    {stats.logicContract?.last_recal_reason && (
+                     {!!stats.logicContract?.last_recal_reason && (
                         <Text style={[styles.metaText, { marginTop: 4, color: '#94A3B8' }]}>
                             REASON: {stats.logicContract.last_recal_reason}
                         </Text>

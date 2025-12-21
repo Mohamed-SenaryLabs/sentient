@@ -273,6 +273,10 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
                 label: formatWorkoutType(workout.type),
                 date: day.date,
                 value: workout.activeCalories,
+                duration: workout.durationSeconds,
+                rpm: workout.rpm,
+                minHr: workout.minHeartRate,
+                maxHr: workout.maxHeartRate,
                 id: workout.id
               }));
             }
@@ -281,6 +285,10 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
               label: 'Recovery',
               date: day.date,
               value: day.activity.activeCalories,
+              duration: 0,
+              rpm: undefined,
+              minHr: undefined,
+              maxHr: undefined,
               id: day.date + '_rec'
             }];
           });
@@ -299,7 +307,19 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
                     {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
                   </Text>
                 </View>
-                <Text style={styles.logValue}>{Math.round(item.value)} kcal</Text>
+                <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
+                  <Text style={styles.logValue}>{Math.round(item.value)} kcal</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
+                    {!!item.duration && (
+                      <Text style={styles.logDetail}>{Math.round(item.duration / 60)} min</Text>
+                    )}
+                    {item.minHr !== undefined && item.maxHr !== undefined && (
+                      <Text style={styles.logDetail}>
+                        · {item.minHr}-{item.maxHr} bpm
+                      </Text>
+                    )}
+                  </View>
+                </View>
               </View>
             ));
         })()}
@@ -627,6 +647,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+
+  logDetail: {
+    color: '#64748B',
+    fontSize: 11,
+  },
   sourceText: {
     color: '#64748B',
     fontSize: 10,
@@ -703,8 +728,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   logValue: {
-    color: '#94A3B8',
-    fontSize: 12,
+    color: '#E2E8F0',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

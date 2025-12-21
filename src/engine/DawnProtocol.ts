@@ -416,6 +416,19 @@ export class DawnProtocol {
             comprehensiveEvidence.push(`Mission: ${missionSummary}`);
         }
 
+        // Add workouts to evidence
+        if (currentStats.activity.workouts.length > 0) {
+            currentStats.activity.workouts.forEach(w => {
+                let workoutPrompt = `Workout: ${w.type} (${Math.round(w.durationSeconds / 60)}min, ${w.activeCalories}kcal)`;
+                if (w.minHeartRate && w.maxHeartRate) {
+                    workoutPrompt += ` (HR: ${w.minHeartRate}-${w.maxHeartRate}bpm)`;
+                } else if (w.rpm) {
+                    workoutPrompt += ` @ ${Math.round(w.rpm)} RPM`;
+                }
+                comprehensiveEvidence.push(workoutPrompt);
+            });
+        }
+
         // Add generation timestamp for natural variation (prevents identical outputs on reset)
         const timeOfDay = now.getHours();
         const period = timeOfDay < 12 ? 'morning' : timeOfDay < 17 ? 'afternoon' : 'evening';
@@ -463,7 +476,7 @@ export class DawnProtocol {
                 // Check if any constraint value differs
                 const allKeys = new Set([...Object.keys(cachedConstraints), ...Object.keys(currentConstraints)]);
                 for (const key of allKeys) {
-                    if (JSON.stringify(cachedConstraints[key]) !== JSON.stringify(currentConstraints[key])) {
+                    if (JSON.stringify((cachedConstraints as any)[key]) !== JSON.stringify((currentConstraints as any)[key])) {
                         constraintsChanged = true;
                         regenReason = `Constraint changed: ${key}`;
                         break;

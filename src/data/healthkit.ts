@@ -269,7 +269,7 @@ async function fetchSingleDaySleep(date: Date): Promise<SleepData> {
     coreSeconds: 0, 
     deepSeconds: 0, 
     score: 0, 
-    source: 'manual' 
+    source: 'MANUAL', 
   };
   
   if (!Healthkit || _healthKitDisabled || IS_SIMULATOR) return empty;
@@ -693,6 +693,52 @@ async function queryEnergyForInterval(startDateInput: string | Date, endDateInpu
   }
 }
 
+async function queryAvgCadenceForInterval(startDate: Date, endDate: Date): Promise<number | undefined> {
+  if (!Healthkit || _healthKitDisabled) return undefined;
+  try {
+    const result = await Healthkit.queryStatisticsForQuantity(
+      'HKQuantityTypeIdentifierCyclingCadence',
+      ['discreteAverage'],
+      {
+        filter: {
+          date: { startDate, endDate }
+        },
+        unit: 'count/min'
+      }
+    );
+    return result?.averageQuantity?.quantity ?? undefined;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+async function queryHeartRateStatsForInterval(startDate: Date, endDate: Date): Promise<{
+  avg?: number;
+  min?: number;
+  max?: number;
+}> {
+  if (!Healthkit || _healthKitDisabled) return {};
+  try {
+    const result = await Healthkit.queryStatisticsForQuantity(
+      'HKQuantityTypeIdentifierHeartRate',
+      ['discreteAverage', 'discreteMin', 'discreteMax'],
+      {
+        filter: {
+          date: { startDate, endDate }
+        },
+        unit: 'count/min'
+      }
+    );
+    return {
+      avg: result?.averageQuantity?.quantity ? Math.round(result.averageQuantity.quantity) : undefined,
+      min: result?.minimumQuantity?.quantity ? Math.round(result.minimumQuantity.quantity) : undefined,
+      max: result?.maximumQuantity?.quantity ? Math.round(result.maximumQuantity.quantity) : undefined,
+    };
+  } catch (e) {
+    return {};
+  }
+}
+
 /**
  * Fetch workouts with hydration fix
  * The HealthKit library doesn't return totalEnergyBurned in the workout object,
@@ -751,13 +797,30 @@ export async function fetchWorkouts(date: Date): Promise<Workout[]> {
       let distance = getSafeValue(sample.totalDistance);
       if (distance === 0) distance = getSafeValue(sample.totalSwimmingStrokeCount);
 
+      // 5. RPM (Cadence) - Specifically for Cycling (Activity ID 13) or Hand Cycling (74)
+      let rpm: number | undefined = undefined;
+      const cyclingTypes = [13, 74];
+      if (cyclingTypes.includes(rawType) && sample.startDate && sample.endDate) {
+        rpm = await queryAvgCadenceForInterval(new Date(sample.startDate), new Date(sample.endDate));
+      }
+
+      // 6. Heart Rate Statistics
+      let hrStats: { avg?: number; min?: number; max?: number } = { avg: undefined, min: undefined, max: undefined };
+      if (sample.startDate && sample.endDate) {
+        hrStats = await queryHeartRateStatsForInterval(new Date(sample.startDate), new Date(sample.endDate));
+      }
+
       return {
         id: sample.uuid || Math.random().toString(),
         type: name,
         durationSeconds: duration > 0 ? duration : 0,
         activeCalories: Math.round(calories),
         distance: distance > 0 ? distance : undefined,
-        startDate: sample.startDate
+        startDate: sample.startDate,
+        rpm: rpm,
+        avgHeartRate: hrStats.avg,
+        minHeartRate: hrStats.min,
+        maxHeartRate: hrStats.max
       };
     }));
 

@@ -24,6 +24,7 @@ export interface Workout {
   avgHeartRate?: number;
   maxHeartRate?: number;
   rpm?: number;
+  minHeartRate?: number;
 }
 
 export interface ActivityData {
