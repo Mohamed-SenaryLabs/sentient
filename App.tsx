@@ -36,15 +36,6 @@ export default function App() {
         // Fetch historical data for workout logs
         const history = await get30DayHistory();
         const sorted = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        // Debug: Log workout data
-        console.log(`[App] Fetched ${history.length} historical days`);
-        const daysWithWorkouts = sorted.filter(d => d.activity?.workouts?.length > 0);
-        console.log(`[App] ${daysWithWorkouts.length} days have workouts`);
-        daysWithWorkouts.slice(0, 3).forEach(d => {
-            console.log(`[App] ${d.date}: ${d.activity.workouts.length} workouts`);
-        });
-        
         setHistoricalData(sorted);
         
         setStatus('Complete');

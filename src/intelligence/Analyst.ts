@@ -1,5 +1,7 @@
-import { OperatorDailyStats } from '../data/schema';
+import { OperatorDailyStats, AnalystInsight } from '../data/schema';
 import { WORKOUT_LIBRARY } from '../data/WorkoutLibrary';
+import { FocusAvoidValidator } from './FocusAvoidValidator';
+import { FocusAvoidTemplates } from './FocusAvoidTemplates';
 
 /**
  * The Analyst (Intelligence Layer)
@@ -178,5 +180,41 @@ ${evidenceBullets}
           avoid_cue: avoidMap[directive.category] || 'Avoid overexertion.',
           session: undefined 
       };
+  }
+
+  /**
+   * PRD §3.4.1.1: Generate Focus/Avoid/Insight with LLM + Validation + Fallback
+   * 
+   * This method:
+   * 1. Attempts LLM generation with strict input constraints
+   * 2. Validates output against banned terms, length limits, and consistency rules
+   * 3. Retries once if validation fails
+   * 4. Falls back to deterministic templates if retry also fails
+   * 
+   * @returns Validated Focus/Avoid/Insight with source metadata
+   */
+  static async generateFocusAvoidInsight(
+    stats: OperatorDailyStats,
+    directive: { category: string; stimulus_type: string; target_rpe?: number },
+    constraints: { allow_impact: boolean; required_equipment: string[]; heart_rate_cap?: number },
+    evidenceSummary: string[]
+  ): Promise<{
+    sessionFocus: string;
+    avoidCue: string;
+    analystInsight: AnalystInsight;
+    source: 'LLM' | 'FALLBACK';
+  }> {
+    
+    // For now, use fallback templates directly
+    // TODO: Integrate actual LLM call when Gemini integration is ready
+    console.log('[Analyst] generateFocusAvoidInsight: Using fallback templates (LLM integration pending)');
+    
+    const template = FocusAvoidTemplates.getTemplate(
+      directive.category as any,
+      directive.stimulus_type as any,
+      { source: 'FALLBACK', reason: ['LLM integration pending'] }
+    );
+
+    return template;
   }
 }

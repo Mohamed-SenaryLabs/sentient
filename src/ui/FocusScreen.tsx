@@ -49,19 +49,21 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
   }
 
   const { systemStatus } = stats.stats;
-  const { session_focus } = stats.logicContract || { session_focus: '' };
+  const { session_focus, sessionFocus, avoidCue, analystInsight } = stats.logicContract || {};
 
   // 1. Primary Hero Label (Category — Stimulus)
   const primaryLabel = getDirectiveLabel(directive.category, directive.stimulus_type);
   
   // 2. Secondary Hero Label (Session Focus or Title)
-  const secondaryLabel = session_focus || stats.activeSession?.display.title || "Daily Focus";
+  const secondaryLabel = sessionFocus || session_focus || stats.activeSession?.display.title || "Daily Focus";
 
   // 3. Determine CONSTRAINTS
-  const avoid = getConstraints(systemStatus.current_state, directive.category);
+  const avoid = avoidCue || getConstraints(systemStatus.current_state, directive.category);
 
   // 4. Analyst Context
-  const analystNote = stats.activeSession?.analyst_insight;
+  const analystNote = analystInsight?.summary || stats.activeSession?.analyst_insight;
+  const analystDetail = analystInsight?.detail;
+  const contentSource = stats.logicContract?.contentSource;
   
   // PRD §4.X.5: Visual treatment for Low Vitality (< 30) vs normal
   const isLowVitality = stats.stats.vitality < 30;

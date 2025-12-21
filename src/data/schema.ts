@@ -160,6 +160,16 @@ export interface DailyDirective {
   };
 }
 
+// PRD §3.4.1.1: Analyst Insight (LLM-Generated, Day-Stable)
+export interface AnalystInsight {
+  summary: string;              // 1-2 sentences, required
+  detail?: string;              // Optional long-form context
+  generatedAt: string;          // ISO timestamp
+  source: 'LLM' | 'FALLBACK' | 'TEMPLATE';
+  validationPassed: boolean;
+  retryCount?: number;
+}
+
 // [NEW] Partial session details from LLM
 export interface SessionOverride {
   title?: string;
@@ -184,9 +194,19 @@ export interface LogicChainContract {
     stimulus_type: 'OVERLOAD' | 'MAINTENANCE' | 'FLUSH' | 'TEST';
     target_rpe?: number;
   };
-  session_focus: string; // Renamed from quest_type
+  session_focus: string; // Renamed from quest_type (DEPRECATED - use sessionFocus below)
   
-  // [NEW] LLM Session Details (passed through from Gemimi)
+  // PRD §3.4.1.1: LLM-Generated Content (Day-Stable, Persistent)
+  sessionFocus?: string;           // Max 160 chars, tactical cue
+  avoidCue?: string;               // Max 120 chars, constraint framing
+  analystInsight?: AnalystInsight; // Structured insight with summary + detail
+  evidenceSummary?: string[];      // 3-5 bullets (deterministic)
+  
+  // Metadata for persistence validation
+  contentGeneratedAt?: string;     // ISO timestamp
+  contentSource?: 'LLM' | 'FALLBACK';
+  
+  // [NEW] LLM Session Details (passed through from Gemini)
   llm_generated_session?: SessionOverride;
   session_focus_refinement?: string;
 
@@ -203,6 +223,7 @@ export interface LogicChainContract {
     heart_rate_cap?: number;
   };
 }
+
 
 /**
  * The core data object for a single day in the Operator's life.

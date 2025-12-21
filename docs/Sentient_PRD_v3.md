@@ -179,6 +179,43 @@ The plan must change if reality changes.
 **Failure-safe requirement:**
 - If narrative generation fails or is unavailable, the system must fall back to deterministic, PRD-safe defaults for `SESSION_FOCUS` and Analyst Insight (no empty state).
 
+#### 3.4.1.1 LLM-Generated `SESSION_FOCUS` & `AVOID` (Constrained, Persistent)
+
+**Problem:** Static mappings for Focus/Avoid will not cover the breadth of real-world cases.  
+**Solution:** Allow the narrative layer to generate `SESSION_FOCUS` and `AVOID` **language**, while Tier‑1 remains the deterministic authority over the `DIRECTIVE` and constraints.
+
+**Non-negotiable rule:** The LLM may generate **phrasing**, not **new taxonomy**.  
+It may not invent new directive categories, new states, or override constraints.
+
+##### A) Inputs allowed to influence `SESSION_FOCUS` and `AVOID`
+
+The narrative layer must be grounded to the deterministic Evidence Summary and constraints:
+- `DIRECTIVE` (canonical pair)
+- `SYSTEM STATE`
+- Evidence Summary bullets (PRD §4.1.1.6)
+- Constraints (impact allowed, HR cap, load density, `STRESS` summary, mission variables)
+
+##### B) Output requirements
+
+- **`SESSION_FOCUS`**
+  - Purpose: one tactical cue for how to succeed today.
+  - Must follow §3.4.2(A) constraints.
+- **`AVOID`**
+  - Purpose: one constraint that prevents the most likely failure mode (misalignment or excessive cost).
+  - Must follow §3.4.2(B) constraints.
+
+##### C) Persistence through the day (stability rule)
+
+`SESSION_FOCUS` and `AVOID` must be **stable** for the day:
+- Generated once at `DAWN_PROTOCOL` and persisted with the day record.
+- Recomputed only when `INTRA_DAY_RECAL` issues a **course correction** (directive/constraints change).
+- The UI must show the persisted values on relaunch (warm start), not regenerate opportunistically.
+
+##### D) Regeneration + fallback
+
+If the LLM output fails validation (banned words, excessive length, directive inconsistency, constraint violations):
+- Regenerate once (if available), otherwise fall back to deterministic templates keyed by `DIRECTIVE.category + stimulus_type`.
+
 #### 3.4.2 Narrative Output Constraints (Hard Limits — Ship Gate)
 
 **Purpose:** Prevent narrative drift and cognitive overload. These constraints apply to any user-facing narrative produced by the Analyst/Oracle or any fallback system.

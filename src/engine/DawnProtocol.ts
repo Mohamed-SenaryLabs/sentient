@@ -20,6 +20,7 @@ import {
 import { calculateAxes } from './AxesCalculator';
 import { VitalityScorer } from './VitalityScorer';
 import { Planner } from '../intelligence/Planner';
+import { Analyst } from '../intelligence/Analyst';
 import { calculateProgression } from './Progression';
 import { checkDailyAlignment } from './AlignmentTracker';
 import { SessionManager } from '../intelligence/SessionManager';
@@ -367,6 +368,24 @@ export class DawnProtocol {
         // 7. Intelligence Layer
         log('─── INTELLIGENCE LAYER ──────────────');
         const contract = await Planner.generateStrategicArc(currentStats, result.trends);
+        
+        // PRD §3.4.1.1: Generate Focus/Avoid/Insight
+        log('Generating session guidance...');
+        const focusAvoidInsight = await Analyst.generateFocusAvoidInsight(
+            currentStats,
+            contract.directive,
+            contract.constraints,
+            currentStats.stats.evidenceSummary || []
+        );
+        
+        // Store in contract
+        contract.sessionFocus = focusAvoidInsight.sessionFocus;
+        contract.avoidCue = focusAvoidInsight.avoidCue;
+        contract.analystInsight = focusAvoidInsight.analystInsight;
+        contract.evidenceSummary = currentStats.stats.evidenceSummary || [];
+        contract.contentGeneratedAt = new Date().toISOString();
+        contract.contentSource = focusAvoidInsight.source;
+        
         currentStats.logicContract = contract;
         
         log(`Today: ${contract.directive.category} / ${contract.directive.stimulus_type}`);
