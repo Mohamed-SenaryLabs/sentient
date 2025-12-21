@@ -96,6 +96,19 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
       {/* HERO SECTION */}
       <View style={styles.heroSection}>
         <Text style={styles.greeting}>{getGreeting()}</Text>
+        
+        {/* INTRA_DAY_RECAL: Status Indicator */}
+        {stats.logicContract?.last_recal_at ? (
+          <Text style={styles.recalStatus}>
+            Updated {new Date(stats.logicContract.last_recal_at).toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit' 
+            })}
+          </Text>
+        ) : (
+          <Text style={styles.recalStatus}>Monitoring</Text>
+        )}
+        
         <Text style={styles.intentTitle}>{primaryLabel}</Text>
         <Text style={[styles.intentSub, { color: vitalityColor }]}>{secondaryLabel}</Text>
       </View>
@@ -155,6 +168,25 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
                   <Text style={styles.metaText}>
                       CONFIDENCE: {stats.stats.vitalityConfidence || 'HIGH'}
                   </Text>
+                  
+                  {/* INTRA_DAY_RECAL: Metadata Row */}
+                  <View style={{ width: '100%', marginTop: 8, borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 8 }}>
+                    <Text style={styles.metaText}>
+                        LAST UPDATE: {stats.logicContract?.last_recal_at 
+                            ? new Date(stats.logicContract.last_recal_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                            : 'Initial Generation'}
+                    </Text>
+                    {stats.logicContract?.last_recal_reason && (
+                        <Text style={[styles.metaText, { marginTop: 4, color: '#94A3B8' }]}>
+                            REASON: {stats.logicContract.last_recal_reason}
+                        </Text>
+                    )}
+                    {stats.logicContract?.recal_count !== undefined && (
+                        <Text style={[styles.metaText, { marginTop: 4 }]}>
+                            RECAL COUNT: {stats.logicContract.recal_count}
+                        </Text>
+                    )}
+                  </View>
               </View>
           </View>
       )}
@@ -304,6 +336,14 @@ const styles = StyleSheet.create({
       lineHeight: 22,
       fontStyle: 'italic',
   },
+    recalStatus: {
+        fontSize: 10,
+        color: '#64748B', // Muted slate
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
+        fontFamily: 'System',
+    },
     sessionFocus: {
         fontSize: 24, // Hero size
         fontFamily: 'System', // Use system font for bold weight

@@ -112,9 +112,10 @@ export class DawnProtocol {
         const todayId = getLocalYYYYMMDD(now);
 
         // 2. PERSISTENCE CHECK
+        let existing: OperatorDailyStats | null = null; // Move to function scope for INTRA_DAY_RECAL
         if (!forceRefresh) {
             log('Checking Persistence...');
-            const existing = await getDailyStats(todayId);
+            existing = await getDailyStats(todayId);
             
             // STALENESS CHECK (PRD §3.4.1.1: Require Focus/Avoid/Insight)
             const hasFocusAvoidInsight = existing?.logicContract?.session_focus_llm 
@@ -360,6 +361,14 @@ export class DawnProtocol {
             sleep: {
                 baseline_duration: 25200,
                 trend: 'STABLE'
+            },
+            steps: {
+                baseline: baselines.steps,
+                trend: activity.steps > baselines.steps * 1.1 ? 'RISING' : activity.steps < baselines.steps * 0.9 ? 'FALLING' : 'STABLE'
+            },
+            active_calories: {
+                baseline: baselines.activeCalories,
+                trend: activity.activeCalories > baselines.activeCalories * 1.1 ? 'RISING' : activity.activeCalories < baselines.activeCalories * 0.9 ? 'FALLING' : 'STABLE'
             }
         };
 
@@ -419,14 +428,100 @@ export class DawnProtocol {
         log('─── INTELLIGENCE LAYER ──────────────');
         const contract = await Planner.generateStrategicArc(currentStats, result.trends);
         
-        // PRD §3.4.1.1: Generate Focus/Avoid/Insight
-        log('⚙️  Generating fresh Home screen content (Focus/Avoid/Insight)...');
-        const focusAvoidInsight = await Analyst.generateFocusAvoidInsight(
-            currentStats,
-            contract.directive,
-            contract.constraints,
-            currentStats.stats.evidenceSummary || []
-        );
+        // INTRA_DAY_RECAL: Check if directive/constraints changed (trigger for regeneration)
+        let shouldRegenerateFocusAvoid = true; // Default to regen for cold start
+        let regenReason = 'Cold start (no cached content)';
+        
+        // Cooldown protection: prevent rapid recals (30 min cooldown)
+        const RECAL_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+        
+        if (existing?.logicContract?.session_focus_llm && !forceRefresh) {
+            // We have cached Focus/Avoid/Insight - check for triggers
+            const cachedDirective = existing.logicContract.directive_snapshot 
+                ? JSON.parse(existing.logicContract.directive_snapshot) 
+                : null;
+            const cachedConstraints = existing.logicContract.constraints_snapshot 
+                ? JSON.parse(existing.logicContract.constraints_snapshot) 
+                : null;
+            
+            // Compare directive
+            let directiveChanged = false;
+            if (cachedDirective) {
+                if (cachedDirective.category !== contract.directive.category) {
+                    directiveChanged = true;
+                    regenReason = `Directive category changed: ${cachedDirective.category} → ${contract.directive.category}`;
+                } else if (cachedDirective.stimulus_type !== contract.directive.stimulus_type) {
+                    directiveChanged = true;
+                    regenReason = `Stimulus type changed: ${cachedDirective.stimulus_type} → ${contract.directive.stimulus_type}`;
+                }
+            }
+            
+            // Compare constraints (deep comparison)
+            let constraintsChanged = false;
+            if (cachedConstraints && !directiveChanged) {
+                const currentConstraints = contract.constraints;
+                // Check if any constraint value differs
+                const allKeys = new Set([...Object.keys(cachedConstraints), ...Object.keys(currentConstraints)]);
+                for (const key of allKeys) {
+                    if (JSON.stringify(cachedConstraints[key]) !== JSON.stringify(currentConstraints[key])) {
+                        constraintsChanged = true;
+                        regenReason = `Constraint changed: ${key}`;
+                        break;
+                    }
+                }
+            }
+            
+            shouldRegenerateFocusAvoid = directiveChanged || constraintsChanged || !cachedDirective || !cachedConstraints;
+            
+            // Cooldown check: block recal if too soon (unless dramatic directive change)
+            if (shouldRegenerateFocusAvoid && existing.logicContract.last_recal_at) {
+                const lastRecalTime = new Date(existing.logicContract.last_recal_at);
+                const timeSinceLastRecal = now.getTime() - lastRecalTime.getTime();
+                
+                // Allow recal if cooldown expired OR if it's a dramatic directive change
+                const isDramaticChange = directiveChanged && (
+                    (cachedDirective.category === 'REGULATION' && contract.directive.category !== 'REGULATION') ||
+                    (cachedDirective.stimulus_type === 'FLUSH' && contract.directive.stimulus_type === 'OVERLOAD') ||
+                    (cachedDirective.stimulus_type === 'OVERLOAD' && contract.directive.stimulus_type === 'FLUSH')
+                );
+                
+                if (timeSinceLastRecal < RECAL_COOLDOWN_MS && !isDramaticChange) {
+                    shouldRegenerateFocusAvoid = false;
+                    regenReason = `Cooldown active (${Math.round(timeSinceLastRecal / 1000 / 60)} min since last recal)`;
+                    log(`⏸️  INTRA_DAY_RECAL BLOCKED: ${regenReason}`);
+                }
+            }
+            
+            if (!shouldRegenerateFocusAvoid) {
+                if (!regenReason.includes('Cooldown')) {
+                    regenReason = 'Day-stable (no material changes)';
+                }
+                log(`✓ INTRA_DAY_RECAL: ${regenReason} - using cached Focus/Avoid/Insight`);
+            } else {
+                log(`⚡ INTRA_DAY_RECAL TRIGGER: ${regenReason}`);
+            }
+        }
+        
+        // PRD §3.4.1.1: Generate Focus/Avoid/Insight (only if triggered)
+        let focusAvoidInsight;
+        if (shouldRegenerateFocusAvoid) {
+            log('⚙️  Generating fresh Home screen content (Focus/Avoid/Insight)...');
+            focusAvoidInsight = await Analyst.generateFocusAvoidInsight(
+                currentStats,
+                contract.directive,
+                contract.constraints,
+                currentStats.stats.evidenceSummary || []
+            );
+        } else {
+            // Reuse cached content
+            focusAvoidInsight = {
+                sessionFocus: existing!.logicContract!.session_focus_llm!,
+                avoidCue: existing!.logicContract!.avoid_cue!,
+                analystInsight: existing!.logicContract!.analyst_insight!,
+                evidenceSummary: existing!.logicContract!.evidence_summary || [],
+                source: existing!.logicContract!.content_source || 'LLM',
+            };
+        }
         
         // Store in contract
         contract.session_focus_llm = focusAvoidInsight.sessionFocus;
@@ -435,6 +530,22 @@ export class DawnProtocol {
         contract.evidence_summary = currentStats.stats.evidenceSummary || [];
         contract.content_generated_at = new Date().toISOString();
         contract.content_source = focusAvoidInsight.source;
+        
+        // INTRA_DAY_RECAL: Store snapshots for trigger detection
+        contract.directive_snapshot = JSON.stringify(contract.directive);
+        contract.constraints_snapshot = JSON.stringify(contract.constraints);
+        
+        // INTRA_DAY_RECAL: Store observability metadata
+        if (shouldRegenerateFocusAvoid) {
+            contract.last_recal_at = new Date().toISOString();
+            contract.last_recal_reason = regenReason;
+            contract.recal_count = (existing?.logicContract?.recal_count || 0) + 1;
+        } else {
+            // Preserve existing metadata when using cache
+            contract.last_recal_at = existing?.logicContract?.last_recal_at;
+            contract.last_recal_reason = existing?.logicContract?.last_recal_reason;
+            contract.recal_count = existing?.logicContract?.recal_count || 0;
+        }
         
         currentStats.logicContract = contract;
         

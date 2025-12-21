@@ -23,6 +23,7 @@ export interface Workout {
   startDate?: string; // ISO String
   avgHeartRate?: number;
   maxHeartRate?: number;
+  rpm?: number;
 }
 
 export interface ActivityData {
@@ -196,6 +197,7 @@ export interface LogicChainContract {
   };
   session_focus: string; // Legacy tactical cue (still used by SessionManager)
   
+  
   // PRD §3.4.1.1: LLM-Generated Content (Day-Stable, Persistent)
   session_focus_llm?: string;          // Max 160 chars, LLM-generated tactical cue
   avoid_cue?: string;                  // Max 120 chars, constraint framing
@@ -205,6 +207,15 @@ export interface LogicChainContract {
   // Metadata for persistence validation
   content_generated_at?: string;       // ISO timestamp
   content_source?: 'LLM' | 'FALLBACK';
+  
+  // INTRA_DAY_RECAL: Snapshots for trigger detection
+  directive_snapshot?: string;         // JSON of directive used for generation
+  constraints_snapshot?: string;       // JSON of constraints used for generation
+  
+  // INTRA_DAY_RECAL: Observability metadata
+  last_recal_at?: string;              // ISO timestamp of last recalibration
+  last_recal_reason?: string;          // Human-readable reason for recal
+  recal_count?: number;                // Number of recals today (for cooldown)
   
   // [NEW] LLM Session Details (passed through from Gemini)
   llm_generated_session?: SessionOverride;
@@ -297,6 +308,14 @@ export interface OperatorDailyStats {
             baseline_duration: number; // seconds
             stdDev?: number;
             sampleCount?: number;
+            trend: 'RISING' | 'FALLING' | 'STABLE';
+        },
+        steps: {
+            baseline: number;
+            trend: 'RISING' | 'FALLING' | 'STABLE';
+        },
+        active_calories: {
+            baseline: number;
             trend: 'RISING' | 'FALLING' | 'STABLE';
         }
     };

@@ -37,6 +37,12 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
     return 'Stable';
   };
 
+  const getTrendLabel = (trend?: 'RISING' | 'FALLING' | 'STABLE') => {
+    if (trend === 'RISING') return '↗︎';
+    if (trend === 'FALLING') return '↘︎';
+    return '→';
+  };
+
   // Helper: Get load density level
   const getLoadLevel = (density: number) => {
     if (density > 25) return { label: 'High', color: '#EF4444' };
@@ -166,6 +172,43 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
                    stats.sleep.source === 'ESTIMATED_7D' ? 'Estimated (7-day)' :
                    stats.sleep.source === 'DEFAULT_6H' ? 'Default (6h)' : 'Manual'}
         </Text>
+      </View>
+
+      {/* MOVEMENT SECTION */}
+      <Text style={styles.sectionHeader}>MOVEMENT</Text>
+      <View style={styles.columns}>
+        <View style={[styles.metricCard, { flex: 1 }]}>
+          <Text style={styles.metricTitle}>Steps</Text>
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Baseline:</Text>
+            <Text style={styles.metricValue}>
+              {Math.round(trends?.steps.baseline || 0).toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Today:</Text>
+            <Text style={styles.metricValue}>
+              {Math.round(stats.activity.steps).toLocaleString()} 
+              <Text style={styles.unit}> {getTrendLabel(trends?.steps.trend)}</Text>
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.metricCard, { flex: 1 }]}>
+          <Text style={styles.metricTitle}>Active Burn</Text>
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Baseline:</Text>
+            <Text style={styles.metricValue}>
+              {Math.round(trends?.active_calories.baseline || 0)} <Text style={styles.unit}>kcal</Text>
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Today:</Text>
+            <Text style={styles.metricValue}>
+              {Math.round(stats.activity.activeCalories)} <Text style={styles.unit}>kcal {getTrendLabel(trends?.active_calories.trend)}</Text>
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* LOAD SECTION */}
