@@ -17,6 +17,8 @@ export interface AxesHistory {
   avgMetabolicLoad: number;
 }
 
+// PRD §4.X: DEFAULT_BASELINES only used for initial calibration
+// In normal operation, real baselines from HealthKit should be passed
 const DEFAULT_BASELINES: AxesHistory = {
   avgSteps: 8000,
   avgActiveCalories: 500,
@@ -81,9 +83,21 @@ function calculateTrends(
   };
 }
 
+// PRD §4.X.6: Identify dominant axes for evidence
+function getDominantAxes(axes: SystemStatus['axes']): string[] {
+  const sorted = Object.entries(axes)
+    .sort(([, a], [, b]) => b - a);
+  
+  // Return top 2 axes with score > 30
+  return sorted
+    .filter(([, score]) => score > 30)
+    .slice(0, 2)
+    .map(([name]) => name);
+}
+
 export function calculateAxes(
   stats: OperatorDailyStats,
-  history: AxesHistory = DEFAULT_BASELINES,
+  history: AxesHistory,
   previousSystemStatus?: SystemStatus
 ): {
   systemStatus: SystemStatus;
@@ -161,6 +175,15 @@ export function calculateAxes(
     regulation: Math.round(regulationAxis),
   };
   
+  // PRD §4.X.6: Record dominant axes for evidence
+  const dominantAxes = getDominantAxes(axes);
+  
+  // PRD §4.X.2/4.X.3: Confidence Mapping (inherits from Vitality)
+  let confidenceVal = 80;
+  if (stats.stats.vitalityConfidence === 'HIGH') confidenceVal = 95;
+  if (stats.stats.vitalityConfidence === 'MEDIUM') confidenceVal = 75;
+  if (stats.stats.vitalityConfidence === 'LOW') confidenceVal = 40;
+
   const systemStatus = createSystemStatus(
     axes,
     {
@@ -169,7 +192,13 @@ export function calculateAxes(
       workouts: workouts,
       locationChanged: false, 
     },
-    previousSystemStatus ? [previousSystemStatus] : undefined
+    previousSystemStatus ? [previousSystemStatus] : undefined,
+    {
+        confidence: confidenceVal,
+        reasonCode: stats.stats.systemStatus?.reason_code,
+        availability: stats.stats.vitalityAvailability,
+        dominantAxes: dominantAxes
+    }
   );
   
   const trends = calculateTrends(axes, previousSystemStatus?.axes);
@@ -179,3 +208,4 @@ export function calculateAxes(
     trends,
   };
 }
+

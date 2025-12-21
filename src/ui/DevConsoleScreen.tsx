@@ -4,19 +4,25 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } fr
 interface DevConsoleScreenProps {
   logs: string[];
   onBack: () => void;
+  onRecreateDb: () => void;
   visible: boolean;
 }
 
-export function DevConsoleScreen({ logs, onBack, visible }: DevConsoleScreenProps) {
+export function DevConsoleScreen({ logs, onBack, onRecreateDb, visible }: DevConsoleScreenProps) {
   if (!visible) return null;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>SYSTEM CONSOLE</Text>
-        <TouchableOpacity onPress={onBack} style={styles.closeButton}>
-          <Text style={styles.closeText}>Close</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={onRecreateDb} style={[styles.closeButton, { backgroundColor: '#EF4444' }]}>
+            <Text style={[styles.closeText, { color: 'white' }]}>RESET DB</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onBack} style={styles.closeButton}>
+            <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.logContainer}>

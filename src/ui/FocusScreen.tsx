@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { OperatorDailyStats } from '../data/schema';
 import { getReadableState, getDirectiveLabel } from './DisplayTranslator';
@@ -18,14 +18,27 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
   const [showContext, setShowContext] = useState(false);
   const [expandedInsight, setExpandedInsight] = useState(false);
 
+  // Animate on load
+  useEffect(() => {
+    if (stats) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+  }, [stats]);
+
   // Safe access to nested data
   const directive = stats?.logicContract?.directive;
   const sysStatus = stats?.stats?.systemStatus;
+  
+  // PRD §4.X.5: Check availability status
+  const isUnavailable = stats?.stats?.vitalityAvailability === 'UNAVAILABLE';
+  const unavailableReason = stats?.stats?.vitalityUnavailableReason;
   
   // Use Translator for State Label
   const stateLabel = sysStatus 
     ? getReadableState(sysStatus.current_state)
     : "System Initializing...";
+
+
 
   if (!stats || !directive) {
     return (
@@ -49,6 +62,10 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
 
   // 4. Analyst Context
   const analystNote = stats.activeSession?.analyst_insight;
+  
+  // PRD §4.X.5: Visual treatment for Low Vitality (< 30) vs normal
+  const isLowVitality = stats.stats.vitality < 30;
+  const vitalityColor = isLowVitality ? '#F87171' : '#10B981'; // Red vs Emerald
 
   const toggleContext = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -70,16 +87,19 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
       <View style={styles.heroSection}>
         <Text style={styles.greeting}>{getGreeting()}</Text>
         <Text style={styles.intentTitle}>{primaryLabel}</Text>
-        <Text style={styles.intentSub}>{secondaryLabel}</Text>
+        <Text style={[styles.intentSub, { color: vitalityColor }]}>{secondaryLabel}</Text>
       </View>
 
       <View style={styles.divider} />
 
-      {/* ACTIONABLE ADVICE */}
-      {/* Removed "PRIORITY" section as it was often redundant with Secondary Label. 
-          If strictly needed, we can re-add, but PRD prefers focus on Hero. 
-          The 'session_focus' is now in the hero. 
-      */}
+      {/* Low Vitality Warning Banner */}
+      {isLowVitality && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.warningText}>
+            ⚠️ Vitality is low ({stats.stats.vitality}%). Recovery is recommended.
+          </Text>
+        </View>
+      )}
 
       <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: '#F87171' }]}>AVOID</Text>
@@ -119,8 +139,11 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
                   <Text style={styles.metaText}>
                       STATE: {getReadableState(systemStatus.current_state)}
                   </Text>
-                  <Text style={styles.metaText}>
+                  <Text style={[styles.metaText, { color: isLowVitality ? '#F87171' : '#475569' }]}>
                       VITALITY: {stats.stats.vitality > 0 ? `${stats.stats.vitality}%` : "Estimating..."}
+                  </Text>
+                  <Text style={styles.metaText}>
+                      CONFIDENCE: {stats.stats.vitalityConfidence || 'HIGH'}
                   </Text>
               </View>
           </View>
@@ -153,6 +176,22 @@ function getGreeting(): string {
     if (hour < 12) return "Good morning";
     if (hour < 18) return "Good afternoon";
     return "Good evening";
+}
+
+// PRD §4.X.5: User-friendly unavailable messages
+function getUnavailableMessage(reason?: string): string {
+    switch (reason) {
+        case 'INSUFFICIENT_BASELINE':
+            return "Building your baseline...";
+        case 'SLEEP_DATA_MISSING':
+            return "No sleep data today";
+        case 'HRV_MISSING':
+            return "HRV data unavailable";
+        case 'INSUFFICIENT_DATA':
+            return "Not enough data";
+        default:
+            return "Collecting more data...";
+    }
 }
 
 
@@ -277,6 +316,44 @@ const styles = StyleSheet.create({
       color: '#475569',
       fontSize: 10,
       fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-      flexShrink: 1, // Fix: Prevent overflow
+      flexShrink: 1,
+  },
+  // PRD §4.X.5: Unavailable state styles
+  unavailableCard: {
+      backgroundColor: '#1E293B',
+      padding: 24,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginTop: 20,
+  },
+  unavailableIcon: {
+      fontSize: 48,
+      marginBottom: 16,
+  },
+  unavailableTitle: {
+      color: '#94A3B8',
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: 8,
+  },
+  unavailableText: {
+      color: '#64748B',
+      fontSize: 14,
+      lineHeight: 22,
+      textAlign: 'center',
+  },
+  // PRD §4.X.5: Low vitality warning banner
+  warningBanner: {
+      backgroundColor: 'rgba(248, 113, 113, 0.15)',
+      padding: 12,
+      borderRadius: 6,
+      marginBottom: 20,
+      borderLeftWidth: 3,
+      borderLeftColor: '#F87171',
+  },
+  warningText: {
+      color: '#FCA5A5',
+      fontSize: 14,
+      fontWeight: '500',
   }
 });

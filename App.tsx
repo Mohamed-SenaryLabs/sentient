@@ -1,5 +1,6 @@
 import { StatusBar } from 'react-native'; 
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Share, Alert } from 'react-native';
+
 import { useEffect, useState } from 'react';
 import { 
   initDatabase, 
@@ -41,6 +42,42 @@ const getLocalYYYYMMDD = (d: Date) => {
     return local.toISOString().split('T')[0];
 };
 
+// Start Factory Helper
+const createDailyStats = (
+  id: string, 
+  date: string, 
+  sleep: any, 
+  activity: any, 
+  biometrics: any, 
+  loadDensity: number = 0,
+  initialState: string = 'CALCULATING'
+): OperatorDailyStats => ({
+  id,
+  date,
+  missionVariables: [],
+  sleep,
+  activity,
+  biometrics,
+  stats: {
+      vitality: 0, 
+      vitalityZScore: 0, 
+      isVitalityEstimated: true, 
+      adaptiveCapacity: { current: 100, max: 100 },
+      physiologicalLoad: 0, 
+      loadDensity, 
+      alignmentScore: 0, 
+      consistency: 0, 
+      shieldsBreached: false,
+      systemStatus: { 
+          axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, 
+          current_state: initialState, 
+          active_lens: initialState === 'CALCULATING' ? 'CALCULATING' : 'UNKNOWN' 
+      }
+  },
+  dailySummary: undefined
+});
+// End Factory Helper
+
 export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState('Idle');
@@ -48,7 +85,7 @@ export default function App() {
   const [showDataModal, setShowDataModal] = useState(false);
   const [showDevConsole, setShowDevConsole] = useState(false);
   const [historicalData, setHistoricalData] = useState<OperatorDailyStats[]>([]);
-  const [mockStatsState, setMockStatsState] = useState<OperatorDailyStats | null>(null);
+  const [latestStats, setLatestStats] = useState<OperatorDailyStats | null>(null);
 
   const addLog = (msg: string) => {
     console.log(msg);
@@ -57,7 +94,13 @@ export default function App() {
 
   // ... (useEffect)
   useEffect(() => {
-    runDawnProtocol(false); // Default: Load from Cache if available
+    async function init() {
+
+
+        // Run Logic
+        runDawnProtocol(false); 
+    }
+    init();
   }, []);
 
   const runDawnProtocol = async (forceRefresh: boolean = false) => {
@@ -80,7 +123,7 @@ export default function App() {
            // STALENESS CHECK: Ensure we only use cache if it has the new Vault data (biometric_trends)
            if (existing && existing.logicContract && existing.stats.vitality > 0 && existing.stats.biometric_trends) {
                addLog('Loaded valid session from DB.');
-               setMockStatsState(existing);
+               setLatestStats(existing);
                setStatus('Complete');
                return; 
            }
@@ -103,7 +146,7 @@ export default function App() {
       const firstLaunch = await isFirstLaunch();
       let baselines = await getBaselines();
       
-      const needsUpdate = baselines && (!baselines.workoutMinutes || !baselines.vo2Max);
+      const needsUpdate = baselines && (!baselines.workoutMinutes || !baselines.vo2Max || !baselines.sampleCountHrv);
       addLog(`First Launch: ${firstLaunch ? 'YES' : 'NO'}`);
       addLog(`Baselines Update Needed: ${needsUpdate ? 'YES' : 'NO'}`);
       
@@ -113,10 +156,23 @@ export default function App() {
         
         baselines = {
           hrv: historical.averages.hrv,
+          stdDevHrv: historical.averages.stdDevHrv,
+          sampleCountHrv: historical.averages.sampleCountHrv,
+          coverageHrv: historical.averages.coverageHrv,
+
           rhr: historical.averages.rhr,
+          stdDevRhr: historical.averages.stdDevRhr,
+          sampleCountRhr: historical.averages.sampleCountRhr,
+          coverageRhr: historical.averages.coverageRhr,
+
           steps: historical.averages.steps,
           activeCalories: historical.averages.activeCalories,
+          
           sleepSeconds: historical.averages.sleepSeconds,
+          stdDevSleep: historical.averages.stdDevSleep,
+          sampleCountSleep: historical.averages.sampleCountSleep,
+          coverageSleep: historical.averages.coverageSleep,
+          
           workoutMinutes: historical.averages.workoutMinutes,
           vo2Max: historical.averages.vo2Max,
           calculatedAt: new Date().toISOString(),
@@ -131,20 +187,15 @@ export default function App() {
         for (const day of historical.days) {
             if (day.hrv || day.steps > 0 || day.activeCalories > 0) {
                  try {
-                    const historicalStats: any = {
-                         id: day.date,
-                         date: day.date,
-                         missionVariables: [],
-                         sleep: { totalDurationSeconds: day.sleepSeconds, score: day.sleepScore || 0, source: 'biometric', awakeSeconds: 0, remSeconds: 0, coreSeconds: 0, deepSeconds: 0 },
-                         activity: { steps: day.steps, activeCalories: day.activeCalories, activeMinutes: day.workoutMinutes, restingCalories: 1500, workouts: day.workouts || [] },
-                         biometrics: { hrv: day.hrv || 0, restingHeartRate: day.rhr || 0, respiratoryRate: 0, vo2Max: day.vo2Max || 0, oxygenSaturation: 0, bloodGlucose: 0 },
-                         stats: {
-                            vitality: 0, vitalityZScore: 0, isVitalityEstimated: true,
-                            adaptiveCapacity: { current: 100, max: 100 },
-                            physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
-                            systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'HISTORICAL', active_lens: 'UNKNOWN' }
-                         }
-                    };
+                    const historicalStats = createDailyStats(
+                         day.date,
+                         day.date,
+                         { totalDurationSeconds: day.sleepSeconds, score: day.sleepScore || 0, source: 'biometric', awakeSeconds: 0, remSeconds: 0, coreSeconds: 0, deepSeconds: 0 },
+                         { steps: day.steps, activeCalories: day.activeCalories, activeMinutes: day.workoutMinutes, restingCalories: 1500, workouts: day.workouts || [] },
+                         { hrv: day.hrv || 0, restingHeartRate: day.rhr || 0, respiratoryRate: 0, vo2Max: day.vo2Max || 0, oxygenSaturation: 0, bloodGlucose: 0 },
+                         0,
+                         'HISTORICAL'
+                    );
                     await saveDailyStats(historicalStats);
                     savedCount++;
                 } catch (err) { console.error('Failed to save history day', day.date, err); }
@@ -163,33 +214,45 @@ export default function App() {
       const yBio = await fetchBiometrics(yesterday);
       
       if (yActivity.steps > 0 || yActivity.workouts.length > 0) {
-          const yStats: any = {
-              id: getLocalYYYYMMDD(yesterday),
-              date: getLocalYYYYMMDD(yesterday),
-              missionVariables: [], // Preserve existing? (Simplified for now)
-              sleep: ySleep,
-              activity: {
+          const yStats = createDailyStats(
+              getLocalYYYYMMDD(yesterday),
+              getLocalYYYYMMDD(yesterday),
+              ySleep,
+              {
                   steps: yActivity.steps,
                   activeCalories: yActivity.activeCalories,
                   activeMinutes: yActivity.exerciseMinutes,
                   restingCalories: yActivity.restingCalories,
                   workouts: yActivity.workouts
               },
-              biometrics: yBio,
-              stats: {
-                  vitality: 0, vitalityZScore: 0, isVitalityEstimated: true,
-                  adaptiveCapacity: { current: 100, max: 100 },
-                  physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
-                  systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'HISTORICAL', active_lens: 'UNKNOWN' }
-              }
-          };
+              yBio,
+              0,
+              'HISTORICAL'
+          );
           
           // Physics for Yesterday
-          const yVitality = VitalityScorer.calculate(yStats, { avgHrv: baselines.hrv, avgRhr: baselines.rhr, avgSleepSeconds: 25200 });
+          const yVitality = VitalityScorer.calculate(yStats, { 
+            avgHrv: baselines.hrv, 
+            stdDevHrv: baselines.stdDevHrv,
+            sampleCountHrv: baselines.sampleCountHrv,
+            avgRhr: baselines.rhr, 
+            stdDevRhr: baselines.stdDevRhr,
+            sampleCountRhr: baselines.sampleCountRhr,
+            avgSleepSeconds: baselines.sleepSeconds || 25200,
+            stdDevSleep: baselines.stdDevSleep,
+            sampleCountSleep: baselines.sampleCountSleep
+          });
           yStats.stats.vitality = yVitality.vitality;
           yStats.stats.vitalityZScore = yVitality.zScores.hrv;
           
-          const yAxes = calculateAxes(yStats);
+          const yAxes = calculateAxes(yStats, {
+              avgSteps: baselines.steps,
+              avgActiveCalories: baselines.activeCalories,
+              avgSleepSeconds: baselines.sleepSeconds || 25200,
+              avgHrv: baselines.hrv,
+              avgRhr: baselines.rhr,
+              avgMetabolicLoad: 500
+          });
           yStats.stats.systemStatus = yAxes.systemStatus;
 
           // Preserve existing logic contract if possible, but for now just saving the data
@@ -197,6 +260,14 @@ export default function App() {
           addLog(`Yesterday Saved: ${yActivity.steps} steps`);
       }
     }
+
+      // 3.5. Load Density Calculation (Pre-Fetch)
+      // Used for today's stats.
+      const historyDb = await get30DayHistory();
+      // History is DESC (Yesterday is index 0)
+      const last3Loads = historyDb.slice(0, 3).map(h => h.stats?.physiologicalLoad || 0);
+      const currentLoadDensity = last3Loads.reduce((a, b) => a + b, 0);
+      addLog(`72h Load Density: ${currentLoadDensity} (History: ${last3Loads.join('+')})`);
 
       // 4. Fetch Today's Data
       addLog('─── TODAY\'S DATA ────────────────────');
@@ -208,47 +279,64 @@ export default function App() {
       addLog(`Steps: ${activity.steps} | Active: ${activity.activeCalories}kcal`);
       addLog(`Sleep: ${(sleepData.totalDurationSeconds/3600).toFixed(1)}h | HRV: ${bioData.hrv}ms`);
 
-      const mockStats: OperatorDailyStats = {
-        id: getLocalYYYYMMDD(now),
-        date: getLocalYYYYMMDD(now),
-        missionVariables: [],
-        sleep: sleepData,
-        activity: {
+      const currentStats = createDailyStats(
+        getLocalYYYYMMDD(now),
+        getLocalYYYYMMDD(now),
+        sleepData,
+        {
           steps: activity.steps,
           activeCalories: activity.activeCalories,
           activeMinutes: activity.exerciseMinutes,
           restingCalories: activity.restingCalories,
           workouts: activity.workouts
         },
-        biometrics: bioData,
-        stats: {
-           vitality: 0, 
-           vitalityZScore: 0, isVitalityEstimated: true, 
-           adaptiveCapacity: { current: 100, max: 100 },
-           physiologicalLoad: 0, alignmentScore: 0, consistency: 0, shieldsBreached: false,
-           systemStatus: { axes: { metabolic:0, mechanical:0, neural: 0, recovery: 0, regulation: 0 }, current_state: 'CALCULATING', active_lens: 'CALCULATING' }
-        },
-        dailySummary: undefined
-      };
+        bioData,
+        currentLoadDensity,
+        'CALCULATING'
+      );
 
       // 6. Run Physics Engine
       addLog('─── PHYSICS ENGINE ──────────────────');
       
       // Calculate Vitality
-      const vitalityResult = VitalityScorer.calculate(mockStats, { 
+      const vitalityResult = VitalityScorer.calculate(currentStats, { 
           avgHrv: baselines.hrv, 
+          stdDevHrv: baselines.stdDevHrv,
+          sampleCountHrv: baselines.sampleCountHrv,
           avgRhr: baselines.rhr,
-          avgSleepSeconds: 25200 // Mock/Default if baseline missing
+          stdDevRhr: baselines.stdDevRhr,
+          sampleCountRhr: baselines.sampleCountRhr,
+          avgSleepSeconds: baselines.sleepSeconds || 25200,
+          stdDevSleep: baselines.stdDevSleep,
+          sampleCountSleep: baselines.sampleCountSleep
       });
-      mockStats.stats.vitality = vitalityResult.vitality;
-      mockStats.stats.vitalityZScore = vitalityResult.zScores.hrv;
-      mockStats.stats.isVitalityEstimated = vitalityResult.isEstimated;
-      
-      addLog(`Vitality: ${vitalityResult.vitality}% (Z: ${vitalityResult.zScores.hrv})`);
+
+      // Handle availability (PRD §4.X.5)
+      if (vitalityResult.availability === 'UNAVAILABLE') {
+        currentStats.stats.vitalityAvailability = 'UNAVAILABLE';
+        currentStats.stats.vitalityUnavailableReason = vitalityResult.unavailableReason;
+        currentStats.stats.vitalityConfidence = 'LOW';
+        currentStats.stats.evidenceSummary = vitalityResult.evidenceSummary;
+        addLog(`Vitality: UNAVAILABLE (§${vitalityResult.unavailableReason})`);
+      } else {
+        currentStats.stats.vitality = vitalityResult.vitality;
+        currentStats.stats.vitalityZScore = vitalityResult.zScores.hrv;
+        currentStats.stats.isVitalityEstimated = vitalityResult.isEstimated;
+        currentStats.stats.vitalityConfidence = vitalityResult.confidence;
+        currentStats.stats.vitalityAvailability = 'AVAILABLE';
+        currentStats.stats.evidenceSummary = vitalityResult.evidenceSummary;
+        
+        // Inject reason code into dummy SystemStatus so AxesCalculator can pick it up
+        if (vitalityResult.reasonCode) {
+            currentStats.stats.systemStatus.reason_code = vitalityResult.reasonCode;
+        }
+        
+        addLog(`Vitality: ${vitalityResult.vitality}% (Conf: ${vitalityResult.confidence})`);
+      }
       
       // Populate Vault Evidence (Biometric Trends)
       // This was missing, causing 'CALCULATING' state even if data existed
-      mockStats.stats.biometric_trends = {
+      currentStats.stats.biometric_trends = {
           hrv: {
               baseline: baselines.hrv,
               today_z_score: vitalityResult.zScores.hrv,
@@ -265,16 +353,23 @@ export default function App() {
           }
       };
 
-      const result = calculateAxes(mockStats);
-      mockStats.stats.systemStatus = result.systemStatus;
+      const result = calculateAxes(currentStats, {
+          avgSteps: baselines.steps,
+          avgActiveCalories: baselines.activeCalories,
+          avgSleepSeconds: baselines.sleepSeconds || 25200,
+          avgHrv: baselines.hrv,
+          avgRhr: baselines.rhr,
+          avgMetabolicLoad: 500 // TODO: Calculate actual metabolic load baseline
+      });
+      currentStats.stats.systemStatus = result.systemStatus;
       
       addLog(`State: ${result.systemStatus.current_state}`);
       addLog(`Lens: ${result.systemStatus.active_lens}`);
 
       // 7. Intelligence Layer
       addLog('─── INTELLIGENCE LAYER ──────────────');
-      const contract = await Planner.generateStrategicArc(mockStats, result.trends);
-      mockStats.logicContract = contract;
+      const contract = await Planner.generateStrategicArc(currentStats, result.trends);
+      currentStats.logicContract = contract;
       
       addLog(`Today: ${contract.directive.category} / ${contract.directive.stimulus_type}`);
       if (contract.horizon.length > 1) {
@@ -287,15 +382,15 @@ export default function App() {
           contract.session_focus,
           contract.llm_generated_session
       );
-      mockStats.activeSession = session;
+      currentStats.activeSession = session;
       addLog(`Session: ${session.display.title} [${session.display.subtitle}]`);
 
       // 8. Calculate Alignment & Progression
       addLog('─── PROGRESSION ─────────────────────');
       
       // Check TODAY'S Alignment
-      const alignmentStatus = checkDailyAlignment(mockStats.activity, contract);
-      mockStats.stats.alignmentStatus = alignmentStatus === 'PENDING' ? 'MISALIGNED' : alignmentStatus;
+      const alignmentStatus = checkDailyAlignment(currentStats.activity, contract);
+      currentStats.stats.alignmentStatus = alignmentStatus === 'PENDING' ? 'MISALIGNED' : alignmentStatus;
       addLog(`Today's Alignment: ${alignmentStatus}`);
 
       const history = await get30DayHistory();
@@ -307,16 +402,16 @@ export default function App() {
       addLog(`Class: ${progression.rank}`);
       addLog(`Streak: ${progression.consistencyStreak} days`);
       
-      mockStats.stats.alignmentScore = progression.alignmentScore;
-      mockStats.stats.consistency = progression.consistencyStreak;
+      currentStats.stats.alignmentScore = progression.alignmentScore;
+      currentStats.stats.consistency = progression.consistencyStreak;
       
       // 9. Save
       addLog('─── SAVE ────────────────────────────');
-      await saveDailyStats(mockStats);
+      await saveDailyStats(currentStats);
       addLog('Saved Successfully.');
       addLog('═══════════════════════════════════════');
 
-      setMockStatsState(mockStats);
+      setLatestStats(currentStats);
       setStatus('Complete');
 
      } catch (e: any) {
@@ -377,14 +472,14 @@ export default function App() {
       <View style={{ flex: 1 }}>
         {currentView === 'FOCUS' ? (
           <FocusScreen 
-            stats={mockStatsState} 
+            stats={latestStats} 
             status={status} 
             onRefresh={() => runDawnProtocol(true)}
             refreshing={status.startsWith('Running')}
           />
         ) : currentView === 'BIOLOGY' ? (
            <BiologyScreen
-            stats={mockStatsState}
+            stats={latestStats}
             history={historicalData}
             onRefresh={() => runDawnProtocol(true)}
             refreshing={status.startsWith('Running')}
@@ -429,21 +524,27 @@ export default function App() {
       <View style={styles.tabBar}>
         <TouchableOpacity 
           style={[styles.tab, currentView === 'FOCUS' && styles.activeTab]} 
-          onPress={() => setCurrentView('FOCUS')}
+          onPress={() => {
+            setCurrentView('FOCUS');
+          }}
         >
           <Text style={[styles.tabText, currentView === 'FOCUS' && styles.activeTabText]}>HOME</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.tab, currentView === 'BIOLOGY' && styles.activeTab]} 
-          onPress={() => setCurrentView('BIOLOGY')}
+          onPress={() => {
+            setCurrentView('BIOLOGY');
+          }}
         >
           <Text style={[styles.tabText, currentView === 'BIOLOGY' && styles.activeTabText]}>BIOLOGY</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.tab, currentView === 'SETTINGS' && styles.activeTab]} 
-          onPress={() => setCurrentView('SETTINGS')}
+          onPress={() => {
+            setCurrentView('SETTINGS');
+          }}
         >
           <Text style={[styles.tabText, currentView === 'SETTINGS' && styles.activeTabText]}>SETTINGS</Text>
         </TouchableOpacity>
@@ -458,6 +559,30 @@ export default function App() {
       <DevConsoleScreen
         visible={showDevConsole}
         onBack={() => setShowDevConsole(false)}
+        onRecreateDb={async () => {
+             Alert.alert(
+                "Recreate Database",
+                "This will DELETE ALL DATA and reset the app. Are you sure?",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { 
+                        text: "Destruct Sequence",
+                        style: 'destructive',
+                        onPress: async () => {
+                            addLog('!!! INITIATING DATABASE RESET !!!');
+                            try {
+                                await resetDatabase();
+                                addLog('Database Dropped.');
+                                addLog('Please Restart the App manually to re-initialize.');
+                                Alert.alert("Reset Complete", "Please close and restart the app to re-initialize the database.");
+                            } catch (e) {
+                                addLog(`Reset Failed: ${e}`);
+                            }
+                        }
+                    }
+                ]
+             );
+        }}
         logs={logs}
       />
     </SafeAreaView>

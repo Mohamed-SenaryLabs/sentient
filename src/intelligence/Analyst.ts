@@ -49,18 +49,30 @@ export class Analyst {
    * Composes the full prompt package (System + User) for a Daily Briefing
    */
   static composeBriefing(stats: OperatorDailyStats, tier1Directive: any) {
+    // PRD §4.X.6: Build evidence bullets from computed data
+    const evidenceBullets = stats.stats.evidenceSummary?.length 
+      ? stats.stats.evidenceSummary.map((e, i) => `  ${i + 1}. ${e}`).join('\n')
+      : `  1. Vitality: ${Math.round(stats.stats.vitality)}%\n  2. Sleep: ${Math.round(stats.sleep.totalDurationSeconds / 3600)}h`;
+
     const context = `
     STATE: ${stats.stats.systemStatus.current_state}
     VITALITY: ${Math.round(stats.stats.vitality)}%
+    CONFIDENCE: ${stats.stats.vitalityConfidence || 'HIGH'}
+    AVAILABILITY: ${stats.stats.vitalityAvailability || 'AVAILABLE'}
     SLEEP: ${Math.round(stats.sleep.totalDurationSeconds / 60)} min (Score: ${stats.sleep.score})
     LOAD: ${stats.stats.physiologicalLoad}/10
     
     DIRECTIVE: ${tier1Directive.category} // ${tier1Directive.stimulus}
     REASON: ${tier1Directive.reason}
+    
+    # EVIDENCE (PRD §4.X.6)
+    You MUST reference ONLY these evidence bullets in your rationale:
+${evidenceBullets}
     `;
 
     const instructions = `
     Analyze the biometrics and generate the briefing based on the constraints.
+    CRITICAL: Your rationale MUST ONLY reference the evidence bullets provided above.
     Return JSON ONLY.
     {
       "rationale": "The Trade-Off Analysis. STRUCTURE: Start with a 1-2 sentence summary. Then optionally add deep context. DO NOT include tactical commands.",
@@ -80,5 +92,91 @@ export class Analyst {
         system: this.SYSTEM_PROMPT, 
         user: context + instructions 
     };
+  }
+
+  /**
+   * QUALITY GATE:
+   * Rejects generic, robotic, lazy, or prohibited insights.
+   */
+  static validateResponse(rationale: string, focus?: string): boolean {
+      if (!rationale || rationale.length < 20 || rationale.length > 800) return false;
+      if (focus && focus.length > 160) return false;
+      
+      const forbidden = [
+          // Robotic/Generic
+          "maintain system alignment", "proceed with directive", "based on the data", "as an ai", "system is primed",
+          // Banned Verbs/Nouns (Voice)
+          "execute", "protocol", "briefing", "mission", "maximize", "absolutely", "ensure",
+          // Banned Jargon
+          "myofibrillar", "parasympathetic tone", "potentiation", "homeostasis"
+      ];
+
+      const lowerRat = rationale.toLowerCase();
+      const lowerFoc = (focus || '').toLowerCase();
+      
+      if (forbidden.some(phrase => lowerRat.includes(phrase) || lowerFoc.includes(phrase))) {
+          console.warn(`Analyst Insight rejected. Contained forbidden phrase.`);
+          return false;
+      }
+
+      return true;
+  }
+
+  /**
+   * FALLBACK TEMPLATE (Product-Safe Defaults):
+   * Structure: "Vitality is [Qualitative], but [Constraint] is present. We choose [Strategy] to [Outcome]."
+   */
+  static generateFallbackInsight(stats: OperatorDailyStats, directive: any) {
+      const v = stats.stats.vitality;
+      const sleepScore = stats.sleep.score;
+      const load = stats.stats.physiologicalLoad;
+
+      let vitalityState = "moderate";
+      if (v > 80) vitalityState = "strong";
+      else if (v < 40) vitalityState = "compromised";
+
+      let constraint = "recovery is stable";
+      if (sleepScore < 70) constraint = "sleep is short";
+      else if (load > 6) constraint = "systemic load is high";
+      else if (stats.stats.biometric_trends?.rhr?.trend === 'RISING') constraint = "recovery is trending down";
+
+      // Director logic
+      const strategyMap: Record<string, string> = {
+          'STRENGTH': 'a focused strength stimulus',
+          'ENDURANCE': 'steady aerobic work',
+          'NEURAL': 'high-precision output',
+          'REGULATION': 'active restoration'
+      };
+
+      const outcomeMap: Record<string, string> = {
+           'STRENGTH': 'drive adaptation without adding unnecessary fatigue',
+           'ENDURANCE': 'maintain capacity while protecting reserves',
+           'NEURAL': 'stimulate the CNS without metabolic cost',
+           'REGULATION': 'reset the nervous system'
+      };
+      
+      const rationale = `Vitality is ${vitalityState}, but ${constraint}. We’re using ${strategyMap[directive.category] || 'a calibrated stimulus'} to ${outcomeMap[directive.category] || 'ensure progress'}.`;
+
+      // Fallback Focus Cues (Banned word safe)
+      const focusMap: Record<string, string> = {
+          'STRENGTH': 'Crisp reps, long rests—stop before form degrades.',
+          'ENDURANCE': 'Steady pace. Keep heart rate stable.',
+          'NEURAL': 'Fast, crisp, perfect. Quality over quantity.',
+          'REGULATION': 'Breathe deep. Disconnect.'
+      };
+
+      const avoidMap: Record<string, string> = {
+          'STRENGTH': 'Glycolytic burnout—keep reps low; maintain quality.',
+          'ENDURANCE': 'Drifting into Zone 4/5.',
+          'NEURAL': 'Grinding out reps.',
+          'REGULATION': 'Stressful environments.'
+      };
+      
+      return {
+          rationale,
+          specific_advice: focusMap[directive.category] || 'Focus on quality.',
+          avoid_cue: avoidMap[directive.category] || 'Avoid overexertion.',
+          session: undefined 
+      };
   }
 }

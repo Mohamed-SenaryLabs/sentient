@@ -3,6 +3,7 @@
  * Defines the structure of OperatorDailyStats and SystemStatus
  */
 
+// PRD §4.X.3 - Sleep Availability Policy
 export interface SleepData {
   totalDurationSeconds: number;
   awakeSeconds: number;
@@ -10,7 +11,7 @@ export interface SleepData {
   coreSeconds: number;
   deepSeconds: number;
   score: number; // 0-100
-  source?: 'biometric' | 'sensor' | 'manual' | 'average';
+  source?: 'MEASURED' | 'ESTIMATED_7D' | 'DEFAULT_6H' | 'MANUAL';
 }
 
 export interface Workout {
@@ -35,6 +36,13 @@ export interface ActivityData {
   workouts: Workout[];
 }
 
+export interface StressMetrics {
+    avg?: number;         // 0-100
+    highest?: number;     // 0-100
+    lowest?: number;      // 0-100
+    time_elevated_pct?: number; // 0-100
+}
+
 export interface Biometrics {
   hrv: number; // SDNN in ms
   restingHeartRate: number;
@@ -48,7 +56,21 @@ export interface Biometrics {
   // V3.0 New Metrics (Bevel Parity)
   oxygenSaturation?: number; // SpO2 (0-1.0 or %)
   bloodGlucose?: number; // mg/dL
+  
+  // PRD §2.1.E - Autonomic Stress
+  stress?: StressMetrics;
 }
+
+// PRD §4.X.1 - Baseline Quality Gate (per metric)
+export interface BaselineQuality {
+  mean: number;
+  stdDev: number;
+  sampleCount: number;
+  coverage: number; // sampleCount / 30
+}
+
+// PRD §4.X.2 - Availability (separate from Confidence)
+export type Availability = 'AVAILABLE' | 'UNAVAILABLE';
 
 export interface SystemStatus {
   axes: {
@@ -60,7 +82,16 @@ export interface SystemStatus {
   };
   current_state: string; 
   active_lens: string;   // Archetype (e.g. RANGER, OPERATOR)
+  
+  // PRD §4.X.2 - Availability & Confidence (Two Flags)
+  availability?: Availability;
+  unavailableReason?: string; // e.g. "INSUFFICIENT_BASELINE", "NO_HRV_TODAY"
   state_confidence?: number; // 0-100
+  reason_code?: string; // e.g. "HRV_MISSING", "SLEEP_DEPRIVED"
+  
+  // PRD §4.X.6 - Evidence (Audit-Ready)
+  dominantAxes?: string[]; // e.g. ["neural", "recovery"]
+  
   archetype_confidence?: number; // 0-100
   valid_from?: string; // ISO timestamp
   valid_to?: string; // ISO timestamp
@@ -191,9 +222,17 @@ export interface OperatorDailyStats {
   
   // Calculations
   stats: {
-    vitality: number; // 0-100 (Homeostatic Integrity)
+    vitality: number; // 1-100 (Homeostatic Integrity) - FLOOR IS 1
     vitalityZScore: number;
     isVitalityEstimated?: boolean;
+    
+    // PRD §4.X.2 - Availability & Confidence (Two Flags)
+    vitalityAvailability?: Availability;
+    vitalityUnavailableReason?: string;
+    vitalityConfidence?: 'HIGH' | 'MEDIUM' | 'LOW';
+    
+    // PRD §4.X.6 - Evidence Summary (3-5 bullets)
+    evidenceSummary?: string[];
     
     adaptiveCapacity: { // Renamed from mana for V3
         current: number; 
@@ -202,6 +241,7 @@ export interface OperatorDailyStats {
 
     // Canonical Metrics
     physiologicalLoad: number; // Cost
+    loadDensity?: number; // 72h Load Volume (Sum of last 3 days load)
     alignmentScore: number; // 0-100
     alignmentStatus?: 'ALIGNED' | 'MISALIGNED'; // Added for Progression
     consistency: number; // Streak
@@ -220,16 +260,22 @@ export interface OperatorDailyStats {
     biometric_trends?: {
         hrv: {
             baseline: number; // 30-day avg
+            stdDev?: number;
+            sampleCount?: number;
             today_z_score: number; 
             trend: 'RISING' | 'FALLING' | 'STABLE';
         };
         rhr: {
             baseline: number;
-            today_z_score: number;
+            stdDev?: number;
+            sampleCount?: number;
+            today_z_score: number; 
             trend: 'RISING' | 'FALLING' | 'STABLE';
         };
         sleep: {
             baseline_duration: number; // seconds
+            stdDev?: number;
+            sampleCount?: number;
             trend: 'RISING' | 'FALLING' | 'STABLE';
         }
     };

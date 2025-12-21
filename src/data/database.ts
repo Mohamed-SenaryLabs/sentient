@@ -61,9 +61,14 @@ async function createTables(): Promise<void> {
       stats_vitality INTEGER,
       stats_vitality_z_score REAL,
       stats_is_vitality_estimated INTEGER,
+      stats_vitality_confidence TEXT, -- 'HIGH' | 'MEDIUM' | 'LOW'
+      stats_vitality_availability TEXT, -- PRD §4.X.2: 'AVAILABLE' | 'UNAVAILABLE'
+      stats_vitality_unavailable_reason TEXT, -- PRD §4.X.2
+      stats_evidence_summary TEXT, -- PRD §4.X.6: JSON array of evidence bullets
       stats_adaptive_capacity_current INTEGER, -- Renamed from mana
       stats_adaptive_capacity_max INTEGER,
       stats_physiological_load INTEGER,
+      stats_load_density REAL, -- New V3.1
       stats_alignment_score INTEGER,
       stats_consistency INTEGER,
       stats_shields_breached INTEGER,
@@ -77,6 +82,7 @@ async function createTables(): Promise<void> {
       system_state TEXT,
       active_lens TEXT,
       state_confidence INTEGER,
+      reason_code TEXT, -- New V3.1
       archetype_confidence INTEGER,
       valid_from TEXT,
       valid_to TEXT,
@@ -131,6 +137,35 @@ async function createTables(): Promise<void> {
       `ALTER TABLE daily_stats ADD COLUMN alignment_status TEXT`,
     );
   } catch (e) {} 
+
+  // V3.1 Migration: Load Density
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN stats_load_density REAL');
+  } catch (e) {} // Ignore 
+  // V3.1 Migration: Load Density
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN stats_load_density REAL');
+  } catch (e) {} 
+
+  // V3.2 Migration: Robustness (Reason Code & Confidence)
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN reason_code TEXT');
+  } catch (e) {}
+
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN stats_vitality_confidence TEXT');
+  } catch (e) {}
+
+  // V3.3 Migration: PRD §4.X (Availability & Evidence)
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN stats_vitality_availability TEXT');
+  } catch (e) {}
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN stats_vitality_unavailable_reason TEXT');
+  } catch (e) {}
+  try {
+    await db.runAsync('ALTER TABLE daily_stats ADD COLUMN stats_evidence_summary TEXT');
+  } catch (e) {}
 }
 
 export async function saveDailyStats(stats: OperatorDailyStats): Promise<void> {
@@ -148,17 +183,18 @@ export async function saveDailyStats(stats: OperatorDailyStats): Promise<void> {
         biometrics_hrv, biometrics_resting_heart_rate, biometrics_respiratory_rate,
         biometrics_skin_temperature, biometrics_body_temperature, biometrics_sleeping_wrist_temperature,
         biometrics_vo2_max, biometrics_oxygen_saturation, biometrics_blood_glucose,
-        stats_vitality, stats_vitality_z_score, stats_is_vitality_estimated,
+        stats_vitality, stats_vitality_z_score, stats_is_vitality_estimated, stats_vitality_confidence,
+        stats_vitality_availability, stats_vitality_unavailable_reason, stats_evidence_summary,
         stats_adaptive_capacity_current, stats_adaptive_capacity_max,
-        stats_physiological_load, stats_alignment_score, stats_consistency,
+        stats_physiological_load, stats_load_density, stats_alignment_score, stats_consistency,
         stats_shields_breached,
         axis_metabolic, axis_mechanical, axis_neural, axis_recovery, axis_regulation,
         system_state, active_lens,
-        state_confidence, archetype_confidence, valid_from, valid_to,
+        state_confidence, reason_code, archetype_confidence, valid_from, valid_to,
         recovery_trend, load_trend,
         daily_summary, active_session, logic_contract, oracle_state,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         stats.id,
         stats.date,
@@ -188,9 +224,14 @@ export async function saveDailyStats(stats: OperatorDailyStats): Promise<void> {
         stats.stats.vitality,
         stats.stats.vitalityZScore,
         stats.stats.isVitalityEstimated ? 1 : 0,
+        stats.stats.vitalityConfidence || 'HIGH',
+        stats.stats.vitalityAvailability || 'AVAILABLE',
+        stats.stats.vitalityUnavailableReason || null,
+        stats.stats.evidenceSummary ? JSON.stringify(stats.stats.evidenceSummary) : null,
         stats.stats.adaptiveCapacity.current,
         stats.stats.adaptiveCapacity.max,
         stats.stats.physiologicalLoad,
+        stats.stats.loadDensity || 0,
         stats.stats.alignmentScore,
         stats.stats.consistency,
         stats.stats.shieldsBreached ? 1 : 0,
@@ -202,6 +243,7 @@ export async function saveDailyStats(stats: OperatorDailyStats): Promise<void> {
         systemStatus.current_state,
         systemStatus.active_lens,
         systemStatus.state_confidence || null,
+        systemStatus.reason_code || null,
         systemStatus.archetype_confidence || null,
         systemStatus.valid_from || null,
         systemStatus.valid_to || null,
@@ -264,11 +306,13 @@ export async function getDailyStats(date: string): Promise<OperatorDailyStats | 
         vitality: result.stats_vitality,
         vitalityZScore: result.stats_vitality_z_score,
         isVitalityEstimated: !!result.stats_is_vitality_estimated,
+        vitalityConfidence: result.stats_vitality_confidence as 'HIGH' | 'MEDIUM' | 'LOW' || 'HIGH',
         adaptiveCapacity: {
             current: result.stats_adaptive_capacity_current,
             max: result.stats_adaptive_capacity_max,
         },
         physiologicalLoad: result.stats_physiological_load,
+        loadDensity: result.stats_load_density || 0, // Map back
         alignmentScore: result.stats_alignment_score,
         consistency: result.stats_consistency,
         shieldsBreached: !!result.stats_shields_breached,
@@ -283,6 +327,7 @@ export async function getDailyStats(date: string): Promise<OperatorDailyStats | 
           current_state: result.system_state,
           active_lens: result.active_lens,
           state_confidence: result.state_confidence,
+          reason_code: result.reason_code,
           archetype_confidence: result.archetype_confidence,
           valid_from: result.valid_from,
           valid_to: result.valid_to,
@@ -375,12 +420,21 @@ export async function setFirstLaunchComplete(): Promise<void> {
  */
 export async function saveBaselines(baselines: {
   hrv: number;
+  stdDevHrv?: number;
+  sampleCountHrv?: number;
+  coverageHrv?: number;  // PRD §4.X.1
   rhr: number;
+  stdDevRhr?: number;
+  sampleCountRhr?: number;
+  coverageRhr?: number;
   steps: number;
   activeCalories: number;
   sleepSeconds: number;
-  workoutMinutes: number; // NEW
-  vo2Max: number;         // NEW
+  stdDevSleep?: number;
+  sampleCountSleep?: number;
+  coverageSleep?: number;
+  workoutMinutes: number; 
+  vo2Max: number;         
   calculatedAt: string;
 }): Promise<void> {
   if (!db) throw new Error('Database not initialized');
@@ -397,12 +451,21 @@ export async function saveBaselines(baselines: {
  */
 export async function getBaselines(): Promise<{
   hrv: number;
+  stdDevHrv?: number;
+  sampleCountHrv?: number;
+  coverageHrv?: number;  // PRD §4.X.1
   rhr: number;
+  stdDevRhr?: number;
+  sampleCountRhr?: number;
+  coverageRhr?: number;
   steps: number;
   activeCalories: number;
   sleepSeconds: number;
-  workoutMinutes: number; // NEW
-  vo2Max: number;         // NEW
+  stdDevSleep?: number;
+  sampleCountSleep?: number;
+  coverageSleep?: number;
+  workoutMinutes: number; 
+  vo2Max: number;         
   calculatedAt: string;
 } | null> {
   if (!db) throw new Error('Database not initialized');
@@ -534,11 +597,11 @@ export async function resetDatabase(): Promise<void> {
   if (!db) throw new Error('Database not initialized');
   
   try {
-    // Clear all tables
+    // Drop all tables to force partial-recreation on next init
     await db.execAsync(`
-      DELETE FROM daily_stats;
-      DELETE FROM system_storage;
-      DELETE FROM sessions;
+      DROP TABLE IF EXISTS daily_stats;
+      DROP TABLE IF EXISTS system_storage;
+      DROP TABLE IF EXISTS sessions;
     `);
     
     console.log('[Database] System Reset Complete - All Data Cleared');

@@ -441,6 +441,81 @@ Deterministic math. No AI hallucinations.
 *   **Adaptive Capacity:** Refills overnight based on Vitality. Drains daily based on Load.
 *   **Physiological Load:** The metabolic cost of work.
 
+### 4.1.1 Baseline Quality & Confidence Rules (Non‑Negotiable)
+
+**Purpose:** Prevent false certainty. Baseline-relative scoring must be audit‑ready and must degrade gracefully when data is missing or insufficient.
+
+#### 4.1.1.1 Baseline Quality Gates
+
+For any baseline‑relative metric used in scoring (HRV, RHR, Sleep duration; later `STRESS`, load density), the system MUST compute and store:
+
+- mean
+- stdDev
+- sampleCount
+- coverage (sampleCount / 30)
+
+**Minimum thresholds (30‑day window):**
+- **LOW confidence:** sampleCount ≥ 7
+- **MEDIUM confidence:** sampleCount ≥ 14
+- **HIGH confidence:** sampleCount ≥ 21
+
+If sampleCount < 7, the metric is **not baseline-valid** and may not produce a z‑score.
+
+**Metric-specific rule (critical):** Baseline quality gates apply **per metric**, not as a single combined minimum.  
+Example: Low sleep baseline coverage MUST NOT invalidate HRV/RHR scoring. The system must degrade confidence and/or re-weight using available channels.
+
+#### 4.1.1.2 Availability vs Confidence (Two Flags)
+
+All computed outputs MUST include:
+
+- **Availability**
+  - `AVAILABLE` / `UNAVAILABLE`
+  - If unavailable, include a reason (e.g., permission denied, no samples, insufficient baseline).
+- **Confidence**
+  - `HIGH` / `MEDIUM` / `LOW`
+  - Derived from baseline quality + missingness of today’s inputs.
+
+**UNAVAILABLE must be rare:** The system should prefer `AVAILABLE` + `LOW` confidence over `UNAVAILABLE` when reasonable fallbacks exist (see §4.1.1.4).
+
+#### 4.1.1.3 Confidence Inheritance
+
+- **Vitality Confidence** is derived from the quality/availability of:
+  - HRV baseline + today HRV
+  - RHR baseline + today RHR
+  - Sleep baseline + today sleep duration (or an explicit fallback)
+- **System State Confidence** MUST inherit from Vitality Confidence (it cannot claim higher certainty than its upstream recovery evidence).
+
+#### 4.1.1.4 Fallback Hierarchy (when data is missing)
+
+For Vitality computation:
+
+- **Full data available** → standard formula (40/40/20) + confidence per baseline gates
+- **Missing HRV today** → fallback formula (Sleep/RHR) + **LOW confidence** + penalty
+- **Sleep fallback policy (required):**
+  - If measured sleep is missing, the system MUST fall back in this order:
+    - `ESTIMATED_7D` → `DEFAULT_6H` → `MANUAL` (when provided)
+  - Sleep fallbacks keep Vitality **AVAILABLE** but reduce confidence and set an explicit reason code (e.g., `SLEEP_ESTIMATED_7D`, `SLEEP_DEFAULT_6H`, `SLEEP_MANUAL`).
+- **Definition of “UNAVAILABLE” (hard rule):**
+  - Vitality may be `UNAVAILABLE` only when there is **insufficient autonomic evidence**, meaning:
+    - HRV is unavailable (missing or not baseline-valid) **and**
+    - RHR is unavailable (missing or not baseline-valid)
+  - Sleep missing alone MUST NOT force `UNAVAILABLE` if a fallback sleep estimate/default/manual value exists.
+- **Missing multiple critical inputs** → output is **UNAVAILABLE** with reason `INSUFFICIENT_DATA` (only when both HRV and RHR evidence are unavailable as defined above)
+
+#### 4.1.1.5 UI Semantics Separation (Critical)
+
+The UI MUST distinguish:
+
+- **Data Unavailable** (neutral/gray): cannot compute due to missing data / insufficient baseline
+- **Low Vitality** (warning): computed value is genuinely low with adequate evidence
+
+#### 4.1.1.6 Evidence Requirements (Audit‑Ready)
+
+- Every **state assignment** MUST record the dominant axis(es) and the key evidence statements.
+- Every **directive** MUST store a 3–5 bullet **Evidence Summary** (“sleep short vs baseline”, “HRV below baseline”, “load density high”, “stress elevated”, etc.).
+- The Analyst may only reference this Evidence Summary in operator language.
+- Raw z‑scores and detailed statistics belong in `BIOLOGY`, not required in Home copy.
+
 ### 4.2 The Golden Rule
 > **If Directive is "Rest", High Load = Misalignment (Failure).**
 

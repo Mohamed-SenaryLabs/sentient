@@ -63,6 +63,16 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
       return type.replace('Traditional ', '').replace('Training', '');
   };
 
+  // PRD §4.X: Confidence styling helper
+  const getConfidenceStyle = (confidence: string) => {
+      switch (confidence) {
+          case 'HIGH': return { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: '#10B981' };
+          case 'MEDIUM': return { backgroundColor: 'rgba(251, 191, 36, 0.2)', borderColor: '#FBBF24' };
+          case 'LOW': return { backgroundColor: 'rgba(248, 113, 113, 0.2)', borderColor: '#F87171' };
+          default: return { backgroundColor: 'rgba(100, 116, 139, 0.2)', borderColor: '#64748B' };
+      }
+  };
+
   return (
     <ScrollView 
       style={styles.container}
@@ -71,7 +81,70 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>BIOLOGY</Text>
+        <Text style={styles.headerTitle}>DASHBOARD</Text>
+        {stats.stats.vitalityConfidence && (
+          <View style={[styles.confidenceBadge, getConfidenceStyle(stats.stats.vitalityConfidence)]}>
+            <Text style={styles.confidenceText}>
+              {stats.stats.vitalityConfidence} CONFIDENCE
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* 0. SYSTEM STATUS (NEW) */}
+      <Text style={styles.sectionHeader}>SYSTEM STATUS</Text>
+      <View style={styles.columns}>
+          {/* Energy (Vitality) */}
+          <View style={[styles.biologyCard, { flex: 1 }]}>
+               <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>ENERGY</Text>
+                  <Text style={[styles.signalText, { color: stats.stats.vitality > 60 ? '#10B981' : stats.stats.vitality > 30 ? '#FBBF24' : '#EF4444' }]}>
+                      {stats.stats.vitality > 60 ? 'HIGH' : stats.stats.vitality > 30 ? 'MODERATE' : 'LOW'}
+                  </Text>
+              </View>
+              <View style={{ marginTop: 8 }}>
+                  <Text style={styles.metricValue}>{Math.round(stats.stats.vitality)} <Text style={styles.unit}>/ 100</Text></Text>
+                  <Text style={styles.subMetric}>Capacity: {stats.stats.adaptiveCapacity?.current ? Math.round(stats.stats.adaptiveCapacity.current) : '-'}</Text>
+              </View>
+          </View>
+          
+           {/* Stress */}
+           <View style={[styles.biologyCard, { flex: 1 }]}>
+               <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>STRESS</Text>
+                  <Text style={[styles.signalText, { color: (stats.biometrics.stress?.time_elevated_pct || 0) > 40 ? '#EF4444' : '#10B981' }]}>
+                      {(stats.biometrics.stress?.time_elevated_pct || 0) > 40 ? 'ELEVATED' : 'NORMAL'}
+                  </Text>
+              </View>
+              <View style={{ marginTop: 8 }}>
+                  <Text style={styles.metricValue}>{stats.biometrics.stress?.time_elevated_pct ? Math.round(stats.biometrics.stress.time_elevated_pct) : '-'} <Text style={styles.unit}>%</Text></Text>
+                  <Text style={styles.subMetric}>Time Elevated</Text>
+              </View>
+          </View>
+      </View>
+      
+      {/* 72h Load */}
+      <View style={styles.biologyCard}>
+           <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>72H LOAD DENSITY</Text>
+                  <Text style={[styles.signalText, { color: '#64748B' }]}>ROLLING AVG</Text>
+            </View>
+            <View style={styles.metricsRow}>
+                <View>
+                    <Text style={styles.metricLabel}>DENSITY SCORE</Text>
+                    <Text style={styles.metricValue}>{Math.round(stats.stats.loadDensity || 0)} <Text style={styles.unit}>au</Text></Text>
+                </View>
+                 <View style={styles.dividerVertical} />
+                <View>
+                   <Text style={styles.metricLabel}>PHYSIO LOAD</Text> 
+                   <Text style={styles.metricValue}>{stats.stats.physiologicalLoad?.toFixed(1) || '-'}</Text>
+                </View>
+                <View style={styles.dividerVertical} />
+                <View>
+                   <Text style={styles.metricLabel}>TREND</Text> 
+                   <Text style={[styles.metricValue, { fontSize: 16 }]}>{stats.stats.trends?.load_trend || '-'}</Text>
+                </View>
+            </View>
       </View>
 
       {/* 1. BASELINES (30-DAY) */}
@@ -358,5 +431,18 @@ const styles = StyleSheet.create({
       color: '#94A3B8',
       fontSize: 12,
       fontFamily: 'Courier',
+  },
+  // PRD §4.X: Confidence badge styles
+  confidenceBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      borderWidth: 1,
+  },
+  confidenceText: {
+      fontSize: 9,
+      fontWeight: '700',
+      letterSpacing: 1,
+      color: '#E2E8F0',
   }
 });

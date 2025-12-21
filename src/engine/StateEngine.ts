@@ -112,22 +112,32 @@ export function createSystemStatus(
     workouts: OperatorDailyStats['activity']['workouts'];
     locationChanged?: boolean;
   },
-  history?: SystemStatus[]
+  history?: SystemStatus[],
+  overrides?: {
+    confidence?: number;
+    reasonCode?: string;
+    availability?: 'AVAILABLE' | 'UNAVAILABLE';  // PRD §4.X.2
+    dominantAxes?: string[];  // PRD §4.X.6
+  }
 ): SystemStatus {
   const current_state = determineSystemState(axes);
   const active_lens = determineArchetypeLens(axes, context);
   
-  // Calculate specific confidence/validity logic here if needed (simplified for V3 Greenfield)
-  const state_confidence = 80; 
+  // PRD §4.X.3: Confidence inherits from VitalityScorer (cannot exceed upstream)
+  const state_confidence = overrides?.confidence ?? 80; 
   const archetype_confidence = 70;
   
   return {
     axes,
     current_state,
     active_lens,
+    availability: overrides?.availability,
     state_confidence,
+    reason_code: overrides?.reasonCode,
+    dominantAxes: overrides?.dominantAxes,  // PRD §4.X.6
     archetype_confidence,
     valid_from: new Date().toISOString(),
     valid_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   };
 }
+

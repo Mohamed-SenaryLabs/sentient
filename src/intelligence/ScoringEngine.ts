@@ -37,14 +37,48 @@ export class ScoringEngine {
       allowedTypes: string[];
     };
   } {
-    const candidates: DirectiveCandidate[] = [
-      this.scoreOverload(context),
-      this.scoreMaintenance(context),
-      this.scoreFlush(context)
-    ];
+    const currentState = context.stats.systemStatus.current_state;
+    
+    // 1. STATE MASKS (The "Hard Constraints")
+    const allowedStimuli: Record<string, boolean> = {
+        'OVERLOAD': true,
+        'MAINTENANCE': true,
+        'FLUSH': true,
+        'TEST': true
+    };
+
+    switch (currentState) {
+        case 'RECOVERY_MODE':
+        case 'PHYSICAL_STRAIN':
+            allowedStimuli['OVERLOAD'] = false;
+            allowedStimuli['TEST'] = false;
+            allowedStimuli['MAINTENANCE'] = false; // Forced Recovery
+            break;
+        case 'HIGH_STRAIN':
+            allowedStimuli['OVERLOAD'] = false;
+            allowedStimuli['TEST'] = false;
+            break;
+        case 'NEEDS_STIMULATION':
+            allowedStimuli['FLUSH'] = false; // Do not rest when undertrained
+            break;
+        // READY_FOR_LOAD and BUILDING_CAPACITY allow all
+    }
+
+    const candidates: DirectiveCandidate[] = [];
+
+    // 2. SCORING (The "Soft Preferences")
+    if (allowedStimuli['OVERLOAD']) candidates.push(this.scoreOverload(context));
+    if (allowedStimuli['MAINTENANCE']) candidates.push(this.scoreMaintenance(context));
+    if (allowedStimuli['FLUSH']) candidates.push(this.scoreFlush(context));
+    // TEST logic usually reserved for specific block phases, skipping for MVP daily logic unless explicit
 
     // Sort by score descending
     candidates.sort((a, b) => b.score - a.score);
+
+    // Fallback if empty (shouldn't happen with thorough masks)
+    if (candidates.length === 0) {
+        candidates.push(this.scoreFlush(context)); // Fail-safe
+    }
 
     return {
       rankedDirectives: candidates,
@@ -61,75 +95,71 @@ export class ScoringEngine {
 
   /**
    * OVERLOAD: High Stimulus. Requires surplus resources.
-   * Bonus: High Vitality, Good Sleep.
-   * Penalty: High recent strain, low sleep.
+   * Bonus: High Vitality, Good Sleep, Low recent load density.
    */
   private static scoreOverload(ctx: OperatorDailyStats): DirectiveCandidate {
-    let score = 0.3; // Base probability (lower - easy to disqualify)
-    const vitality = ctx.stats.vitality / 100; // 0.0 - 1.0
-    const sleepScore = ctx.sleep.score / 100;
+    let score = 0.5; 
+    const vitality = ctx.stats.vitality / 100;
+    const loadDensity = ctx.stats.loadDensity || 0;
+    
+    // State-based Bias
+    if (ctx.stats.systemStatus.current_state === 'READY_FOR_LOAD') score += 0.3;
+    if (ctx.stats.systemStatus.current_state === 'NEEDS_STIMULATION') score += 0.4;
 
-    // Bonuses
-    if (vitality > 0.8) score += 0.4;
-    else if (vitality > 0.6) score += 0.2;
+    // Density Check (Accumulated Fatigue)
+    // Assuming normal load per day is ~500. 3 days = 1500.
+    if (loadDensity > 2000) score -= 0.3; // High accumulated load
+    if (loadDensity < 1000) score += 0.1; // Fresh
 
-    if (sleepScore > 0.8) score += 0.2;
+    // Biometric Constraints
+    if (ctx.biometrics.hrv < (ctx.stats.biometric_trends?.hrv.baseline || 50)) score -= 0.2;
+    if (ctx.biometrics.stress?.time_elevated_pct && ctx.biometrics.stress.time_elevated_pct > 40) score -= 0.2;
 
-    // Penalties (Hard Checks)
-    if (vitality < 0.5) score -= 0.5; // Too weak
-    if (sleepScore < 0.5) score -= 0.3; // Too tired
-
-    // Clamp
     score = Math.max(0, Math.min(1, score));
 
     return {
-      category: 'STRENGTH', // Default archetype for overload
+      category: 'STRENGTH', 
       stimulus: 'OVERLOAD',
       score,
-      reason: `Vitality ${vitality.toFixed(1)}, Sleep: ${sleepScore.toFixed(1)}`
+      reason: `State: ${ctx.stats.systemStatus.current_state}, Density: ${loadDensity}`
     };
   }
 
   /**
    * MAINTENANCE: The Safe Zone.
-   * Wins when user is 'Okay' but not 'Great'.
+   * Good for 'Building Capacity' or 'High Strain' (if allowed).
    */
   private static scoreMaintenance(ctx: OperatorDailyStats): DirectiveCandidate {
-    let score = 0.5; // Base probability (The standard)
-    const vitality = ctx.stats.vitality / 100;
+    let score = 0.4;
     
-    // Stable zone
-    if (vitality > 0.4 && vitality < 0.8) score += 0.3;
-
-    // Penalties
-    if (vitality < 0.3) score -= 0.2; // Should flush
-    if (vitality > 0.9) score -= 0.2; // Waste of potential
+    if (ctx.stats.systemStatus.current_state === 'BUILDING_CAPACITY') score += 0.4;
+    
+    // If stress is high, maintenance > overload
+    if (ctx.biometrics.stress?.time_elevated_pct && ctx.biometrics.stress.time_elevated_pct > 30) score += 0.2;
 
     score = Math.max(0, Math.min(1, score));
 
     return {
-      category: 'ENDURANCE', // Default archetype for maintenance
+      category: 'ENDURANCE', 
       stimulus: 'MAINTENANCE',
       score,
-      reason: `Vitality in middle band (${vitality.toFixed(1)})`
+      reason: `Capacity building focus`
     };
   }
 
   /**
-   * FLUSH: Recovery / Regulation.
-   * Wins when system is failing.
+   * FLUSH: Recovery.
+   * Dominates in Strain/Recovery modes.
    */
   private static scoreFlush(ctx: OperatorDailyStats): DirectiveCandidate {
-    let score = 0.2; // Base
-    const vitality = ctx.stats.vitality / 100;
-    const load = ctx.activity.workouts.length > 0 ? 1 : 0; // Simple check for now
+    let score = 0.2;
+    const state = ctx.stats.systemStatus.current_state;
 
-    // Crisis management
-    if (vitality < 0.4) score += 0.6; // Critical need
-    if (vitality < 0.6) score += 0.2;
-
-    // If super high vitality, hate this option
-    if (vitality > 0.8) score -= 0.8;
+    if (state === 'RECOVERY_MODE' || state === 'PHYSICAL_STRAIN') score = 1.0; // Forced win if not masked
+    if (state === 'HIGH_STRAIN') score += 0.6;
+    
+    // Auto-Flush on super high density
+    if ((ctx.stats.loadDensity || 0) > 2500) score += 0.5;
 
     score = Math.max(0, Math.min(1, score));
 
@@ -137,22 +167,22 @@ export class ScoringEngine {
       category: 'REGULATION',
       stimulus: 'FLUSH',
       score,
-      reason: `System needs repair state (Vit: ${vitality.toFixed(1)})`
+      reason: `System Protection (${state})`
     };
   }
 
   // --- GUARDRAILS ---
 
   private static generateSafetyConstraints(ctx: OperatorDailyStats): { maxLoad: number; allowedTypes: string[] } {
-    const vitality = ctx.stats.vitality;
+    const state = ctx.stats.systemStatus.current_state;
     
-    if (vitality < 30) {
-      return { maxLoad: 3, allowedTypes: ['YOGA', 'WALKING', 'MOBILITY', 'MEDITATION'] };
+    if (state === 'RECOVERY_MODE' || state === 'PHYSICAL_STRAIN') {
+       return { maxLoad: 3, allowedTypes: ['YOGA', 'WALKING', 'MOBILITY', 'MEDITATION'] };
     }
-    if (vitality < 60) {
-      return { maxLoad: 6, allowedTypes: ['RUNNING', 'CYCLING', 'LIFTING', 'SWIMMING', 'ROWING', 'YOGA'] };
+    if (state === 'HIGH_STRAIN') {
+       return { maxLoad: 5, allowedTypes: ['RUNNING', 'CYCLING', 'YOGA', 'SWIMMING'] };
     }
     
-    return { maxLoad: 10, allowedTypes: ['ALL'] }; // No restrictions
+    return { maxLoad: 10, allowedTypes: ['ALL'] };
   }
 }

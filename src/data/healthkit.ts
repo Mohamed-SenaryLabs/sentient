@@ -325,7 +325,7 @@ async function fetchSingleDaySleep(date: Date): Promise<SleepData> {
       coreSeconds: Math.round(coreSeconds),
       deepSeconds: Math.round(deepSeconds),
       score: Math.min(100, Math.round(score)),
-      source: hasStages ? 'biometric' : 'sensor',
+      source: 'MEASURED',
     };
   } catch (error: any) {
     return empty;
@@ -338,6 +338,8 @@ async function fetchSingleDaySleep(date: Date): Promise<SleepData> {
 export async function fetchSleep(date: Date): Promise<SleepData> {
   const data = await fetchSingleDaySleep(date);
   
+
+
   if (data.totalDurationSeconds > 0) {
       return data;
   }
@@ -368,7 +370,7 @@ async function fetchWeeklySleepAverage(endDate: Date): Promise<SleepData> {
     if (daysWithData === 0) {
         return { 
             totalDurationSeconds: 0, awakeSeconds: 0, remSeconds: 0, 
-            coreSeconds: 0, deepSeconds: 0, score: 0, source: 'manual' 
+            coreSeconds: 0, deepSeconds: 0, score: 0, source: 'MANUAL' 
         };
     }
 
@@ -379,7 +381,7 @@ async function fetchWeeklySleepAverage(endDate: Date): Promise<SleepData> {
         coreSeconds: 0,
         deepSeconds: 0,
         score: Math.round(totalScore / daysWithData),
-        source: 'average'
+        source: 'ESTIMATED_7D'
     };
 }
 
@@ -748,6 +750,8 @@ export async function fetchActivityData(date: Date): Promise<{
     fetchWorkouts(date),
   ]);
 
+
+
   return { 
     steps, 
     activeCalories: active, 
@@ -779,12 +783,21 @@ export interface HistoricalBaselines {
   days: HistoricalDayData[];
   averages: {
     hrv: number;
+    stdDevHrv?: number;
+    sampleCountHrv?: number;   // PRD §4.X.1
+    coverageHrv?: number;      // PRD §4.X.1 (sampleCount / 30)
     rhr: number;
+    stdDevRhr?: number;
+    sampleCountRhr?: number;
+    coverageRhr?: number;
     steps: number;
     activeCalories: number;
     sleepSeconds: number;
-    workoutMinutes: number; // NEW
-    vo2Max: number;         // NEW
+    stdDevSleep?: number;
+    sampleCountSleep?: number;
+    coverageSleep?: number;
+    workoutMinutes: number;
+    vo2Max: number;
   };
   daysFetched: number;
   daysWithData: number;
@@ -795,9 +808,10 @@ export interface HistoricalBaselines {
  * Queries the past N days of HRV, RHR, Steps, Calories, Sleep, Workouts, and VO2Max
  */
 export async function fetchHistoricalData(days: number = 30): Promise<HistoricalBaselines> {
+
   const emptyResult: HistoricalBaselines = {
     days: [],
-    averages: { hrv: 0, rhr: 0, steps: 0, activeCalories: 0, sleepSeconds: 0, workoutMinutes: 0, vo2Max: 0 },
+    averages: { hrv: 0, stdDevHrv: 0, rhr: 0, stdDevRhr: 0, steps: 0, activeCalories: 0, sleepSeconds: 0, stdDevSleep: 0, workoutMinutes: 0, vo2Max: 0 },
     daysFetched: 0,
     daysWithData: 0
   };
@@ -837,22 +851,46 @@ export async function fetchHistoricalData(days: number = 30): Promise<Historical
   const daysWithWorkouts = results.filter(d => d.workoutMinutes > 0);
   const daysWithVO2 = results.filter(d => d.vo2Max !== null && d.vo2Max > 0);
 
-  const averages = {
-    hrv: daysWithHRV.length > 0 
+  // Helper: Calculate Standard Deviation
+  const calculateStdDev = (data: any[], key: string, mean: number): number => {
+      if (data.length < 2) return 0;
+      const variance = data.reduce((sum, d) => sum + Math.pow((d[key] || 0) - mean, 2), 0) / data.length;
+      return Math.round(Math.sqrt(variance) * 10) / 10;
+  };
+
+  const avgHrv = daysWithHRV.length > 0 
       ? Math.round(daysWithHRV.reduce((sum, d) => sum + (d.hrv || 0), 0) / daysWithHRV.length)
-      : 0,
-    rhr: daysWithRHR.length > 0
+      : 0;
+  const avgRhr = daysWithRHR.length > 0
       ? Math.round(daysWithRHR.reduce((sum, d) => sum + (d.rhr || 0), 0) / daysWithRHR.length)
-      : 0,
+      : 0;
+  const avgSleep = daysWithSleep.length > 0
+      ? Math.round(daysWithSleep.reduce((sum, d) => sum + d.sleepSeconds, 0) / daysWithSleep.length)
+      : 0;
+
+  const averages = {
+    hrv: avgHrv,
+    stdDevHrv: calculateStdDev(daysWithHRV, 'hrv', avgHrv),
+    sampleCountHrv: daysWithHRV.length,
+    coverageHrv: Math.round((daysWithHRV.length / days) * 100) / 100,
+    
+    rhr: avgRhr,
+    stdDevRhr: calculateStdDev(daysWithRHR, 'rhr', avgRhr),
+    sampleCountRhr: daysWithRHR.length,
+    coverageRhr: Math.round((daysWithRHR.length / days) * 100) / 100,
+    
     steps: daysWithSteps.length > 0
       ? Math.round(daysWithSteps.reduce((sum, d) => sum + d.steps, 0) / daysWithSteps.length)
       : 0,
     activeCalories: daysWithCalories.length > 0
       ? Math.round(daysWithCalories.reduce((sum, d) => sum + d.activeCalories, 0) / daysWithCalories.length)
       : 0,
-    sleepSeconds: daysWithSleep.length > 0
-      ? Math.round(daysWithSleep.reduce((sum, d) => sum + d.sleepSeconds, 0) / daysWithSleep.length)
-      : 0,
+      
+    sleepSeconds: avgSleep,
+    stdDevSleep: calculateStdDev(daysWithSleep, 'sleepSeconds', avgSleep),
+    sampleCountSleep: daysWithSleep.length,
+    coverageSleep: Math.round((daysWithSleep.length / days) * 100) / 100,
+    
     workoutMinutes: daysWithWorkouts.length > 0
       ? Math.round(daysWithWorkouts.reduce((sum, d) => sum + d.workoutMinutes, 0) / daysWithWorkouts.length)
       : 0,
@@ -862,19 +900,21 @@ export async function fetchHistoricalData(days: number = 30): Promise<Historical
   };
 
   const daysWithAnyData = results.filter(d => 
-    d.hrv || d.rhr || d.steps > 0 || d.activeCalories > 0 || d.sleepSeconds > 0
+    (d.hrv || 0) > 0 || (d.rhr || 0) > 0 || d.steps > 0 || d.activeCalories > 0 || d.sleepSeconds > 0
   ).length;
 
   console.log(`[HealthKit] Day Zero complete: ${daysWithAnyData}/${days} days with data`);
   console.log(`[HealthKit] Baselines: HRV=${averages.hrv}ms, RHR=${averages.rhr}bpm, Steps=${averages.steps}, Sleep=${Math.round(averages.sleepSeconds/3600)}h, Workouts=${averages.workoutMinutes}min, VO2=${averages.vo2Max}`);
 
   return {
-    days: results,
-    averages,
-    daysFetched: days,
-    daysWithData: daysWithAnyData
+      days: results,
+      averages,
+      daysFetched: results.length,
+      daysWithData: daysWithAnyData
   };
 }
+
+
 
 /**
  * Helper: Fetch a single day's historical metrics
