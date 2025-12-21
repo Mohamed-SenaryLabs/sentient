@@ -194,17 +194,17 @@ export interface LogicChainContract {
     stimulus_type: 'OVERLOAD' | 'MAINTENANCE' | 'FLUSH' | 'TEST';
     target_rpe?: number;
   };
-  session_focus: string; // Renamed from quest_type (DEPRECATED - use sessionFocus below)
+  session_focus: string; // Legacy tactical cue (still used by SessionManager)
   
   // PRD §3.4.1.1: LLM-Generated Content (Day-Stable, Persistent)
-  sessionFocus?: string;           // Max 160 chars, tactical cue
-  avoidCue?: string;               // Max 120 chars, constraint framing
-  analystInsight?: AnalystInsight; // Structured insight with summary + detail
-  evidenceSummary?: string[];      // 3-5 bullets (deterministic)
+  session_focus_llm?: string;          // Max 160 chars, LLM-generated tactical cue
+  avoid_cue?: string;                  // Max 120 chars, constraint framing
+  analyst_insight?: AnalystInsight;    // Structured insight with summary + detail
+  evidence_summary?: string[];         // 3-5 bullets (deterministic)
   
   // Metadata for persistence validation
-  contentGeneratedAt?: string;     // ISO timestamp
-  contentSource?: 'LLM' | 'FALLBACK';
+  content_generated_at?: string;       // ISO timestamp
+  content_source?: 'LLM' | 'FALLBACK';
   
   // [NEW] LLM Session Details (passed through from Gemini)
   llm_generated_session?: SessionOverride;

@@ -26,35 +26,35 @@ interface Template {
 const TEMPLATES: Record<Category, Record<StimulusType, Template>> = {
   STRENGTH: {
     OVERLOAD: {
-      sessionFocus: 'Heavy, crisp reps with full recovery between sets.',
-      avoidCue: 'Rushing reps or cutting rest short—quality over volume.',
+      sessionFocus: 'Heavy lifts, full rest—quality over speed.',
+      avoidCue: 'Don\'t rush reps or cut rest—keep it crisp.',
       analystInsight: {
-        summary: 'Recovery markers support high-force work. Loading heavy with full rest to drive strength adaptation.',
-        detail: 'HRV and sleep indicate readiness for neuromuscular stress. Focus on movement quality and complete recovery between efforts to maximize force output without accumulating fatigue.'
+        summary: 'Recovery looks good. Heavy work is appropriate today.',
+        detail: 'Sleep and readiness support high-force training. Focus on movement quality with complete recovery between efforts.'
       }
     },
     MAINTENANCE: {
       sessionFocus: 'Moderate load, controlled tempo—maintain strength without strain.',
-      avoidCue: 'Pushing to failure or adding volume—keep it crisp.',
+      avoidCue: 'Don\'t push to failure or add volume—keep it crisp.',
       analystInsight: {
-        summary: 'Maintaining strength base without adding stress. Moderate intensity keeps the system primed.',
-        detail: 'Current recovery state supports maintenance work. Use familiar movements at moderate loads to preserve strength without digging into reserves.'
+        summary: 'Maintaining strength base without adding fatigue.',
+        detail: 'Current recovery supports maintenance work. Use familiar movements at moderate loads to preserve strength without digging into reserves.'
       }
     },
     FLUSH: {
-      sessionFocus: 'Light movement, blood flow focus—active recovery only.',
-      avoidCue: 'Any intensity or complexity—this is restoration work.',
+      sessionFocus: 'Light movement, easy pace—active recovery only.',
+      avoidCue: 'Avoid any intensity or complexity—this is restoration work.',
       analystInsight: {
-        summary: 'Recovery is suppressed. Light movement promotes circulation without adding load.',
-        detail: 'Biometric markers indicate need for active recovery. Gentle movement helps clear metabolic waste and restore parasympathetic tone without adding training stress.'
+        summary: 'Recovery is suppressed. Light movement helps without adding load.',
+        detail: 'Readiness markers indicate need for active recovery. Gentle movement promotes circulation without adding training cost.'
       }
     },
     TEST: {
       sessionFocus: 'Max effort, full preparation—test current capacity.',
-      avoidCue: 'Undertesting or second-guessing—commit to the attempt.',
+      avoidCue: 'Don\'t undertest or second-guess—commit to the attempt.',
       analystInsight: {
-        summary: 'System is primed for performance testing. Full recovery supports maximum expression.',
-        detail: 'All markers align for testing day. Adequate taper and recovery allow for true capacity assessment. Warm up thoroughly and execute with confidence.'
+        summary: 'System is primed for performance testing. Full recovery supports max expression.',
+        detail: 'All markers align for testing day. Adequate taper and recovery allow for true capacity assessment. Warm up thoroughly and commit with confidence.'
       }
     }
   },
@@ -62,104 +62,104 @@ const TEMPLATES: Record<Category, Record<StimulusType, Template>> = {
   ENDURANCE: {
     OVERLOAD: {
       sessionFocus: 'Sustained effort, controlled breathing—build aerobic ceiling.',
-      avoidCue: 'Spiking heart rate or going anaerobic—stay aerobic.',
+      avoidCue: 'Don\'t spike heart rate or go breathless—stay aerobic.',
       analystInsight: {
-        summary: 'Aerobic capacity can be pushed. Sustained Zone 2-3 work builds mitochondrial density.',
-        detail: 'Recovery and stress markers support extended aerobic work. Focus on nasal breathing and conversational pace to maximize aerobic adaptation without excessive stress.'
+        summary: 'Aerobic capacity can be pushed. Sustained Zone 2-3 work builds endurance.',
+        detail: 'Recovery and readiness support extended aerobic work. Focus on nasal breathing and conversational pace to build aerobic capacity without excessive cost.'
       }
     },
     MAINTENANCE: {
-      sessionFocus: 'Steady, conversational pace—build aerobic base without stress.',
-      avoidCue: 'Pushing into breathless zones—keep HR controlled.',
+      sessionFocus: 'Steady, conversational pace—build base without accumulating fatigue.',
+      avoidCue: 'Avoid breathless surges—keep effort easy and even.',
       analystInsight: {
-        summary: 'Maintaining aerobic base with moderate volume. Easy pace preserves fitness without fatigue.',
+        summary: 'Maintenance today preserves fitness without adding recovery cost.',
         detail: 'Current state supports steady aerobic work. Keep intensity low and duration moderate to maintain cardiovascular fitness while managing overall load.'
       }
     },
     FLUSH: {
       sessionFocus: 'Easy movement, nasal breathing—restore circulation.',
-      avoidCue: 'Any intensity or duration—this is active rest.',
+      avoidCue: 'Avoid any intensity or duration—this is active rest.',
       analystInsight: {
-        summary: 'Recovery is priority. Light aerobic work aids circulation without adding stress.',
-        detail: 'Biometrics indicate need for restoration. Gentle movement at very low intensity promotes recovery without interfering with adaptation.'
+        summary: 'Recovery is priority. Light aerobic work aids circulation without adding cost.',
+        detail: 'Readiness indicates need for restoration. Gentle movement at very low intensity promotes recovery without interfering with adaptation.'
       }
     },
     TEST: {
       sessionFocus: 'Race pace, full commitment—test aerobic capacity.',
-      avoidCue: 'Holding back or pacing conservatively—execute the plan.',
+      avoidCue: 'Don\'t hold back or pace conservatively—commit to the plan.',
       analystInsight: {
         summary: 'System is ready for aerobic testing. Recovery supports maximum sustained output.',
-        detail: 'All indicators support performance testing. Taper has been adequate. Execute race pace with confidence and assess current aerobic ceiling.'
+        detail: 'All indicators support performance testing. Taper has been adequate. Run race pace with confidence and assess current aerobic ceiling.'
       }
     }
   },
 
   NEURAL: {
     OVERLOAD: {
-      sessionFocus: 'Complex patterns, high attention—drive neural adaptation.',
-      avoidCue: 'Fatigue or distraction—stop when quality drops.',
+      sessionFocus: 'Complex patterns, high attention—drive coordination gains.',
+      avoidCue: 'Stop when fatigue or distraction appears—quality drops fast.',
       analystInsight: {
-        summary: 'Neural drive is high. Complex skill work builds coordination without metabolic cost.',
-        detail: 'HRV and cognitive markers support technical work. Focus on movement quality and novel patterns to drive neural adaptation while managing physical load.'
+        summary: 'Focus is high. Complex skill work builds coordination without physical cost.',
+        detail: 'Readiness and cognitive markers support technical work. Focus on movement quality and novel patterns to drive coordination gains while managing physical load.'
       }
     },
     MAINTENANCE: {
       sessionFocus: 'Familiar patterns, moderate complexity—maintain coordination.',
-      avoidCue: 'Novelty or high complexity—keep it familiar.',
+      avoidCue: 'Avoid novelty or high complexity—keep it familiar.',
       analystInsight: {
-        summary: 'Maintaining neural patterns with moderate practice. Familiar movements preserve skill.',
-        detail: 'Current state supports skill maintenance. Use well-practiced movements at moderate intensity to keep neural pathways active without excessive demand.'
+        summary: 'Maintaining coordination with moderate practice. Familiar movements preserve skill.',
+        detail: 'Current state supports skill maintenance. Use well-practiced movements at moderate intensity to keep coordination active without excessive demand.'
       }
     },
     FLUSH: {
       sessionFocus: 'Simple movement, low cognitive load—restore nervous system.',
-      avoidCue: 'Complexity or decision-making—keep it automatic.',
+      avoidCue: 'Avoid complexity or decision-making—keep it automatic.',
       analystInsight: {
         summary: 'Nervous system needs rest. Simple, automatic movement aids recovery.',
-        detail: 'Stress and recovery markers indicate neural fatigue. Use simple, rhythmic movement to promote parasympathetic recovery without cognitive demand.'
+        detail: 'Readiness and recovery markers indicate mental fatigue. Use simple, rhythmic movement to promote recovery without cognitive demand.'
       }
     },
     TEST: {
       sessionFocus: 'Peak performance, full focus—test skill ceiling.',
-      avoidCue: 'Hesitation or overthinking—trust training.',
+      avoidCue: 'Don\'t hesitate or overthink—trust training.',
       analystInsight: {
-        summary: 'Neural system is primed. Testing day for skill and coordination.',
-        detail: 'Recovery and readiness markers support performance testing. Neural pathways are fresh. Execute with confidence and assess current skill ceiling.'
+        summary: 'Focus is primed. Testing day for skill and coordination.',
+        detail: 'Recovery and readiness markers support performance testing. Coordination pathways are fresh. Perform with confidence and assess current skill ceiling.'
       }
     }
   },
 
   REGULATION: {
     OVERLOAD: {
-      sessionFocus: 'Breathwork, vagal tone—build autonomic capacity.',
-      avoidCue: 'Intensity or complexity—this is regulation work.',
+      sessionFocus: 'Breathwork, calm focus—build stress capacity.',
+      avoidCue: 'Avoid intensity or complexity—this is regulation work.',
       analystInsight: {
-        summary: 'Building autonomic resilience. Focused breathwork enhances vagal tone.',
-        detail: 'Stress markers indicate need for regulation training. Deliberate breathwork and parasympathetic activation build capacity to manage stress.'
+        summary: 'Building stress resilience. Focused breathwork enhances recovery capacity.',
+        detail: 'Readiness markers indicate need for regulation training. Deliberate breathwork and calm practice build capacity to manage stress.'
       }
     },
     MAINTENANCE: {
       sessionFocus: 'Gentle breathwork, mindful movement—maintain balance.',
-      avoidCue: 'Pushing or striving—this is maintenance.',
+      avoidCue: 'Don\'t push or strive—this is maintenance.',
       analystInsight: {
-        summary: 'Maintaining autonomic balance with gentle practice. Regular regulation preserves resilience.',
-        detail: 'Current state supports regulation maintenance. Use familiar breathwork and mindful movement to keep autonomic system balanced.'
+        summary: 'Maintaining balance with gentle practice. Regular regulation preserves resilience.',
+        detail: 'Current state supports regulation maintenance. Use familiar breathwork and mindful movement to keep stress response balanced.'
       }
     },
     FLUSH: {
-      sessionFocus: 'Gentle movement, nasal breathing—restore parasympathetic tone.',
-      avoidCue: 'Intensity or complexity—this is active recovery only.',
+      sessionFocus: 'Gentle movement, nasal breathing—restore calm.',
+      avoidCue: 'Avoid intensity or complexity—this is active recovery only.',
       analystInsight: {
-        summary: 'Autonomic system needs restoration. Gentle movement promotes parasympathetic recovery.',
-        detail: 'Stress and HRV markers indicate sympathetic dominance. Use slow, rhythmic movement and nasal breathing to restore parasympathetic tone.'
+        summary: 'Stress system needs restoration. Gentle movement promotes recovery.',
+        detail: 'Readiness and recovery markers indicate elevated stress. Use slow, rhythmic movement and nasal breathing to restore calm.'
       }
     },
     TEST: {
       sessionFocus: 'Stress exposure, controlled recovery—test resilience.',
-      avoidCue: 'Avoiding challenge—this is capacity testing.',
+      avoidCue: 'Don\'t avoid challenge—this is capacity testing.',
       analystInsight: {
-        summary: 'Testing autonomic resilience. Controlled stress exposure reveals capacity.',
-        detail: 'Recovery markers support stress testing. Use controlled challenge followed by deliberate recovery to assess autonomic capacity and resilience.'
+        summary: 'Testing stress resilience. Controlled challenge reveals capacity.',
+        detail: 'Recovery markers support stress testing. Use controlled challenge followed by deliberate recovery to assess stress capacity and resilience.'
       }
     }
   }

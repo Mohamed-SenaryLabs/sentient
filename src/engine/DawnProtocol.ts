@@ -116,12 +116,23 @@ export class DawnProtocol {
             log('Checking Persistence...');
             const existing = await getDailyStats(todayId);
             
-            // STALENESS CHECK
-            if (existing && existing.logicContract && existing.stats.vitality > 0 && existing.stats.biometric_trends) {
-                log('Loaded valid session from DB.');
+            // STALENESS CHECK (PRD §3.4.1.1: Require Focus/Avoid/Insight)
+            const hasFocusAvoidInsight = existing?.logicContract?.session_focus_llm 
+                && existing?.logicContract?.avoid_cue 
+                && existing?.logicContract?.analyst_insight?.summary;
+            
+            if (existing && existing.logicContract && existing.stats.vitality > 0 && existing.stats.biometric_trends && hasFocusAvoidInsight) {
+                log('✓ Home screen loaded from persistence (Focus/Avoid/Insight cached)');
+                log(`  - session_focus_llm: "${existing.logicContract.session_focus_llm?.substring(0, 50)}..."`);
+                log(`  - content_generated_at: ${existing.logicContract.content_generated_at}`);
                 return existing;
             }
             log('Cache stale or missing. Running full protocol.');
+            if (existing) {
+                log(`  - existing found: vitality=${existing.stats.vitality}, hasFocusAvoid=${hasFocusAvoidInsight}`);
+            } else {
+                log('  - no existing record found for today');
+            }
         }
 
         // 3. Permissions
@@ -365,12 +376,51 @@ export class DawnProtocol {
         log(`State: ${result.systemStatus.current_state}`);
         log(`Lens: ${result.systemStatus.active_lens}`);
 
+        // PRD §3.4.1.1: Build comprehensive evidence summary
+        // Expand vitality-only evidence to include state, load, stress, and mission context
+        const comprehensiveEvidence: string[] = [
+            ...(currentStats.stats.evidenceSummary || []), // Keep vitality bullets
+        ];
+
+        // Add state context
+        if (result.systemStatus.reason_code) {
+            comprehensiveEvidence.push(`State: ${result.systemStatus.current_state} (${result.systemStatus.reason_code})`);
+        } else {
+            comprehensiveEvidence.push(`State: ${result.systemStatus.current_state}`);
+        }
+
+        // Add load density context
+        if (currentStats.stats.loadDensity !== undefined) {
+            const loadTrend = result.trends?.load_trend || 'STABLE';
+            comprehensiveEvidence.push(`Load Density: ${currentStats.stats.loadDensity.toFixed(1)} (${loadTrend})`);
+        }
+
+        // Add stress markers if elevated (using physiological load as proxy)
+        const stressThreshold = 70; // High physiological load indicates stress
+        if (currentStats.stats.physiologicalLoad > stressThreshold) {
+            comprehensiveEvidence.push(`Physiological load elevated (${currentStats.stats.physiologicalLoad}%)`);
+        }
+
+        // Add mission variables if present
+        if (currentStats.missionVariables && currentStats.missionVariables.length > 0) {
+            const missionSummary = currentStats.missionVariables.join(', ');
+            comprehensiveEvidence.push(`Mission: ${missionSummary}`);
+        }
+
+        // Add generation timestamp for natural variation (prevents identical outputs on reset)
+        const timeOfDay = now.getHours();
+        const period = timeOfDay < 12 ? 'morning' : timeOfDay < 17 ? 'afternoon' : 'evening';
+        comprehensiveEvidence.push(`Generated: ${period}, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`);
+
+        // Update evidence summary with comprehensive context
+        currentStats.stats.evidenceSummary = comprehensiveEvidence;
+
         // 7. Intelligence Layer
         log('─── INTELLIGENCE LAYER ──────────────');
         const contract = await Planner.generateStrategicArc(currentStats, result.trends);
         
         // PRD §3.4.1.1: Generate Focus/Avoid/Insight
-        log('Generating session guidance...');
+        log('⚙️  Generating fresh Home screen content (Focus/Avoid/Insight)...');
         const focusAvoidInsight = await Analyst.generateFocusAvoidInsight(
             currentStats,
             contract.directive,
@@ -379,12 +429,12 @@ export class DawnProtocol {
         );
         
         // Store in contract
-        contract.sessionFocus = focusAvoidInsight.sessionFocus;
-        contract.avoidCue = focusAvoidInsight.avoidCue;
-        contract.analystInsight = focusAvoidInsight.analystInsight;
-        contract.evidenceSummary = currentStats.stats.evidenceSummary || [];
-        contract.contentGeneratedAt = new Date().toISOString();
-        contract.contentSource = focusAvoidInsight.source;
+        contract.session_focus_llm = focusAvoidInsight.sessionFocus;
+        contract.avoid_cue = focusAvoidInsight.avoidCue;
+        contract.analyst_insight = focusAvoidInsight.analystInsight;
+        contract.evidence_summary = currentStats.stats.evidenceSummary || [];
+        contract.content_generated_at = new Date().toISOString();
+        contract.content_source = focusAvoidInsight.source;
         
         currentStats.logicContract = contract;
         

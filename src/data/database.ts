@@ -597,14 +597,21 @@ export async function resetDatabase(): Promise<void> {
   if (!db) throw new Error('Database not initialized');
   
   try {
-    // Drop all tables to force partial-recreation on next init
+    // Drop all tables to force recreation on next init
     await db.execAsync(`
       DROP TABLE IF EXISTS daily_stats;
       DROP TABLE IF EXISTS system_storage;
       DROP TABLE IF EXISTS sessions;
     `);
     
-    console.log('[Database] System Reset Complete - All Data Cleared');
+    console.log('[Database] System Reset Complete - All Tables Dropped');
+    
+    // Verify tables are gone
+    const result = await db.getAllAsync(`
+      SELECT name FROM sqlite_master WHERE type='table' AND name IN ('daily_stats', 'system_storage', 'sessions');
+    `);
+    console.log('[Database] Remaining tables after reset:', result);
+    
   } catch (error) {
     console.error('[Database] Reset Failed:', error);
     throw error;

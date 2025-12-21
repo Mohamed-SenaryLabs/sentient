@@ -43,27 +43,35 @@ export function FocusScreen({ stats, status, onRefresh, refreshing }: FocusScree
   if (!stats || !directive) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>{stateLabel}</Text>
+        <Text style={styles.loadingTitle}>Sentient</Text>
+        <Text style={styles.loadingText}>{status || stateLabel}</Text>
+        {status.includes('...') && (
+          <View style={styles.loadingDots}>
+            <Text style={styles.dot}>●</Text>
+            <Text style={styles.dot}>●</Text>
+            <Text style={styles.dot}>●</Text>
+          </View>
+        )}
       </View>
     );
   }
 
   const { systemStatus } = stats.stats;
-  const { session_focus, sessionFocus, avoidCue, analystInsight } = stats.logicContract || {};
+  const { session_focus, session_focus_llm, avoid_cue, analyst_insight } = stats.logicContract || {};
 
   // 1. Primary Hero Label (Category — Stimulus)
   const primaryLabel = getDirectiveLabel(directive.category, directive.stimulus_type);
   
   // 2. Secondary Hero Label (Session Focus or Title)
-  const secondaryLabel = sessionFocus || session_focus || stats.activeSession?.display.title || "Daily Focus";
+  const secondaryLabel = session_focus_llm || session_focus || stats.activeSession?.display.title || "Daily Focus";
 
   // 3. Determine CONSTRAINTS
-  const avoid = avoidCue || getConstraints(systemStatus.current_state, directive.category);
+  const avoid = avoid_cue || getConstraints(systemStatus.current_state, directive.category);
 
   // 4. Analyst Context
-  const analystNote = analystInsight?.summary || stats.activeSession?.analyst_insight;
-  const analystDetail = analystInsight?.detail;
-  const contentSource = stats.logicContract?.contentSource;
+  const analystNote = analyst_insight?.summary || stats.activeSession?.analyst_insight;
+  const analystDetail = analyst_insight?.detail;
+  const contentSource = stats.logicContract?.content_source;
   
   // PRD §4.X.5: Visual treatment for Low Vitality (< 30) vs normal
   const isLowVitality = stats.stats.vitality < 30;
@@ -354,8 +362,26 @@ const styles = StyleSheet.create({
       borderLeftColor: '#F87171',
   },
   warningText: {
-      color: '#FCA5A5',
+      color: '#F87171',
       fontSize: 14,
-      fontWeight: '500',
-  }
+      lineHeight: 20,
+  },
+  // Loading screen styles
+  loadingTitle: {
+      color: '#10B981',
+      fontSize: 32,
+      fontWeight: 'bold',
+      letterSpacing: 2,
+      marginBottom: 20,
+  },
+  loadingDots: {
+      flexDirection: 'row',
+      marginTop: 16,
+      gap: 8,
+  },
+  dot: {
+      color: '#10B981',
+      fontSize: 24,
+      opacity: 0.6,
+  },
 });

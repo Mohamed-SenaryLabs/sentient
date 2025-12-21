@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform } from 'react-native';
 import { resetDatabase, get30DayHistory } from '../data/database';
 import { OperatorDailyStats } from '../data/schema';
 import { DataViewerModal } from './DataViewerModal';
@@ -49,7 +49,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onOpenDevConsole
                     style: 'destructive',
                     onPress: async () => {
                         await resetDatabase();
-                        Alert.alert('System Reset', 'Please restart the app to initiate Day Zero Protocol.');
+                        Alert.alert('System Reset Complete', 'Database cleared. Restart the app to see fresh content.');
                     }
                 }
             ]

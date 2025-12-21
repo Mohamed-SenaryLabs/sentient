@@ -2,6 +2,7 @@ import { OperatorDailyStats, AnalystInsight } from '../data/schema';
 import { WORKOUT_LIBRARY } from '../data/WorkoutLibrary';
 import { FocusAvoidValidator } from './FocusAvoidValidator';
 import { FocusAvoidTemplates } from './FocusAvoidTemplates';
+import { GeminiClient } from './GeminiClient';
 
 /**
  * The Analyst (Intelligence Layer)
@@ -205,16 +206,243 @@ ${evidenceBullets}
     source: 'LLM' | 'FALLBACK';
   }> {
     
-    // For now, use fallback templates directly
-    // TODO: Integrate actual LLM call when Gemini integration is ready
-    console.log('[Analyst] generateFocusAvoidInsight: Using fallback templates (LLM integration pending)');
-    
-    const template = FocusAvoidTemplates.getTemplate(
+    // Prepare fallback
+    const fallback = FocusAvoidTemplates.getTemplate(
       directive.category as any,
       directive.stimulus_type as any,
-      { source: 'FALLBACK', reason: ['LLM integration pending'] }
+      { source: 'FALLBACK', reason: ['LLM generation failed'] }
     );
 
-    return template;
+    // Check if Gemini is available
+    if (!GeminiClient.isAvailable()) {
+      console.log('[Analyst] Gemini API not available, using fallback');
+      return fallback;
+    }
+
+    // Build prompt
+    const systemPrompt = this.buildFocusAvoidSystemPrompt();
+    const userPrompt = this.buildFocusAvoidUserPrompt(stats, directive, constraints, evidenceSummary);
+
+    // Define response type
+    interface LLMResponse {
+      sessionFocus: string;
+      avoidCue: string;
+      analystInsight: {
+        summary: string;
+        detail?: string;
+      };
+    }
+
+    // Validator function
+    const validator = (data: LLMResponse): boolean => {
+      const result = FocusAvoidValidator.validateComplete(
+        {
+          sessionFocus: data.sessionFocus,
+          avoidCue: data.avoidCue,
+          analystInsight: data.analystInsight
+        },
+        directive as any,
+        constraints,
+        evidenceSummary
+      );
+      
+      if (!result.valid) {
+        console.warn('[Analyst] Validation failed:', result.errors);
+      }
+      
+      return result.valid;
+    };
+
+    // Validator that captures errors for retry feedback
+    let lastValidationErrors: string[] = [];
+    const validatorWithErrorCapture = (data: LLMResponse): boolean => {
+      const result = FocusAvoidValidator.validateComplete(
+        {
+          sessionFocus: data.sessionFocus,
+          avoidCue: data.avoidCue,
+          analystInsight: data.analystInsight
+        },
+        directive as any,
+        constraints,
+        evidenceSummary
+      );
+      
+      lastValidationErrors = result.errors;
+      
+      if (!result.valid) {
+        console.warn('[Analyst] Validation failed:', result.errors);
+      }
+      
+      return result.valid;
+    };
+
+    // Attempt LLM generation with retry
+    let attempt = 0;
+    const maxAttempts = 2;
+
+    while (attempt < maxAttempts) {
+      attempt++;
+      
+      // On retry, append validation errors to user prompt with repair instructions
+      const promptToUse = attempt === 1 
+        ? userPrompt 
+        : `${userPrompt}
+
+⚠️ REPAIR INSTRUCTIONS:
+Rewrite the JSON. Fix only these issues:
+${lastValidationErrors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
+
+Keep the meaning the same. Stay calm. No commands. No hype.
+Generate corrected JSON output.`;
+      
+      const response = await GeminiClient.generateJSON<LLMResponse>(
+        {
+          systemPrompt,
+          userPrompt: promptToUse,
+          temperature: 0.5, // Balanced temp for variation while maintaining day-stability
+          maxTokens: 1024
+        },
+        validatorWithErrorCapture
+      );
+
+      if (response.success && response.data) {
+        console.log('[Analyst] LLM generation successful');
+        return {
+          sessionFocus: response.data.sessionFocus,
+          avoidCue: response.data.avoidCue,
+          analystInsight: {
+            summary: response.data.analystInsight.summary,
+            detail: response.data.analystInsight.detail,
+            generatedAt: new Date().toISOString(),
+            source: 'LLM',
+            validationPassed: true,
+            retryCount: attempt - 1
+          },
+          source: 'LLM'
+        };
+      }
+
+      if (attempt < maxAttempts) {
+        console.warn(`[Analyst] Attempt ${attempt} failed, retrying with error feedback...`);
+      }
+    }
+
+    // All attempts failed, use fallback
+    console.warn('[Analyst] All LLM attempts failed, using fallback');
+    return fallback;
+  }
+
+  /**
+   * Build system prompt for Focus/Avoid/Insight generation
+   * 
+   * Prompt-first approach: System prompt is the main safety rail.
+   * Validator only checks structure/length/format.
+   */
+  private static buildFocusAvoidSystemPrompt(): string {
+    return `You are Sentient's Performance Intelligence Analyst.
+
+IDENTITY:
+- Calm, precise, non-judgmental
+- You explain and translate directives—you don't choose them
+- Plain language, no physiology jargon, no hype, no commands
+- You are a supportive coach, not a drill sergeant or mission commander
+
+FORBIDDEN FRAMING:
+- No "orders" language: avoid "execute", "proceed", "commence"
+- No "mission/protocol" framing: avoid "mission", "protocol", "briefing", "orders"
+- No command tone: avoid imperative commands like "You must", "You will", "Ensure that"
+- No hype language: avoid "maximize", "optimal", "absolutely", "guaranteed"
+
+SCOPE:
+- The directive is already determined by the system
+- Your job: explain it clearly and frame constraints
+- Do not introduce new directive types or states
+- Do not contradict the provided directive or constraints
+
+VOICE:
+- Operator-friendly (like a supportive coach, not a drill sergeant)
+- No jargon: avoid "parasympathetic", "vagal", "mitochondrial", "neuromuscular", "metabolic", "anabolic", "hormonal"
+- Plain language: use "recovery", "readiness", "fatigue", "coordination" instead
+
+OUTPUT (JSON only):
+{
+  "sessionFocus": "1 sentence, ≤160 chars, tactical cue for the session",
+  "avoidCue": "1 sentence, ≤120 chars, constraint framing (what NOT to do)",
+  "analystInsight": {
+    "summary": "1-2 sentences, ≤300 chars, complete standalone answer",
+    "detail": "optional, ≤1500 chars, expanded context only"
+  }
+}
+
+AVOID CUE RULE:
+- AvoidCue MUST be a guardrail (what not to do), not a "do" instruction
+- Frame as constraints: "Avoid...", "Don't...", "Skip...", "No..."
+- Example: "Avoid intensity spikes—keep effort conversational" ✓
+- NOT: "Keep effort conversational" ✗ (that's a "do" instruction)
+
+INSIGHT STRUCTURE:
+- Summary: Must stand alone as the complete answer (shown on Home, collapsed)
+- Detail: Optional expansion (shown only when user taps "More context"):
+  * Can be longer (up to 1500 chars)
+  * Should follow 3-part structure: Why / What it means today / How to succeed
+  * Must not introduce new facts—only expand on what's in summary
+  * Keep calm, non-coercive tone throughout
+
+HARD BOUNDS:
+1. Never contradict constraints (impact restrictions, HR caps)
+2. Never use forbidden framing (orders, mission, protocol, commands)
+3. Keep FLUSH directives calm (no intensity language)
+4. Ground insights in provided evidence bullets only
+5. Respect character limits strictly (focus ≤160, avoid ≤120, summary ≤300, detail ≤1500)
+
+TONE EXAMPLES:
+✓ "Recovery looks good. Heavy work is appropriate today."
+✗ "Execute maximum force output to optimize neuromuscular adaptation."
+
+✓ "Avoid intensity spikes—keep effort conversational."
+✗ "Execute low-intensity protocol to maximize parasympathetic recovery."
+
+✓ "Focus is high. Complex skill work builds coordination."
+✗ "Neural pathways are primed for optimal motor pattern acquisition."
+
+EXPANDED DETAIL EXAMPLE (Endurance—Maintenance):
+Summary: "Capacity is building and load is stable. This keeps your base moving forward without adding extra cost."
+Detail: "Today's priority is consistency, not intensity. Keep the effort easy enough to hold a steady pace and speak in full sentences. If breathing gets strained or you feel pulled into surges, back off until the pace feels smooth again. You should finish feeling better than when you started—like you could do more."
+
+Generate JSON only. No explanations, no markdown.`;
+  }
+
+  /**
+   * Build user prompt with context
+   */
+  private static buildFocusAvoidUserPrompt(
+    stats: OperatorDailyStats,
+    directive: { category: string; stimulus_type: string; target_rpe?: number },
+    constraints: { allow_impact: boolean; required_equipment: string[]; heart_rate_cap?: number },
+    evidenceSummary: string[]
+  ): string {
+    const evidenceBullets = evidenceSummary.length > 0
+      ? evidenceSummary.map((e, i) => `  ${i + 1}. ${e}`).join('\n')
+      : '  1. No specific evidence available';
+
+    const constraintsList = [];
+    if (!constraints.allow_impact) constraintsList.push('No impact movements');
+    if (constraints.heart_rate_cap) constraintsList.push(`HR cap: ${constraints.heart_rate_cap}bpm`);
+    if (constraints.required_equipment.length > 0) constraintsList.push(`Equipment: ${constraints.required_equipment.join(', ')}`);
+
+    const stateLabel = stats.stats.systemStatus.current_state;
+
+    return `DIRECTIVE: ${directive.category} — ${directive.stimulus_type}
+${directive.target_rpe ? `Target RPE: ${directive.target_rpe}` : ''}
+
+STATE: ${stateLabel}
+
+CONSTRAINTS:
+${constraintsList.length > 0 ? constraintsList.map(c => `- ${c}`).join('\n') : '- None'}
+
+EVIDENCE:
+${evidenceBullets}
+
+Generate Focus/Avoid/Insight as JSON. Stay calm, plain-language, evidence-grounded.`;
   }
 }

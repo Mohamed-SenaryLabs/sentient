@@ -18,7 +18,7 @@ export class SessionManager {
       const { category, stimulus_type } = directive;
   
       let title = "General Session";
-      let subtitle = "Standard Protocol";
+      let subtitle = "Standard Session";
       let instructions = "Complete the prescribed activity.";
       // Defaults for Narrative Fields
       let session_focus = focusRefinement || `Execute strict ${stimulus_type} intent.`;
@@ -33,7 +33,7 @@ export class SessionManager {
       // Determine baseline properties first
       switch (stimulus_type) {
           case 'FLUSH':
-              title = "Recovery Protocol"; intensity = 'LOW'; type = 'STEPS'; target = 5000;
+              title = "Recovery Session"; intensity = 'LOW'; type = 'STEPS'; target = 5000;
               avoid_cue = "Avoid heart rate spikes above Zone 1.";
               break;
           case 'MAINTENANCE':

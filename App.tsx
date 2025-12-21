@@ -28,9 +28,20 @@ export default function App() {
   };
 
   const runProtocol = async (forceRefresh: boolean = false) => {
-    setStatus('Running Dawn Protocol...');
+    setStatus('Initializing...');
     try {
-        const stats = await DawnProtocol.run(forceRefresh, addLog);
+        const stats = await DawnProtocol.run(forceRefresh, (msg) => {
+          addLog(msg);
+          // Update status based on log messages
+          if (msg.includes('Checking Persistence')) setStatus('Checking cache...');
+          else if (msg.includes('Permissions')) setStatus('Requesting permissions...');
+          else if (msg.includes('HealthKit')) setStatus('Reading biometric data...');
+          else if (msg.includes('VITALITY')) setStatus('Computing vitality score...');
+          else if (msg.includes('STATE')) setStatus('Determining system state...');
+          else if (msg.includes('INTELLIGENCE')) setStatus('Generating guidance...');
+          else if (msg.includes('Generating fresh Home')) setStatus('Creating personalized insights...');
+          else if (msg.includes('Complete')) setStatus('Complete');
+        });
         setLatestStats(stats);
         
         // Fetch historical data for workout logs

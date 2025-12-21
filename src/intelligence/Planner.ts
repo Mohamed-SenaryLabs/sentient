@@ -24,7 +24,9 @@ export class Planner {
      const winner = tier1Result.rankedDirectives[0];
      
      // 2. TODAY (Tier 2 LLM - The Consultant)
-     // We run this in parallel or sequence. For safety, sequence: Get Tier 1, then ask LLM to refine.
+     // LEGACY: This was the old LLM integration path
+     // Now handled by Analyst.generateFocusAvoidInsight() in DawnProtocol
+     /*
      const consultantResult = await GeminiClient.generateInsight(context, {
          category: winner.category,
          stimulus: winner.stimulus,
@@ -35,6 +37,7 @@ export class Planner {
              constraints: tier1Result.safetyConstraint.allowedTypes
          }
      });
+     */
 
      const todayContract = {
          dayOffset: 0,
@@ -48,8 +51,8 @@ export class Planner {
              required_equipment: [],
              heart_rate_cap: tier1Result.safetyConstraint.maxLoad < 5 ? 135 : undefined
          },
-         // Store the consultant advise in session focus or summary
-         session_focus_refinement: consultantResult.specific_advice
+         // LEGACY: consultant advise stored in session focus
+         // session_focus_refinement: consultantResult.specific_advice
      };
      
      // 3. FORECAST TOMORROW (Day 1)
@@ -66,11 +69,12 @@ export class Planner {
          
          // Flat mapping for Day 0
          state: currentState,
-         dominant_factors: [consultantResult.rationale], // Use LLM Rationale here
+         dominant_factors: [], // LEGACY: was consultantResult.rationale
          directive: todayContract.directive as any,
-         session_focus: consultantResult.specific_advice || this.getHumanReadableFocus(todayContract.directive.category, todayContract.directive.stimulus_type), // Use LLM advice here
+         session_focus: this.getHumanReadableFocus(todayContract.directive.category, todayContract.directive.stimulus_type), // Use LLM advice here
          constraints: todayContract.constraints,
-         // [NEW] Pass through the LLM Session Details
+         // LEGACY: LLM Session Details now handled by Analyst in DawnProtocol
+         /*
          llm_generated_session: {
              ...(consultantResult.session || {}), // Spreads any provided overrides
              
@@ -80,6 +84,7 @@ export class Planner {
              // Map generated avoid cue if present (fallback generation adds this)
              avoid_cue: consultantResult.avoid_cue
          }
+         */
      };
   }
 
