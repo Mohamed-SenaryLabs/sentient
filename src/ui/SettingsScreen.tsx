@@ -1,25 +1,40 @@
+/**
+ * SettingsScreen — Pure Presentation
+ * 
+ * This screen has NO business logic. It:
+ * - Receives callbacks from orchestrator
+ * - Renders UI based on props
+ * - Dispatches user actions via callbacks
+ * 
+ * NO IMPORTS from src/engine/, src/data/, or src/intelligence/
+ */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform } from 'react-native';
-import { resetDatabase, get30DayHistory } from '../data/database';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share } from 'react-native';
 import { OperatorDailyStats } from '../data/schema';
 import { DataViewerModal } from './DataViewerModal';
-import { DevConsoleScreen } from './DevConsoleScreen';
 import { colors, typography, spacing, radius } from './theme/tokens';
 
 interface SettingsScreenProps {
     onOpenDevConsole: () => void;
+    onExportData: () => Promise<string>;
+    onGetHistoricalData: () => Promise<OperatorDailyStats[]>;
+    onResetDatabase: () => Promise<void>;
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onOpenDevConsole }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ 
+    onOpenDevConsole,
+    onExportData,
+    onGetHistoricalData,
+    onResetDatabase,
+}) => {
     const [showDataModal, setShowDataModal] = React.useState(false);
     const [historicalData, setHistoricalData] = React.useState<OperatorDailyStats[]>([]);
 
     const handleViewData = async () => {
         try {
-            const history = await get30DayHistory();
-            const sorted = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setHistoricalData(sorted);
+            const data = await onGetHistoricalData();
+            setHistoricalData(data);
             setShowDataModal(true);
         } catch (error) {
             Alert.alert('Error', 'Could not load data.');
@@ -28,8 +43,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onOpenDevConsole
 
     const handleExport = async () => {
         try {
-            const history = await get30DayHistory();
-            const exportData = JSON.stringify(history, null, 2);
+            const exportData = await onExportData();
             await Share.share({
                 message: exportData,
                 title: 'Sentient 30-Day Export'
@@ -49,7 +63,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onOpenDevConsole
                     text: 'Reset Everything',
                     style: 'destructive',
                     onPress: async () => {
-                        await resetDatabase();
+                        await onResetDatabase();
                         Alert.alert('System Reset Complete', 'Database cleared. Restart the app to see fresh content.');
                     }
                 }
