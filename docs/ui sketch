@@ -1,0 +1,117 @@
+Home (Tab 1) — updated (workout entry ONLY via event Smart Card)
+
+┌─────────────────────────────────────────────────────────────┐
+│  Good evening                                  (status bar) │
+│  ● Monitoring   |   Updated 6:29 PM   |   Conf: High         │
+│                                                             │
+│  ENDURANCE — MAINTENANCE                                     │
+│  Building capacity with steady, consistent effort.           │  ← Focus (aqua)
+│                                                             │
+│  AVOID                                                       │
+│  Avoid intensity spikes—keep effort conversational.          │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ SMART SIGNALS (max 2)                                     │ │
+│  │                                                         │ │
+│  │  (example: Sleep confirm)                                │ │
+│  │  Sleep estimate used — confirm?                   [Open] │ │
+│  │                                                         │ │
+│  │  (example: Workout event detected)                       │ │
+│  │  Workout detected — add a quick log?              [Open] │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  Why this directive?                                         │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ ANALYST INSIGHT (collapsed)                               │ │
+│  │ “Recovery is good and capacity is building. Today…”       │ │
+│  │                                          More context ›   │ │
+│  │  STATE: Building Capacity   VITALITY: 62%   CONF: High    │ │
+│  │  LAST UPDATE: 6:29 PM        REASON: Directive changed    │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  [HOME]                 [DASHBOARD]                [SETTINGS] │
+└─────────────────────────────────────────────────────────────┘
+
+Home Smart Card expanded (Workout Log — event-triggered)
+
+┌─────────────────────────────────────────────────────────────┐
+│  SMART SIGNAL: Log today’s workout                           │
+│  Functional • 66 min • 99–175 bpm • 417 kcal                 │
+│                                                             │
+│  Quick note (one line):                                      │
+│  [ Norwegian 4x4 @ 14 km/h (4 min intervals)        ]        │
+│                                                             │
+│  + Add details (optional) ▸                                  │
+│                                                             │
+│  [Save log]                 [Not now]                        │
+└─────────────────────────────────────────────────────────────┘
+
+Dashboard (Tab 2) — updated (Log is view-first; “Add workout” is NOT primary)
+
+┌─────────────────────────────────────────────────────────────┐
+│  DASHBOARD                                                   │
+│  Proof of trust • Baselines • Trends • Log                   │
+│                                                             │
+│  RECOVERY                                                    │
+│  ┌───────────────┐   ┌───────────────┐                       │
+│  │ HRV           │   │ RHR           │                       │
+│  │ 63 ms     ↗   │   │ 58 bpm    ↘   │                       │
+│  │ Base: 59      │   │ Base: 63      │                       │
+│  └───────────────┘   └───────────────┘                       │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ SLEEP                                                    │ │
+│  │ Today: 6.1h  Base: 5.7h  Δ: +0.4h  Source: Measured      │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  MOVEMENT                                                    │
+│  ┌───────────────┐   ┌───────────────┐                       │
+│  │ Steps         │   │ Active Burn   │                       │
+│  │ Today: 7,555  │   │ Today: 821    │                       │
+│  │ Base: 8,685   │   │ Base: 589     │                       │
+│  └───────────────┘   └───────────────┘                       │
+│                                                             │
+│  LOAD (72h)                                                  │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ Level: Low   Last 72h: 5 sessions • 286 min • Trend: —   │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  STRESS                                                      │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ Avg: 63  High: 44  Low: 88  Time elevated: 25%  Trend: — │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  CONSTITUTION                                                │
+│  ┌───────────────┐   ┌───────────────┐                       │
+│  │ VO₂ Max       │   │ Weight/Lean   │                       │
+│  │ 38.7 (stable) │   │ No data (ok)  │                       │
+│  └───────────────┘   └───────────────┘                       │
+│                                                             │
+│  THE LOG (view + edit only)                                  │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ • Functional                               417 kcal      │ │
+│  │   Mon 22 • 66 min • 99–175 bpm                            │ │
+│  │ • Run                                     72 kcal        │ │
+│  │   Mon 22 • 9 min  • 134–170 bpm                           │ │
+│  │                         (tap row → details/edit log)      │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  DIAGNOSTICS (collapsed)                                     │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ Decision trace available                          ▾      │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  [HOME]                 [DASHBOARD]                [SETTINGS] │
+└─────────────────────────────────────────────────────────────┘
+
+Settings (Tab 3) — updated (no workout entry, no smart cards)
+
+┌─────────────────────────────────────────────────────────────┐
+│  SETTINGS                                                    │
+│                                                             │
+│  Permissions  ›                                              │
+│  Sleep preference (typical hours)  ›                         │
+│  Goals  ›                                                    │
+│  Diagnostics toggles (optional)  ›                           │
+│                                                             │
+│  [HOME]                 [DASHBOARD]                [SETTINGS] │
+└─────────────────────────────────────────────────────────────┘
