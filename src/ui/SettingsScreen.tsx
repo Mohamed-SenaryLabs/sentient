@@ -5,6 +5,7 @@ import { resetDatabase, get30DayHistory } from '../data/database';
 import { OperatorDailyStats } from '../data/schema';
 import { DataViewerModal } from './DataViewerModal';
 import { DevConsoleScreen } from './DevConsoleScreen';
+import { colors, typography, spacing, radius } from './theme/tokens';
 
 interface SettingsScreenProps {
     onOpenDevConsole: () => void;
@@ -101,47 +102,47 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onOpenDevConsole
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0F172A', // Slate-900
-        padding: 16,
+        backgroundColor: colors.bg,
+        padding: spacing[4],
     },
     settingsContainer: {
-        gap: 20,
-        paddingBottom: 40,
+        gap: spacing[5],
+        paddingBottom: spacing[7],
     },
     sectionTitle: {
-        color: '#64748B',
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 8,
+        color: colors.text.secondary,
+        fontSize: typography.sectionLabel.fontSize,
+        fontWeight: typography.sectionLabel.fontWeight,
+        marginBottom: spacing[2],
         letterSpacing: 1,
     },
     button: {
-        backgroundColor: '#1E293B',
-        padding: 16,
-        borderRadius: 8,
+        backgroundColor: colors.surface,
+        padding: spacing[4],
+        borderRadius: radius.card,
         borderWidth: 1,
-        borderColor: '#334155',
+        borderColor: colors.border.default,
     },
     dangerButton: {
-        borderColor: '#7F1D1D',
-        backgroundColor: '#450A0A',
+        borderColor: colors.accent.strain,
+        backgroundColor: `${colors.accent.strain}15`,
     },
     buttonText: {
-        color: '#E2E8F0',
-        fontSize: 16,
+        color: colors.text.primary,
+        fontSize: typography.body.fontSize,
         fontWeight: '600',
     },
     dangerText: {
-        color: '#FCA5A5',
+        color: colors.accent.strain,
     },
     buttonSubtext: {
-        color: '#94A3B8',
-        fontSize: 12,
-        marginTop: 4,
+        color: colors.text.secondary,
+        fontSize: typography.meta.fontSize,
+        marginTop: spacing[1],
     },
     divider: {
         height: 1,
-        backgroundColor: '#334155',
-        marginVertical: 10,
+        backgroundColor: colors.border.default,
+        marginVertical: spacing[3],
     },
 });

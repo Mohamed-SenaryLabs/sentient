@@ -534,6 +534,104 @@ Tier‑1 scoring MUST be able to incorporate the following evidence categories w
 
 This view exists to build trust in the Analyst’s narrative without turning Home into a dashboard.
 
+---
+
+## Appendix C — Design Tokens (UI Lock)
+
+**Purpose:** Lock Sentient’s visual identity as **calm, restrained, instrument-like**. Typography is the primary voice; color is a functional signal; motion is confirmation; space is intentional.
+
+**Rule:** These tokens are the single source of truth for core UI styling. Product surfaces MUST NOT introduce ad-hoc colors, type scales, gradients, or decorative effects that compete with the directive-first hierarchy.
+
+### C.1 Color Tokens (Option 1 — Sentient / Night Signal)
+
+| Token | Hex | Usage (strict) |
+| :--- | :--- | :--- |
+| `color.bg` | `#0F1422` | App background (default for all screens) |
+| `color.surface` | `#1A2236` | Cards, panels, modals, context surfaces |
+| `color.text.primary` | `#F2F4F7` | Primary text |
+| `color.text.secondary` | `#9AA4B2` | Secondary/meta text |
+| `color.accent.primary` | `#2FAF8F` | Positive/ready signals (Focus cue, “Monitoring/Updated”, readiness labels) |
+| `color.accent.caution` | `#E6B566` | Caution/constraint signals (tightened bounds, warnings that are not critical) |
+| `color.accent.strain` | `#C85C5C` | Protection/critical strain signals (low vitality, high risk states) |
+
+**Non-negotiable color rules:**
+- Color is **functional only**. No decorative gradients. No rainbow indicators. No “celebration” effects on Home.
+- Home uses **one accent by default** (`color.accent.primary`). Caution/strain colors appear only when warranted by state/constraints.
+
+### C.2 Typography Tokens
+
+**Principle:** Typography communicates hierarchy. The UI must remain readable and calm at a glance.
+
+| Token | Role | Notes |
+| :--- | :--- | :--- |
+| `type.hero` | Directive label (e.g., “Endurance — Maintenance”) | Highest emphasis |
+| `type.subhero` | Focus cue (1 sentence) | Uses `color.accent.primary` when appropriate |
+| `type.sectionLabel` | Small labels (e.g., “AVOID”, “ANALYST INSIGHT”) | Low-contrast, restrained |
+| `type.body` | Insight summary/detail, card body | Plain language, no shouting |
+| `type.meta` | Status lines, timestamps, confidence | Secondary text |
+
+**Rules:**
+- Avoid hype punctuation (no exclamation marks).
+- Avoid heavy all-caps except for small section labels (and keep them restrained).
+
+### C.3 Spacing & Layout Tokens
+
+**Principle:** Space is intentional. Home must feel unhurried and stable.
+
+| Token | Meaning |
+| :--- | :--- |
+| `space.1` | 4 |
+| `space.2` | 8 |
+| `space.3` | 12 |
+| `space.4` | 16 |
+| `space.5` | 24 |
+| `space.6` | 32 |
+
+**Rules:**
+- Directive hero region must not “jump” between states (loading → loaded).
+- Cards appear **below** Directive/Focus/Avoid and never push the Directive off-screen on a typical device.
+
+### C.4 Radius & Elevation Tokens
+
+**Principle:** Surfaces are instrument-like (subtle). Avoid playful shadows.
+
+| Token | Value | Notes |
+| :--- | :--- | :--- |
+| `radius.card` | 12 | Cards/panels |
+| `radius.pill` | 999 | Small status chips if used |
+| `elevation.card` | subtle | Minimal shadow; rely on contrast, not depth |
+
+### C.5 Motion Tokens (Confirmation-only)
+
+**Allowed motion:**
+- Expand/collapse (Context panel, Smart Cards)
+- Subtle crossfade/transition on refresh completion
+- Gentle layout animation when content becomes available
+
+**Not allowed:**
+- Looping animations
+- Confetti/celebrations
+- Attention-grabbing motion competing with Home content
+
+### C.6 Component Usage Rules (Home)
+
+**Home hierarchy (must):**
+1) Directive (hero)
+2) Focus cue (subhero)
+3) Avoid cue (constraint line)
+4) Smart Cards (max 2)
+5) Contextual Intel (“Why this directive?”) panel
+
+**Functional color mapping (must):**
+- Focus cue uses `color.accent.primary` by default.
+- Avoid header uses `color.accent.strain` (restraint; do not oversaturate).
+- Links (e.g., “More context”) must be low-noise; prefer subtle blue or primary text + underline, not bright neon.
+
+### C.7 Accessibility & Readability (Ship Gate)
+- Maintain sufficient contrast between `color.text.primary` and `color.bg`.
+- Never convey meaning by color alone (pair with labels such as “Avoid”, “Updated”, “Unavailable”).
+- Clamp long text on Home; long narrative belongs behind explicit expansion.
+
 ## 4. The Physics Engine (Layer 0)
 
 Deterministic math. No AI hallucinations.

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { colors, spacing, radius } from './theme/tokens';
 
 interface DevConsoleScreenProps {
   logs: string[];
@@ -15,9 +16,9 @@ export function DevConsoleScreen({ logs, onBack, onRecreateDb, visible }: DevCon
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>SYSTEM CONSOLE</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity onPress={onRecreateDb} style={[styles.closeButton, { backgroundColor: '#EF4444' }]}>
-            <Text style={[styles.closeText, { color: 'white' }]}>RESET DB</Text>
+        <View style={{ flexDirection: 'row', gap: spacing[2] }}>
+            <TouchableOpacity onPress={onRecreateDb} style={styles.dangerButton}>
+            <Text style={styles.dangerText}>RESET DB</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onBack} style={styles.closeButton}>
             <Text style={styles.closeText}>Close</Text>
@@ -37,32 +38,42 @@ export function DevConsoleScreen({ logs, onBack, onRecreateDb, visible }: DevCon
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', // Slate-900
-    padding: 16,
+    backgroundColor: colors.bg,
+    padding: spacing[4],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 16,
+    paddingBottom: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    marginBottom: 8,
+    borderBottomColor: colors.border.subtle,
+    marginBottom: spacing[2],
   },
   title: {
-    color: '#E2E8F0',
+    color: colors.text.primary,
     fontFamily: 'Courier',
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
+  dangerButton: {
+    padding: spacing[2],
+    backgroundColor: colors.accent.strain,
+    borderRadius: radius.input,
+  },
+  dangerText: {
+    color: colors.text.primary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   closeButton: {
-    padding: 8,
-    backgroundColor: '#1E293B',
-    borderRadius: 6,
+    padding: spacing[2],
+    backgroundColor: colors.surface,
+    borderRadius: radius.input,
   },
   closeText: {
-    color: '#94A3B8',
+    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -71,8 +82,8 @@ const styles = StyleSheet.create({
   },
   logText: {
     fontFamily: 'Courier',
-    color: '#10B981', // Emerald-500
+    color: colors.accent.primary,
     fontSize: 11,
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
 });

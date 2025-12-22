@@ -13,6 +13,7 @@ import { FocusScreen } from './src/ui/FocusScreen';
 import { BiologyScreen } from './src/ui/BiologyScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 import { DevConsoleScreen } from './src/ui/DevConsoleScreen';
+import { colors, spacing } from './src/ui/theme/tokens';
 
 const Tab = createBottomTabNavigator();
 
@@ -151,8 +152,8 @@ export default function App() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: '#10B981',
-          tabBarInactiveTintColor: '#64748B',
+          tabBarActiveTintColor: colors.accent.primary,
+          tabBarInactiveTintColor: colors.text.secondary,
           tabBarLabelStyle: styles.tabText,
         }}
       >
@@ -195,17 +196,17 @@ export default function App() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#0F172A', // Slate-900
-    borderTopColor: '#1E293B',
+    backgroundColor: colors.bg,
+    borderTopColor: colors.border.subtle,
     borderTopWidth: 1,
     height: 80,
-    paddingBottom: 20,
-    paddingTop: 10,
+    paddingBottom: spacing[5],
+    paddingTop: spacing[3],
   },
   tabText: {
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 1,
-    marginTop: 4,
+    marginTop: spacing[1],
   },
 });

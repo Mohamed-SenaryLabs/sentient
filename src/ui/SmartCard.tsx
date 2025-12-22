@@ -1,8 +1,9 @@
 /**
- * Smart Cards UI Component (PRD Addendum)
+ * Smart Cards UI Component (PRD §3.3.1)
  * 
  * Renders interactive cards on Home screen.
  * Max 2 cards visible, calm design, one action per card.
+ * Uses design tokens for consistent styling.
  */
 
 import React, { useState } from 'react';
@@ -23,6 +24,12 @@ import {
   WorkoutSuggestionPayload,
   GoalsIntakePayload
 } from '../data/schema';
+import { 
+  colors, 
+  typography, 
+  spacing, 
+  radius 
+} from './theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -93,7 +100,7 @@ function SleepConfirmCard({ card, onComplete, onDismiss }: SmartCardProps) {
           <TextInput
             style={styles.textInput}
             placeholder="e.g., 7.5"
-            placeholderTextColor="#64748B"
+            placeholderTextColor={colors.text.secondary}
             keyboardType="decimal-pad"
             value={customHours}
             onChangeText={setCustomHours}
@@ -149,7 +156,7 @@ function WorkoutLogCard({ card, onComplete, onDismiss }: SmartCardProps) {
       <TextInput
         style={styles.noteInput}
         placeholder="e.g., Norwegian 4x4 @ 14 km/h"
-        placeholderTextColor="#64748B"
+        placeholderTextColor={colors.text.secondary}
         value={note}
         onChangeText={setNote}
         multiline
@@ -258,7 +265,7 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
       <TextInput
         style={styles.noteInput}
         placeholder="e.g., Build endurance for a marathon, Gain strength..."
-        placeholderTextColor="#64748B"
+        placeholderTextColor={colors.text.secondary}
         value={goal}
         onChangeText={setGoal}
         multiline
@@ -338,88 +345,88 @@ export function SmartCardsContainer({ cards, onComplete, onDismiss }: SmartCards
 }
 
 // ============================================
-// STYLES
+// STYLES (Using tokens)
 // ============================================
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
-    gap: 16,
+    marginTop: spacing[5],
+    gap: spacing[4],
   },
   card: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing[4],
     borderLeftWidth: 3,
-    borderLeftColor: '#3B82F6', // Blue accent
+    borderLeftColor: colors.accent.primary,
   },
   cardTitle: {
-    color: '#E2E8F0',
-    fontSize: 16,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   cardBody: {
-    color: '#94A3B8',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.body.fontSize - 2,
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   suggestionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   durationBadge: {
-    color: '#10B981',
-    fontSize: 12,
+    color: colors.accent.primary,
+    fontSize: typography.meta.fontSize,
     fontWeight: '600',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
+    backgroundColor: `${colors.accent.primary}15`,
+    paddingHorizontal: spacing[2],
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.subtle,
   },
   whyText: {
-    color: '#64748B',
-    fontSize: 12,
+    color: colors.text.secondary,
+    fontSize: typography.meta.fontSize,
     fontStyle: 'italic',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    gap: spacing[3],
+    marginTop: spacing[1],
   },
   primaryButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    backgroundColor: colors.accent.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: radius.input,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    backgroundColor: `${colors.accent.primary}15`,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: radius.input,
   },
   secondaryButtonText: {
-    color: '#3B82F6',
-    fontSize: 14,
+    color: colors.accent.primary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: '500',
   },
   dismissButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
   },
   dismissButtonText: {
-    color: '#64748B',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.body.fontSize - 2,
   },
   disabledButton: {
     opacity: 0.5,
@@ -427,32 +434,32 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: spacing[3],
+    gap: spacing[2],
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    borderRadius: 6,
-    padding: 12,
-    color: '#E2E8F0',
-    fontSize: 16,
+    backgroundColor: colors.bg,
+    borderRadius: radius.input,
+    padding: spacing[3],
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border.default,
   },
   inputLabel: {
-    color: '#64748B',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.body.fontSize - 2,
   },
   noteInput: {
-    backgroundColor: '#0F172A',
-    borderRadius: 6,
-    padding: 12,
-    color: '#E2E8F0',
-    fontSize: 14,
+    backgroundColor: colors.bg,
+    borderRadius: radius.input,
+    padding: spacing[3],
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize - 2,
     borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 12,
+    borderColor: colors.border.default,
+    marginBottom: spacing[3],
     minHeight: 60,
     textAlignVertical: 'top',
   },

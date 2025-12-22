@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView, SafeAreaView } from 'react-native';
 import { OperatorDailyStats } from '../data/schema';
+import { colors, typography, spacing, radius } from './theme/tokens';
 
 interface DataViewerModalProps {
   visible: boolean;
@@ -20,6 +21,12 @@ export function DataViewerModal({ visible, onClose, data }: DataViewerModalProps
   const getDirectiveString = (item: OperatorDailyStats) => {
     if (!item.logicContract) return '-';
     return `${item.logicContract.directive.category.charAt(0)}/${item.logicContract.directive.stimulus_type.substring(0,3)}`;
+  };
+
+  const getAlignmentColor = (status: string | undefined) => {
+    if (status === 'ALIGNED') return colors.accent.primary;
+    if (status === 'MISALIGNED') return colors.accent.strain;
+    return colors.text.secondary;
   };
 
   const renderHeader = () => (
@@ -44,10 +51,7 @@ export function DataViewerModal({ visible, onClose, data }: DataViewerModalProps
       <Text style={[styles.cell, styles.wideCell]} numberOfLines={1}>{getWorkoutsString(item)}</Text>
       <Text style={[styles.cell, styles.wideCell]} numberOfLines={1}>{getDirectiveString(item)}</Text>
       <Text style={styles.cell}>{Math.round(item.sleep.totalDurationSeconds / 3600)}h</Text>
-      <Text style={[
-        styles.cell, 
-        { color: item.stats.alignmentStatus === 'ALIGNED' ? '#10B981' : item.stats.alignmentStatus === 'MISALIGNED' ? '#EF4444' : '#64748B' }
-      ]}>
+      <Text style={[styles.cell, { color: getAlignmentColor(item.stats.alignmentStatus) }]}>
         {item.stats.alignmentStatus ? item.stats.alignmentStatus.charAt(0) : '-'}
       </Text>
     </View>
@@ -71,7 +75,7 @@ export function DataViewerModal({ visible, onClose, data }: DataViewerModalProps
                 data={data}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
-                contentContainerStyle={{ paddingBottom: 40 }}
+                contentContainerStyle={{ paddingBottom: spacing[7] }}
                 showsVerticalScrollIndicator={false}
               />
             </View>
@@ -85,70 +89,70 @@ export function DataViewerModal({ visible, onClose, data }: DataViewerModalProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', // Slate-900
-    padding: 16,
+    backgroundColor: colors.bg,
+    padding: spacing[4],
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10,
+    marginBottom: spacing[5],
+    marginTop: spacing[3],
   },
   title: {
-    color: '#E2E8F0',
+    color: colors.text.primary,
     fontSize: 20,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
   closeButton: {
-    padding: 8,
-    backgroundColor: '#1E293B',
-    borderRadius: 6,
+    padding: spacing[2],
+    backgroundColor: colors.surface,
+    borderRadius: radius.input,
   },
   closeText: {
-    color: '#94A3B8',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
   tableBorder: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 8,
-    backgroundColor: '#1E293B',
+    borderColor: colors.border.default,
+    borderRadius: radius.card,
+    backgroundColor: colors.surface,
     overflow: 'hidden',
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.bg,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    paddingVertical: 12,
+    borderBottomColor: colors.border.default,
+    paddingVertical: spacing[3],
   },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    paddingVertical: 12,
+    borderBottomColor: colors.border.default,
+    paddingVertical: spacing[3],
     alignItems: 'center',
   },
   cell: {
     width: 60,
     textAlign: 'center',
-    color: '#94A3B8',
-    fontSize: 12,
+    color: colors.text.secondary,
+    fontSize: typography.meta.fontSize,
   },
   dateCell: {
     width: 50,
     fontWeight: 'bold',
-    color: '#E2E8F0',
+    color: colors.text.primary,
   },
   wideCell: {
     width: 100,
   },
   headerCell: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontWeight: 'bold',
     fontSize: 11,
     textTransform: 'uppercase',

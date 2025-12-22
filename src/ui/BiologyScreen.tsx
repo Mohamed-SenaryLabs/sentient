@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { OperatorDailyStats } from '../data/schema';
+import { colors, typography, spacing, radius, confidenceStyles } from './theme/tokens';
 
 interface BiologyScreenProps {
   stats: OperatorDailyStats | null;
@@ -45,9 +46,9 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
 
   // Helper: Get load density level
   const getLoadLevel = (density: number) => {
-    if (density > 25) return { label: 'High', color: '#EF4444' };
-    if (density > 15) return { label: 'Moderate', color: '#FBBF24' };
-    return { label: 'Low', color: '#10B981' };
+    if (density > 25) return { label: 'High', color: colors.accent.strain };
+    if (density > 15) return { label: 'Moderate', color: colors.accent.caution };
+    return { label: 'Low', color: colors.accent.primary };
   };
 
   // Calculate metrics
@@ -68,21 +69,20 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
     return type.replace('Traditional ', '').replace('Training', '');
   };
 
-  // Confidence styling
+  // Confidence styling using tokens
   const getConfidenceStyle = (confidence: string) => {
-    switch (confidence) {
-      case 'HIGH': return { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: '#10B981' };
-      case 'MEDIUM': return { backgroundColor: 'rgba(251, 191, 36, 0.2)', borderColor: '#FBBF24' };
-      case 'LOW': return { backgroundColor: 'rgba(248, 113, 113, 0.2)', borderColor: '#F87171' };
-      default: return { backgroundColor: 'rgba(100, 116, 139, 0.2)', borderColor: '#64748B' };
+    const styles = confidenceStyles[confidence as keyof typeof confidenceStyles];
+    if (styles) {
+      return { backgroundColor: styles.backgroundColor, borderColor: styles.borderColor };
     }
+    return { backgroundColor: `${colors.text.secondary}20`, borderColor: colors.text.secondary };
   };
 
   return (
     <ScrollView 
       style={styles.container}
-      contentContainerStyle={{ paddingTop: 60, paddingBottom: 100 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent.primary} />}
       showsVerticalScrollIndicator={false}
     >
       {/* HEADER */}
@@ -96,8 +96,6 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
           </View>
         )}
       </View>
-
-
       {/* RECOVERY SECTION */}
       <Text style={styles.sectionHeader}>RECOVERY</Text>
       
@@ -162,7 +160,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
             <Text style={styles.sleepLabel}>Baseline: <Text style={styles.sleepValue}>{(sleepBaseline / 3600).toFixed(1)}h</Text></Text>
           </View>
           <View>
-            <Text style={styles.sleepLabel}>Δ: <Text style={[styles.sleepValue, { color: sleepDelta < -0.5 ? '#EF4444' : '#10B981' }]}>
+            <Text style={styles.sleepLabel}>Δ: <Text style={[styles.sleepValue, { color: sleepDelta < -0.5 ? colors.accent.strain : colors.accent.primary }]}>
               {sleepDelta > 0 ? '+' : ''}{sleepDelta.toFixed(1)}h
             </Text></Text>
           </View>
@@ -300,7 +298,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
             .slice(0, 10)
             .map((item, i) => (
               <View key={item.id} style={styles.logRow}>
-                <View style={[styles.logDot, { backgroundColor: item.type === 'WORKOUT' ? '#10B981' : '#334155' }]} />
+                <View style={[styles.logDot, { backgroundColor: item.type === 'WORKOUT' ? colors.accent.primary : colors.border.default }]} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.logTitle}>{item.label}</Text>
                   <Text style={styles.logDate}>
@@ -447,18 +445,22 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    padding: 16,
+    backgroundColor: colors.bg,
+    padding: spacing[4],
+  },
+  contentContainer: {
+    paddingTop: 60,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#64748B',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
@@ -466,27 +468,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   headerTitle: {
-    color: '#E2E8F0',
+    color: colors.text.primary,
     fontSize: 24,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
   subtitle: {
-    color: '#64748B',
-    fontSize: 12,
-    marginBottom: 16,
+    color: colors.text.secondary,
+    fontSize: typography.meta.fontSize,
+    marginBottom: spacing[4],
   },
   confidenceBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: radius.input,
     borderWidth: 1,
   },
   confidenceText: {
-    color: '#E2E8F0',
+    color: colors.text.primary,
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 0.5,
@@ -494,40 +496,40 @@ const styles = StyleSheet.create({
   
   // Decision Trace
   traceCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing[4],
+    marginBottom: spacing[5],
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border.default,
   },
   traceTitle: {
-    color: '#94A3B8',
+    color: colors.text.secondary,
     fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   traceDirective: {
-    color: '#E2E8F0',
-    fontSize: 16,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   evidenceContainer: {
-    marginTop: 8,
+    marginTop: spacing[2],
   },
   evidenceLabel: {
-    color: '#94A3B8',
+    color: colors.text.secondary,
     fontSize: 11,
     fontWeight: 'bold',
-    marginBottom: 6,
+    marginBottom: spacing[2],
   },
   evidenceItem: {
-    color: '#CBD5E1',
+    color: colors.text.primary,
     fontSize: 13,
     lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   traceHeader: {
     flexDirection: 'row',
@@ -535,125 +537,125 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   expandIcon: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 14,
     fontWeight: 'bold',
   },
   traceDetails: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: spacing[4],
+    paddingTop: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: colors.border.default,
   },
   traceSection: {
-    marginBottom: 16,
+    marginBottom: spacing[4],
   },
   traceSectionTitle: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   traceItem: {
-    color: '#CBD5E1',
-    fontSize: 12,
+    color: colors.text.primary,
+    fontSize: typography.meta.fontSize,
     lineHeight: 18,
-    marginBottom: 4,
+    marginBottom: spacing[1],
   },
   traceSubItem: {
-    color: '#94A3B8',
+    color: colors.text.secondary,
     fontSize: 11,
     lineHeight: 16,
-    marginLeft: 12,
+    marginLeft: spacing[3],
     marginBottom: 3,
   },
   traceText: {
-    color: '#CBD5E1',
-    fontSize: 12,
+    color: colors.text.primary,
+    fontSize: typography.meta.fontSize,
     lineHeight: 18,
     fontStyle: 'italic',
   },
 
   // Section Headers
   sectionHeader: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 1,
-    marginTop: 20,
-    marginBottom: 12,
+    marginTop: spacing[5],
+    marginBottom: spacing[3],
   },
 
   // Metric Cards
   metricCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing[4],
+    marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border.default,
   },
   metricTitle: {
-    color: '#94A3B8',
+    color: colors.text.secondary,
     fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 0.5,
-    marginBottom: 10,
+    marginBottom: spacing[3],
   },
   metricRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: spacing[2],
   },
   metricLabel: {
-    color: '#64748B',
-    fontSize: 12,
+    color: colors.text.secondary,
+    fontSize: typography.meta.fontSize,
   },
   metricValue: {
-    color: '#E2E8F0',
-    fontSize: 14,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
   unit: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 11,
     fontWeight: 'normal',
   },
   zLabel: {
-    color: '#94A3B8',
+    color: colors.text.secondary,
     fontSize: 11,
   },
 
   // Columns
   columns: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing[3],
   },
 
   // Sleep
   sleepRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: spacing[3],
   },
   sleepLabel: {
-    color: '#64748B',
-    fontSize: 12,
+    color: colors.text.secondary,
+    fontSize: typography.meta.fontSize,
   },
   sleepValue: {
-    color: '#E2E8F0',
-    fontSize: 14,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
 
   logDetail: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 11,
   },
   sourceText: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 10,
     fontStyle: 'italic',
   },
@@ -662,55 +664,55 @@ const styles = StyleSheet.create({
   loadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   loadLabel: {
-    color: '#64748B',
-    fontSize: 12,
+    color: colors.text.secondary,
+    fontSize: typography.meta.fontSize,
   },
   loadLevel: {
-    fontSize: 14,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: 'bold',
   },
   loadDetail: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    marginBottom: 6,
+    color: colors.text.primary,
+    fontSize: typography.meta.fontSize,
+    marginBottom: spacing[2],
   },
   trendText: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 11,
     fontStyle: 'italic',
   },
 
   // Stress
   stressDetail: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    marginBottom: 6,
+    color: colors.text.primary,
+    fontSize: typography.meta.fontSize,
+    marginBottom: spacing[2],
   },
 
   // Constitution
   constitutionValue: {
-    color: '#E2E8F0',
-    fontSize: 16,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: spacing[2],
   },
 
   // Log
   logContainer: {
-    marginBottom: 20,
+    marginBottom: spacing[5],
   },
   logRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing[3],
+    marginBottom: spacing[2],
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border.default,
   },
   logDot: {
     width: 8,
@@ -718,18 +720,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   logTitle: {
-    color: '#E2E8F0',
+    color: colors.text.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   logDate: {
-    color: '#64748B',
+    color: colors.text.secondary,
     fontSize: 11,
     marginTop: 2,
   },
   logValue: {
-    color: '#E2E8F0',
-    fontSize: 14,
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
 });
