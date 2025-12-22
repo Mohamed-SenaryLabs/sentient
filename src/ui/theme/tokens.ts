@@ -30,9 +30,9 @@ export const colors = {
     // Positive/ready signals (Focus cue, "Monitoring/Updated", readiness labels)
     primary: '#2FAF8F',
     // Caution/constraint signals (tightened bounds, warnings that are not critical)
-    caution: '#E6B566',
+    caution: '#D4A373', // Muted Terracotta/Beige
     // Protection/critical strain signals (low vitality, high risk states)
-    strain: '#C85C5C',
+    strain: '#D97757', // Burnt Orange / Terracotta
   },
   
   // Borders / Dividers
