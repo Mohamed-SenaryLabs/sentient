@@ -542,17 +542,20 @@ This view exists to build trust in the Analyst’s narrative without turning Hom
 
 **Rule:** These tokens are the single source of truth for core UI styling. Product surfaces MUST NOT introduce ad-hoc colors, type scales, gradients, or decorative effects that compete with the directive-first hierarchy.
 
-### C.1 Color Tokens (Option 1 — Sentient / Night Signal)
+### C.1 Color Tokens (Corbeau Core — Cold Instrument, violet removed)
 
 | Token | Hex | Usage (strict) |
 | :--- | :--- | :--- |
-| `color.bg` | `#0F1422` | App background (default for all screens) |
-| `color.surface` | `#1A2236` | Cards, panels, modals, context surfaces |
-| `color.text.primary` | `#F2F4F7` | Primary text |
-| `color.text.secondary` | `#9AA4B2` | Secondary/meta text |
-| `color.accent.primary` | `#2FAF8F` | Positive/ready signals (Focus cue, “Monitoring/Updated”, readiness labels) |
-| `color.accent.caution` | `#E6B566` | Caution/constraint signals (tightened bounds, warnings that are not critical) |
+| `color.bg` | `#111122` | App background (default for all screens) |
+| `color.surface` | `#1A2133` | Cards, panels, modals, context surfaces |
+| `color.surface2` | `#14192A` | Nested surfaces / input wells |
+| `color.text.primary` | `#F0EEEE` | Primary text |
+| `color.text.secondary` | `#9698A3` | Secondary/meta text |
+| `color.accent.primary` | `#3A8CA8` | Alignment/active signals (Focus cue, “Monitoring/Updated”, highlights) |
+| `color.accent.caution` | `#D6A85C` | Caution/constraint signals (tightened bounds, warnings that are not critical) |
 | `color.accent.strain` | `#C85C5C` | Protection/critical strain signals (low vitality, high risk states) |
+| `color.border.default` | `#2A3146` | Hairline strokes / dividers |
+| `color.border.subtle` | `#1B2238` | Subtle hairlines / nested separators |
 
 **Non-negotiable color rules:**
 - Color is **functional only**. No decorative gradients. No rainbow indicators. No “celebration” effects on Home.
@@ -619,8 +622,8 @@ This view exists to build trust in the Analyst’s narrative without turning Hom
 1) Directive (hero)
 2) Focus cue (subhero)
 3) Avoid cue (constraint line)
-4) Smart Cards (max 2)
-5) Contextual Intel (“Why this directive?”) panel
+4) Contextual Intel (“Why this directive?”) panel
+5) Smart Cards (max 2)
 
 **Functional color mapping (must):**
 - Focus cue uses `color.accent.primary` by default.

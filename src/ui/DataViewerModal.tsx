@@ -75,7 +75,7 @@ export function DataViewerModal({ visible, onClose, data }: DataViewerModalProps
                 data={data}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
-                contentContainerStyle={{ paddingBottom: spacing[7] }}
+                contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
               />
             </View>
@@ -156,5 +156,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 11,
     textTransform: 'uppercase',
+  },
+  listContent: {
+    paddingBottom: spacing[7],
   },
 });

@@ -17,6 +17,7 @@ import {
   Platform,
   UIManager
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { 
   SmartCard as SmartCardType,
   SleepConfirmPayload,
@@ -39,6 +40,60 @@ interface SmartCardProps {
   card: SmartCardType;
   onComplete: (cardId: string, payload?: any) => void;
   onDismiss: (cardId: string) => void;
+}
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function getWorkoutIconName(workoutType?: string): IconName {
+  const t = (workoutType || '').toLowerCase();
+  if (!t) return 'pulse-outline';
+  if (t.includes('run')) return 'walk-outline'; // closest “shoe” analog in Ionicons
+  if (t.includes('walk') || t.includes('hike')) return 'footsteps-outline';
+  if (t.includes('cycle') || t.includes('bike')) return 'bicycle-outline';
+  if (t.includes('swim')) return 'water-outline';
+  if (t.includes('row')) return 'boat-outline';
+  if (t.includes('strength') || t.includes('traditional')) return 'barbell-outline';
+  if (t.includes('functional') || t.includes('hiit') || t.includes('cross')) return 'fitness-outline';
+  return 'pulse-outline';
+}
+
+function getSmartSignalIconName(card: SmartCardType): IconName {
+  switch (card.type) {
+    case 'SLEEP_CONFIRM':
+      return 'moon-outline';
+    case 'WORKOUT_LOG': {
+      const payload = card.payload as WorkoutLogPayload;
+      return getWorkoutIconName(payload.workoutType);
+    }
+    case 'WORKOUT_SUGGESTION':
+      return 'compass-outline';
+    case 'GOALS_INTAKE':
+      return 'flag-outline';
+    default:
+      return 'sparkles-outline';
+  }
+}
+
+function CardHeader({
+  icon,
+  title,
+  right,
+}: {
+  icon: IconName;
+  title: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <View style={styles.headerRow}>
+      <View style={styles.headerLeft}>
+        <View style={styles.iconBox}>
+          <Ionicons name={icon} size={18} color={colors.text.secondary} />
+        </View>
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      {!!right && <View style={styles.headerRight}>{right}</View>}
+    </View>
+  );
 }
 
 export function SmartCardComponent({ card, onComplete, onDismiss }: SmartCardProps) {
@@ -90,7 +145,7 @@ function SleepConfirmCard({ card, onComplete, onDismiss }: SmartCardProps) {
   
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>Confirm sleep estimate</Text>
+      <CardHeader icon={getSmartSignalIconName(card)} title="Confirm sleep estimate" />
       <Text style={styles.cardBody}>
         No recent sleep data. Is ~{estimatedHours}h close to your sleep last night?
       </Text>
@@ -147,7 +202,7 @@ function WorkoutLogCard({ card, onComplete, onDismiss }: SmartCardProps) {
   
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>Log today's session</Text>
+      <CardHeader icon={getSmartSignalIconName(card)} title="Log today's session" />
       <Text style={styles.cardBody}>
         {payload.workoutType ? `${payload.workoutType} detected. ` : ''}
         Want to add a quick note?
@@ -207,7 +262,12 @@ function WorkoutSuggestionCard({ card, onComplete, onDismiss }: SmartCardProps) 
   return (
     <View style={styles.card}>
       <View style={styles.suggestionHeader}>
-        <Text style={styles.cardTitle}>{suggestion.title}</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.iconBox}>
+            <Ionicons name={getSmartSignalIconName(card)} size={18} color={colors.text.secondary} />
+          </View>
+          <Text style={styles.cardTitle}>{suggestion.title}</Text>
+        </View>
         {suggestion.duration && (
           <Text style={styles.durationBadge}>{suggestion.duration} min</Text>
         )}
@@ -255,7 +315,7 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
   
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>What are you optimizing for?</Text>
+      <CardHeader icon={getSmartSignalIconName(card)} title="What are you optimizing for?" />
       <Text style={styles.cardBody}>
         {payload.currentGoals 
           ? 'Update your training focus.' 
@@ -360,11 +420,35 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.accent.primary,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing[2],
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    flexShrink: 1,
+  },
+  headerRight: {
+    marginLeft: spacing[2],
+  },
+  iconBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    backgroundColor: colors.surface2 ?? colors.bg,
+  },
   cardTitle: {
     color: colors.text.primary,
     fontSize: typography.body.fontSize,
     fontWeight: '600',
-    marginBottom: spacing[2],
   },
   cardBody: {
     color: colors.text.secondary,

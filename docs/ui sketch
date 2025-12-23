@@ -5,28 +5,29 @@ Home (Tab 1) — updated (workout entry ONLY via event Smart Card)
 │  ● Monitoring   |   Updated 6:29 PM   |   Conf: High         │
 │                                                             │
 │  ENDURANCE — MAINTENANCE                                     │
-│  Building capacity with steady, consistent effort.           │  ← Focus (aqua)
+│  Keep effort steady and conversational to maintain capacity. │  ← Focus cue (aqua)
 │                                                             │
 │  AVOID                                                       │
 │  Avoid intensity spikes—keep effort conversational.          │
 │                                                             │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ SMART SIGNALS (max 2)                                     │ │
-│  │                                                         │ │
-│  │  (example: Sleep confirm)                                │ │
-│  │  Sleep estimate used — confirm?                   [Open] │ │
-│  │                                                         │ │
-│  │  (example: Workout event detected)                       │ │
-│  │  Workout detected — add a quick log?              [Open] │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                             │
 │  Why this directive?                                         │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │ ANALYST INSIGHT (collapsed)                               │ │
-│  │ “Recovery is good and capacity is building. Today…”       │ │
+│  │ “Recovery is solid, but recent load is high—so            │ │
+│  │  Maintenance keeps progress without overspending.”        │ │
 │  │                                          More context ›   │ │
 │  │  STATE: Building Capacity   VITALITY: 62%   CONF: High    │ │
 │  │  LAST UPDATE: 6:29 PM        REASON: Directive changed    │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ SMART SIGNALS (Smart Cards • max 2)                       │ │
+│  │                                                         │ │
+│  │  (example: Sleep confirm)                                │ │
+│  │  Sleep estimate used — confirm?                [Review]  │ │
+│  │                                                         │ │
+│  │  (example: Workout event detected)                       │ │
+│  │  Workout detected — add a quick log?           [Review]  │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │                                                             │
 │  [HOME]                 [DASHBOARD]                [SETTINGS] │
@@ -43,7 +44,7 @@ Home Smart Card expanded (Workout Log — event-triggered)
 │                                                             │
 │  + Add details (optional) ▸                                  │
 │                                                             │
-│  [Save log]                 [Not now]                        │
+│  [Save log]                 [Not now] (dismiss for today)    │
 └─────────────────────────────────────────────────────────────┘
 
 Dashboard (Tab 2) — updated (Log is view-first; “Add workout” is NOT primary)

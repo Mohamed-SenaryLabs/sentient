@@ -9,42 +9,57 @@
  */
 
 // ============================================
-// C.1 COLOR TOKENS (Option 1 — Sentient / Night Signal)
+// C.1 COLOR TOKENS — Corbeau Core (Cold Instrument, violet removed)
 // ============================================
 
 export const colors = {
   // Base / Background
-  bg: '#0F1422',
+  // "Corbeau" gravity base (near-black with blue bias)
+  bg: '#111122',
   
   // Surface / Cards
-  surface: '#1A2236',
+  // Instrument panels / cards (blue-leaning graphite)
+  surface: '#1A2133',
+  // Deeper surface (nested panels / input wells)
+  surface2: '#14192A',
   
   // Text
   text: {
-    primary: '#F2F4F7',
-    secondary: '#9AA4B2',
+    // "Perfect White" (soft, not pure white)
+    primary: '#F0EEEE',
+    // "Dark Ages" (cool secondary)
+    secondary: '#9698A3',
   },
   
   // Accent (Functional only — no decorative use)
   accent: {
-    // Positive/ready signals (Focus cue, "Monitoring/Updated", readiness labels)
-    primary: '#2FAF8F',
-    // Caution/constraint signals (tightened bounds, warnings that are not critical)
-    caution: '#D4A373', // Muted Terracotta/Beige
-    // Protection/critical strain signals (low vitality, high risk states)
-    strain: '#D97757', // Burnt Orange / Terracotta
+    // Alignment / active state (cold, calibrated blue)
+    primary: '#3A8CA8',
+    // Constraint / caution (disciplined amber)
+    caution: '#D6A85C',
+    // Protection / critical (deep controlled red)
+    strain: '#C85C5C',
   },
   
   // Borders / Dividers
   border: {
-    default: '#334155',
-    subtle: '#1E293B',
+    // Hairline strokes; keep subtle
+    default: '#2A3146',
+    subtle: '#1B2238',
   },
   
   // Transparency helpers (for overlays, disabled states)
   overlay: {
-    dark: 'rgba(15, 20, 34, 0.9)',
-    light: 'rgba(242, 244, 247, 0.1)',
+    dark: 'rgba(17, 17, 34, 0.92)',
+    light: 'rgba(240, 238, 238, 0.10)',
+  },
+  
+  // Depth-field helpers (optional; used sparingly)
+  depth: {
+    // For subtle vignette layers / background fields (no decorative gradients on Home content)
+    vignette: 'rgba(0, 0, 0, 0.35)',
+    // For faint highlight at top of surfaces
+    sheen: 'rgba(240, 238, 238, 0.04)',
   },
 } as const;
 
@@ -139,16 +154,16 @@ export const elevation = {
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 2,
   },
   // For modals / overlays
   modal: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
     elevation: 4,
   },
 } as const;
@@ -256,7 +271,7 @@ export const componentPresets = {
   
   // Text input
   textInput: {
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surface2,
     borderRadius: radius.input,
     padding: spacing[3],
     color: colors.text.primary,

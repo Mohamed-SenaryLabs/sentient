@@ -16,7 +16,7 @@ export function DevConsoleScreen({ logs, onBack, onRecreateDb, visible }: DevCon
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>SYSTEM CONSOLE</Text>
-        <View style={{ flexDirection: 'row', gap: spacing[2] }}>
+        <View style={styles.headerControls}>
             <TouchableOpacity onPress={onRecreateDb} style={styles.dangerButton}>
             <Text style={styles.dangerText}>RESET DB</Text>
             </TouchableOpacity>
@@ -85,5 +85,9 @@ const styles = StyleSheet.create({
     color: colors.accent.primary,
     fontSize: 11,
     marginBottom: spacing[1],
+  },
+  headerControls: {
+    flexDirection: 'row',
+    gap: spacing[2],
   },
 });

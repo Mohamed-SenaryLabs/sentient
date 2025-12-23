@@ -101,7 +101,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
       
       <View style={styles.columns}>
         {/* HRV Status */}
-        <View style={[styles.metricCard, { flex: 1 }]}>
+        <View style={[styles.metricCard, styles.flex1]}>
           <Text style={styles.metricTitle}>HRV Status</Text>
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Baseline:</Text>
@@ -125,7 +125,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
         </View>
 
         {/* RHR Status */}
-        <View style={[styles.metricCard, { flex: 1 }]}>
+        <View style={[styles.metricCard, styles.flex1]}>
           <Text style={styles.metricTitle}>RHR Status</Text>
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Baseline:</Text>
@@ -175,7 +175,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
       {/* MOVEMENT SECTION */}
       <Text style={styles.sectionHeader}>MOVEMENT</Text>
       <View style={styles.columns}>
-        <View style={[styles.metricCard, { flex: 1 }]}>
+        <View style={[styles.metricCard, styles.flex1]}>
           <Text style={styles.metricTitle}>Steps</Text>
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Baseline:</Text>
@@ -192,7 +192,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
           </View>
         </View>
 
-        <View style={[styles.metricCard, { flex: 1 }]}>
+        <View style={[styles.metricCard, styles.flex1]}>
           <Text style={styles.metricTitle}>Active Burn</Text>
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Baseline:</Text>
@@ -245,14 +245,14 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
       {/* CONSTITUTION SECTION */}
       <Text style={styles.sectionHeader}>CONSTITUTION</Text>
       <View style={styles.columns}>
-        <View style={[styles.metricCard, { flex: 1 }]}>
+        <View style={[styles.metricCard, styles.flex1]}>
           <Text style={styles.metricTitle}>VO₂ Max</Text>
           <Text style={styles.constitutionValue}>
             {stats.biometrics.vo2Max?.toFixed(1) || '-'} <Text style={styles.unit}>ml/kg/min</Text>
           </Text>
           <Text style={styles.trendText}>Trend: Stable</Text>
         </View>
-        <View style={[styles.metricCard, { flex: 1 }]}>
+        <View style={[styles.metricCard, styles.flex1]}>
           <Text style={styles.metricTitle}>Weight / Lean Mass</Text>
           <Text style={styles.constitutionValue}>No data</Text>
           <Text style={styles.trendText}>(ok)</Text>
@@ -299,15 +299,15 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
             .map((item, i) => (
               <View key={item.id} style={styles.logRow}>
                 <View style={[styles.logDot, { backgroundColor: item.type === 'WORKOUT' ? colors.accent.primary : colors.border.default }]} />
-                <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={styles.logContent}>
                   <Text style={styles.logTitle}>{item.label}</Text>
                   <Text style={styles.logDate}>
                     {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
                   </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
+                <View style={styles.logValueContainer}>
                   <Text style={styles.logValue}>{Math.round(item.value)} kcal</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
+                  <View style={styles.logMetaRow}>
                     {!!item.duration && (
                       <Text style={styles.logDetail}>{Math.round(item.duration / 60)} min</Text>
                     )}
@@ -733,5 +733,21 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
+  },
+  logValueContainer: {
+    alignItems: 'flex-end',
+    minWidth: 100,
+  },
+  logMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 6,
+  },
+  logContent: {
+    flex: 1,
+    marginLeft: spacing[3],
+  },
+  flex1: {
+    flex: 1,
   },
 });
