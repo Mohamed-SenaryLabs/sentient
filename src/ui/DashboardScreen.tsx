@@ -14,6 +14,7 @@ interface DashboardScreenProps {
 
 export function DashboardScreen({ stats, history, onRefresh, refreshing }: DashboardScreenProps) {
   const [traceExpanded, setTraceExpanded] = useState(false);
+  const [logExpanded, setLogExpanded] = useState(false);
 
   if (!stats) {
     return (
@@ -70,6 +71,22 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
     if (type.includes('Running')) return 'Run';
     if (type.includes('Walking')) return 'Walk';
     return type.replace('Traditional ', '').replace('Training', '');
+  };
+
+  // Get icon for activity type
+  const getActivityIcon = (item: { type: string; label: string }) => {
+    if (item.type === 'RECOVERY') {
+      return 'leaf-outline';
+    }
+    const label = item.label.toLowerCase();
+    if (label.includes('run') || label.includes('running')) return 'walk-outline';
+    if (label.includes('strength') || label.includes('lift')) return 'barbell-outline';
+    if (label.includes('hiit') || label.includes('interval')) return 'flash-outline';
+    if (label.includes('cycle') || label.includes('bike')) return 'bicycle-outline';
+    if (label.includes('swim')) return 'water-outline';
+    if (label.includes('walk')) return 'footsteps-outline';
+    if (label.includes('functional')) return 'fitness-outline';
+    return 'fitness-outline';
   };
 
   // Confidence styling using tokens
@@ -266,62 +283,158 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
       <View style={styles.logContainer}>
         {(() => {
           const allDays = stats ? [stats, ...history] : history;
-          const allItems = allDays.flatMap(day => {
-            if (day.activity.workouts.length > 0) {
-              return day.activity.workouts.map(workout => ({
-                type: 'WORKOUT',
-                label: formatWorkoutType(workout.type),
-                date: day.date,
-                value: workout.activeCalories,
-                duration: workout.durationSeconds,
-                rpm: workout.rpm,
-                minHr: workout.minHeartRate,
-                maxHr: workout.maxHeartRate,
-                id: workout.id
-              }));
+          
+          // Group activities by unique date
+          const daysMap = new Map<string, Array<{
+            type: string;
+            label: string;
+            date: string;
+            value: number;
+            duration: number;
+            rpm?: number;
+            minHr?: number;
+            maxHr?: number;
+            id: string;
+          }>>();
+          
+          allDays.forEach(day => {
+            const dateKey = day.date;
+            
+            // Initialize activities array for this date if not exists
+            if (!daysMap.has(dateKey)) {
+              daysMap.set(dateKey, []);
             }
-            return [{
-              type: 'RECOVERY',
-              label: 'Recovery',
-              date: day.date,
-              value: day.activity.activeCalories,
-              duration: 0,
-              rpm: undefined,
-              minHr: undefined,
-              maxHr: undefined,
-              id: day.date + '_rec'
-            }];
+            
+            const activities = daysMap.get(dateKey)!;
+            
+            // Add workouts
+            if (day.activity.workouts.length > 0) {
+              day.activity.workouts.forEach(workout => {
+                // Only add if not already present (avoid duplicates)
+                if (!activities.some(a => a.id === workout.id)) {
+                  activities.push({
+                    type: 'WORKOUT',
+                    label: formatWorkoutType(workout.type),
+                    date: day.date,
+                    value: workout.activeCalories,
+                    duration: workout.durationSeconds,
+                    rpm: workout.rpm,
+                    minHr: workout.minHeartRate,
+                    maxHr: workout.maxHeartRate,
+                    id: workout.id
+                  });
+                }
+              });
+            } else {
+              // Only add recovery if no workouts exist for this date
+              // Check if we already have workouts OR a recovery entry for this date
+              const hasWorkouts = activities.some(a => a.type === 'WORKOUT');
+              const recoveryId = day.date + '_rec';
+              const hasRecovery = activities.some(a => a.id === recoveryId);
+              
+              if (!hasWorkouts && !hasRecovery) {
+                activities.push({
+                  type: 'RECOVERY',
+                  label: 'Recovery',
+                  date: day.date,
+                  value: day.activity.activeCalories,
+                  duration: 0,
+                  id: recoveryId
+                });
+              }
+            }
           });
 
-          const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
+          // Convert map to array and sort by date (newest first)
+          const sortedDays = Array.from(daysMap.entries())
+            .map(([date, activities]) => ({ date, activities }))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          
+          const daysToShow = logExpanded ? sortedDays : sortedDays.slice(0, 3);
 
-          return uniqueItems
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .slice(0, 10)
-            .map((item, i) => (
-              <View key={item.id} style={styles.logRow}>
-                <View style={[styles.logDot, { backgroundColor: item.type === 'WORKOUT' ? colors.accent.vitality : colors.border.default }]} />
-                <View style={styles.logContent}>
-                  <Text style={styles.logTitle}>{item.label}</Text>
-                  <Text style={styles.logDate}>
-                    {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
-                  </Text>
-                </View>
-                <View style={styles.logValueContainer}>
-                  <Text style={styles.logValue}>{Math.round(item.value)} kcal</Text>
-                  <View style={styles.logMetaRow}>
-                    {!!item.duration && (
-                      <Text style={styles.logDetail}>{Math.round(item.duration / 60)} min</Text>
-                    )}
-                    {item.minHr !== undefined && item.maxHr !== undefined && (
-                      <Text style={styles.logDetail}>
-                        · {item.minHr}-{item.maxHr} bpm
-                      </Text>
-                    )}
+          // Normalize dates to YYYY-MM-DD for comparison (handles timezone issues)
+          // Define once outside map for efficiency
+          const normalizeDate = (dateStr: string | Date): string => {
+            // If already in YYYY-MM-DD format, return as-is
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              return dateStr;
+            }
+            const d = typeof dateStr === 'string' ? new Date(dateStr + 'T00:00:00') : dateStr;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          };
+          
+          const today = normalizeDate(new Date());
+          const yesterdayDate = new Date();
+          yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+          const yesterday = normalizeDate(yesterdayDate);
+
+          return (
+            <>
+              {daysToShow.map((dayGroup, dayIndex) => {
+                const dayDateStr = normalizeDate(dayGroup.date);
+                const dayDate = new Date(dayGroup.date + 'T00:00:00');
+                
+                let dayLabel: string;
+                if (dayDateStr === today) dayLabel = 'Today';
+                else if (dayDateStr === yesterday) dayLabel = 'Yesterday';
+                else dayLabel = dayDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+                return (
+                  <View key={dayGroup.date} style={styles.logDayGroup}>
+                    <Text style={styles.logDayHeader}>{dayLabel.toUpperCase()}</Text>
+                    {dayGroup.activities.map((item) => (
+                      <View key={item.id} style={styles.logRow}>
+                        <View style={[styles.logIconContainer, { backgroundColor: item.type === 'WORKOUT' ? `${colors.accent.vitality}20` : `${colors.border.default}20` }]}>
+                          <Ionicons 
+                            name={getActivityIcon(item) as any} 
+                            size={18} 
+                            color={item.type === 'WORKOUT' ? colors.accent.vitality : colors.text.secondary} 
+                          />
+                        </View>
+                        <View style={styles.logContent}>
+                          <Text style={styles.logTitle}>{item.label}</Text>
+                          <View style={styles.logMetaRow}>
+                            {!!item.duration && (
+                              <Text style={styles.logDetail}>{Math.round(item.duration / 60)} min</Text>
+                            )}
+                            {item.minHr !== undefined && item.maxHr !== undefined && (
+                              <Text style={styles.logDetail}>
+                                {item.duration ? ' · ' : ''}{item.minHr}-{item.maxHr} bpm
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        <View style={styles.logValueContainer}>
+                          <Text style={styles.logValue}>{Math.round(item.value)}</Text>
+                          <Text style={styles.logUnit}>kcal</Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
-                </View>
-              </View>
-            ));
+                );
+              })}
+              
+              {sortedDays.length > 3 && (
+                <TouchableOpacity 
+                  style={styles.logExpandButton}
+                  onPress={() => setLogExpanded(!logExpanded)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.logExpandText}>
+                    {logExpanded ? 'Show Less' : `Show ${sortedDays.length - 3} More Days`}
+                  </Text>
+                  <Ionicons 
+                    name={logExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} 
+                    size={16} 
+                    color={colors.accent.vitality} 
+                  />
+                </TouchableOpacity>
+              )}
+            </>
+          );
         })()}
       </View>
 
@@ -607,6 +720,16 @@ const styles = StyleSheet.create({
   logContainer: {
     marginBottom: spacing[5],
   },
+  logDayGroup: {
+    marginBottom: spacing[4],
+  },
+  logDayHeader: {
+    ...typography.meta,
+    color: colors.text.tertiary,
+    marginBottom: spacing[2],
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
   logRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -615,39 +738,55 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     marginBottom: spacing[2],
     borderWidth: 1,
-    borderColor: colors.border.subtle, // Consistent with panel styling rule
+    borderColor: colors.border.subtle,
   },
-  logDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  logIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[3],
   },
   logTitle: {
     ...typography.cardTitleSmall,
     color: colors.text.primary,
-  },
-  logDate: {
-    ...typography.meta,
-    color: colors.text.secondary,
-    marginTop: 2,
-  },
-  logValue: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  logValueContainer: {
-    alignItems: 'flex-end',
-    minWidth: 100,
-  },
-  logMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 6,
+    marginBottom: 2,
   },
   logContent: {
     flex: 1,
-    marginLeft: spacing[3],
+  },
+  logValueContainer: {
+    alignItems: 'flex-end',
+    minWidth: 70,
+  },
+  logValue: {
+    ...typography.compactMetric,
+    color: colors.text.primary,
+    fontSize: 16,
+  },
+  logUnit: {
+    ...typography.small,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
+  logMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  logExpandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[3],
+    marginTop: spacing[2],
+    gap: spacing[2],
+  },
+  logExpandText: {
+    ...typography.meta,
+    color: colors.accent.vitality,
+    fontWeight: '600',
   },
   flex1: {
     flex: 1,
