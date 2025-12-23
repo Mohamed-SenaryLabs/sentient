@@ -22,6 +22,8 @@ import { SettingsScreen } from './src/ui/SettingsScreen';
 import { DevConsoleScreen } from './src/ui/DevConsoleScreen';
 import { colors, spacing } from './src/ui/theme/tokens';
 
+import { BottomNavigation } from './src/ui/components/BottomNavigation';
+
 const Tab = createBottomTabNavigator();
 
 // ============================================
@@ -61,12 +63,9 @@ function AppContent() {
     <NavigationContainer>
       <StatusBar barStyle="light-content" />
       <Tab.Navigator
+        tabBar={props => <BottomNavigation {...props} />}
         screenOptions={{
           headerShown: false,
-          tabBarStyle: styles.tabBar,
-          tabBarActiveTintColor: colors.accent.primary,
-          tabBarInactiveTintColor: colors.text.secondary,
-          tabBarLabelStyle: styles.tabText,
         }}
       >
         <Tab.Screen name="HOME">
@@ -79,6 +78,7 @@ function AppContent() {
               smartCards={smartCards}
               onCardComplete={completeSmartCard}
               onCardDismiss={dismissSmartCard}
+              historicalData={historicalData}
             />
           )}
         </Tab.Screen>
@@ -125,19 +125,4 @@ export default function App() {
 // STYLES
 // ============================================
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.bg,
-    borderTopColor: colors.border.subtle,
-    borderTopWidth: 1,
-    height: 80,
-    paddingBottom: spacing[5],
-    paddingTop: spacing[3],
-  },
-  tabText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginTop: spacing[1],
-  },
-});
+const styles = StyleSheet.create({});

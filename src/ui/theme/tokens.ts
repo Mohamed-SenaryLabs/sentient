@@ -9,57 +9,64 @@
  */
 
 // ============================================
-// C.1 COLOR TOKENS — Corbeau Core (Cold Instrument, violet removed)
+// C.1 COLOR TOKENS — Sentient V3 (Darker, High Contrast)
 // ============================================
 
 export const colors = {
   // Base / Background
-  // "Corbeau" gravity base (near-black with blue bias)
-  bg: '#111122',
+  // Deep void black/blue
+  bg: '#05050A',
   
   // Surface / Cards
-  // Instrument panels / cards (blue-leaning graphite)
-  surface: '#1A2133',
+  // Subtle instrument panels
+  surface: '#0F1014',
   // Deeper surface (nested panels / input wells)
-  surface2: '#14192A',
+  surface2: '#0A0B0E',
   
   // Text
   text: {
-    // "Perfect White" (soft, not pure white)
-    primary: '#F0EEEE',
-    // "Dark Ages" (cool secondary)
-    secondary: '#9698A3',
+    // "Perfect White"
+    primary: '#FFFFFF',
+    // "Muted Silver"
+    secondary: '#9CA3AF',
+    // "Dim"
+    tertiary: '#4B5563',
   },
   
-  // Accent (Functional only — no decorative use)
+  // Accent (Functional signals)
   accent: {
-    // Alignment / active state (cold, calibrated blue)
-    primary: '#3A8CA8',
-    // Constraint / caution (disciplined amber)
-    caution: '#D6A85C',
-    // Protection / critical (deep controlled red)
-    strain: '#C85C5C',
+    // Vitality (Cyan/Teal)
+    vitality: '#06b6d4', // Cyan 500
+    // State (Gold/Amber)
+    peak: '#eab308',     // Yellow 500
+    // Load (Violet/Purple)
+    load: '#a855f7',     // Purple 500
+    
+    // Legacy mapping (keep for compatibility, but prefer specific above)
+    primary: '#06b6d4',
+    caution: '#eab308',
+    strain: '#ef4444',   // Red 500
+  },
+  
+  // Gradients (Start/End pairs for LinearGradient)
+  gradients: {
+    vitality: ['#06b6d4', '#0891b2'] as const,
+    peak: ['#facc15', '#ca8a04'] as const,
+    load: ['#c084fc', '#9333ea'] as const,
+    strain: ['#f87171', '#dc2626'] as const,
+    dark: ['#1f2937', '#030712'] as const, // For backgrounds
   },
   
   // Borders / Dividers
   border: {
-    // Hairline strokes; keep subtle
-    default: '#2A3146',
-    subtle: '#1B2238',
+    default: '#1f2937',
+    subtle: '#111827',
   },
   
   // Transparency helpers (for overlays, disabled states)
   overlay: {
-    dark: 'rgba(17, 17, 34, 0.92)',
-    light: 'rgba(240, 238, 238, 0.10)',
-  },
-  
-  // Depth-field helpers (optional; used sparingly)
-  depth: {
-    // For subtle vignette layers / background fields (no decorative gradients on Home content)
-    vignette: 'rgba(0, 0, 0, 0.35)',
-    // For faint highlight at top of surfaces
-    sheen: 'rgba(240, 238, 238, 0.04)',
+    dark: 'rgba(5, 5, 10, 0.92)',
+    light: 'rgba(255, 255, 255, 0.10)',
   },
 } as const;
 
@@ -68,41 +75,66 @@ export const colors = {
 // ============================================
 
 export const typography = {
-  // Directive label (e.g., "Endurance — Maintenance") — Highest emphasis
+  // Main Header ("Good evening")
+  header: {
+    fontSize: 28,
+    fontWeight: '400' as const,
+    letterSpacing: -0.5,
+    color: colors.text.primary,
+  },
+
+  // Directive label (e.g., "Endurance") — Strongest
   hero: {
     fontSize: 32,
-    fontWeight: '900' as const,
+    fontWeight: '700' as const,
     letterSpacing: -0.5,
     lineHeight: 40,
     color: colors.text.primary,
   },
   
-  // Focus cue (1 sentence) — Uses accent.primary when appropriate
+  // Focus cue ("Maintenance") — Elegant serif-like or italic
   subhero: {
-    fontSize: 22,
-    fontWeight: '500' as const,
-    lineHeight: 30,
-    color: colors.accent.primary,
-  },
-  
-  // Small labels (e.g., "AVOID", "ANALYST INSIGHT") — Low-contrast, restrained
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase' as const,
+    fontSize: 24,
+    fontWeight: '400' as const,
+    fontStyle: 'italic' as const,
+    lineHeight: 32,
     color: colors.text.secondary,
   },
   
-  // Insight summary/detail, card body — Plain language, no shouting
+  // Small labels (e.g., "AVOID", "DAILY DIRECTIVE")
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase' as const,
+    color: colors.accent.primary, // Often colored in new design
+  },
+  
+  // Insight summary/detail, card body
   body: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '400' as const,
-    lineHeight: 24,
+    lineHeight: 22,
+    color: colors.text.secondary,
+  },
+  
+  // Metrics numbers
+  metricValue: {
+    fontSize: 28,
+    fontWeight: '800' as const,
     color: colors.text.primary,
   },
   
-  // Status lines, timestamps, confidence — Secondary text
+  // Metrics labels
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    color: colors.text.secondary,
+  },
+  
+  // Status lines, timestamps
   meta: {
     fontSize: 12,
     fontWeight: '500' as const,
@@ -110,12 +142,12 @@ export const typography = {
     color: colors.text.secondary,
   },
   
-  // Avoid line text — constraint styling
+  // Avoid line text
   avoid: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '400' as const,
-    lineHeight: 26,
-    color: colors.accent.strain,
+    lineHeight: 22,
+    color: colors.text.primary,
   },
 } as const;
 
@@ -140,48 +172,38 @@ export const spacing = {
 
 export const radius = {
   // Cards / Panels
-  card: 12,
-  // Small status chips if used
+  card: 20, // Increased radius per screenshot
+  
+  // Small status chips
   pill: 999,
-  // Subtle rounding for inputs
-  input: 6,
+  
   // Very subtle for internal elements
-  subtle: 4,
+  subtle: 6,
+  
+  // Input fields
+  input: 12,
 } as const;
 
 export const elevation = {
-  // Minimal shadow; rely on contrast, not depth
+  // Minimal shadow; rely on borders/glows
   card: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  // For modals / overlays
-  modal: {
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
     elevation: 4,
   },
 } as const;
 
 // ============================================
-// C.5 MOTION TOKENS (Confirmation-only)
+// C.5 MOTION TOKENS
 // ============================================
 
 export const motion = {
-  // For expand/collapse, content appearance
+  // Standard ease
   easeInOut: {
-    duration: 200,
-    type: 'easeInOut' as const,
-  },
-  // For subtle crossfade on refresh
-  crossfade: {
-    duration: 150,
-    type: 'linear' as const,
+    duration: 300,
+    type: 'easeInEaseOut' as const,
   },
 } as const;
 
@@ -189,26 +211,19 @@ export const motion = {
 // C.6 FUNCTIONAL COLOR MAPPINGS
 // ============================================
 
-/**
- * Color mapping by system state
- * Use these to determine accent colors based on state
- */
 export const stateColors = {
-  READY_FOR_LOAD: colors.accent.primary,
-  BUILDING_CAPACITY: colors.accent.primary,
-  NEEDS_STIMULATION: colors.accent.caution,
-  HIGH_STRAIN: colors.accent.caution,
+  READY_FOR_LOAD: colors.accent.vitality,
+  BUILDING_CAPACITY: colors.accent.vitality,
+  NEEDS_STIMULATION: colors.accent.peak,
+  HIGH_STRAIN: colors.accent.peak,
   PHYSICAL_STRAIN: colors.accent.strain,
   RECOVERY_MODE: colors.accent.strain,
 } as const;
 
-/**
- * Vitality-based color
- */
 export function getVitalityColor(vitality: number): string {
   if (vitality < 30) return colors.accent.strain;
-  if (vitality < 60) return colors.accent.caution;
-  return colors.accent.primary;
+  if (vitality < 60) return colors.accent.peak;
+  return colors.accent.vitality;
 }
 
 /**
@@ -216,71 +231,24 @@ export function getVitalityColor(vitality: number): string {
  */
 export const confidenceStyles = {
   HIGH: {
-    backgroundColor: `${colors.accent.primary}20`,
-    borderColor: colors.accent.primary,
-    textColor: colors.accent.primary,
+    backgroundColor: 'rgba(6, 182, 212, 0.15)', // vitality with opacity
+    borderColor: colors.accent.vitality,
+    textColor: colors.accent.vitality,
   },
   MEDIUM: {
-    backgroundColor: `${colors.accent.caution}20`,
-    borderColor: colors.accent.caution,
-    textColor: colors.accent.caution,
+    backgroundColor: 'rgba(234, 179, 8, 0.15)', // peak with opacity
+    borderColor: colors.accent.peak,
+    textColor: colors.accent.peak,
   },
   LOW: {
-    backgroundColor: `${colors.accent.strain}20`,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)', // strain with opacity
     borderColor: colors.accent.strain,
     textColor: colors.accent.strain,
   },
 } as const;
 
-// ============================================
-// COMPONENT PRESETS
-// ============================================
+// Type exports
 
-/**
- * Common component style presets using tokens
- */
-export const componentPresets = {
-  // Screen container
-  screenContainer: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    padding: spacing[5],
-  },
-  
-  // Surface card
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing[4],
-    ...elevation.card,
-  },
-  
-  // Divider line
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.default,
-  },
-  
-  // Primary button
-  primaryButton: {
-    backgroundColor: colors.accent.primary,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-  },
-  
-  // Text input
-  textInput: {
-    backgroundColor: colors.surface2,
-    borderRadius: radius.input,
-    padding: spacing[3],
-    color: colors.text.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-} as const;
-
-// Type exports for TypeScript consumers
 export type ColorToken = typeof colors;
 export type TypographyToken = typeof typography;
 export type SpacingToken = typeof spacing;

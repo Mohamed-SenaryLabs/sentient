@@ -24,6 +24,13 @@ export interface HomeViewData {
   directiveLabel: string;
   focusCue: string;
   stateAccent: string;
+
+  // Metric Tiles
+  stateValue: string;
+  loadLabel: string;
+  loadDisplayValue: string; // The formatted "Load: 123" or similar is old. Now we need "Low/Mod/High"
+  capacityLabel: string;
+  capacityValue: string;
   
   // Avoid section
   avoidLabel: string;
@@ -34,6 +41,7 @@ export interface HomeViewData {
   vitalityColor: string;
   vitalityPercent: number;
   vitalityText: string;
+  isHighRisk: boolean;
   
   // Context panel
   analystSummary: string | null;
@@ -98,12 +106,17 @@ export function createHomeViewModel(
       directiveLabel: '',
       focusCue: '',
       stateAccent: colors.accent.primary,
+      stateValue: '...',
+      loadLabel: 'LOAD (72H)',
+      loadDisplayValue: '...',
+      capacityLabel: 'CAPACITY',
+      capacityValue: '...',
       avoidLabel: 'AVOID',
       avoidCue: '',
       isLowVitality: false,
       vitalityColor: colors.accent.primary,
       vitalityPercent: 0,
-      vitalityText: 'Estimating...',
+      vitalityText: '...',
       analystSummary: null,
       analystDetail: null,
       stateLabel: stateLabel,
@@ -135,9 +148,17 @@ export function createHomeViewModel(
   const avoidCue = contract.avoid_cue 
     || getDefaultConstraint(systemStatus.current_state, directive.category);
 
+  // Risk Check (for Avoid coloring)
+  const isHighRisk = 
+    ['HIGH_STRAIN', 'PHYSICAL_STRAIN', 'RECOVERY_MODE'].includes(systemStatus.current_state) ||
+    stats.stats.vitality < 30;
+
   return {
     isLoading: false,
     loadingText: '',
+    
+    // Risk Flag
+    isHighRisk,
     
     // Hero
     greeting: getGreeting(),
@@ -148,17 +169,29 @@ export function createHomeViewModel(
     focusCue,
     stateAccent,
     
+    // Metrics Tiles
+    stateValue: getReadableState(systemStatus.current_state), // Full canonical name
+    loadLabel: 'LOAD (72H)',
+    loadDisplayValue: stats.stats.loadDensity && stats.stats.loadDensity > 700 ? 'High' : 
+                      stats.stats.loadDensity && stats.stats.loadDensity > 400 ? 'Moderate' : 'Low',
+    capacityLabel: 'CAPACITY (TODAY)',
+    capacityValue: (() => {
+      const cap = stats.stats.adaptiveCapacity?.current || 0;
+      if (cap >= 85) return 'Full';
+      if (cap >= 50) return 'Moderate';
+      if (cap >= 25) return 'Limited';
+      return 'Low';
+    })(),
+    
     // Avoid
     avoidLabel: 'AVOID',
-    avoidCue,
+    avoidCue: avoidCue.length > 120 ? avoidCue.substring(0, 117) + '...' : avoidCue,
     
     // Vitality warning
     isLowVitality,
     vitalityColor,
     vitalityPercent: stats.stats.vitality,
-    vitalityText: stats.stats.vitality > 0 
-      ? `${stats.stats.vitality}%` 
-      : 'Estimating...',
+    vitalityText: `${stats.stats.vitality}`, // Just the number for the tile
     
     // Context panel
     analystSummary: contract.analyst_insight?.summary 

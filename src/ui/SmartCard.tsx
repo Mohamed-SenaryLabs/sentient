@@ -373,6 +373,96 @@ function inferGoalTags(text: string): string[] {
 }
 
 // ============================================
+// EXPANDABLE SMART CARD WRAPPER
+// ============================================
+
+function ExpandableSmartCard({ card, onComplete, onDismiss }: SmartCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(true);
+  };
+
+  const handleClose = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(false);
+  };
+
+  if (expanded) {
+    return (
+      <View style={styles.expandedWrapper}>
+        <View style={styles.expandedHeader}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={20} color={colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
+        <SmartCardComponent 
+          card={card} 
+          onComplete={(id, payload) => {
+            // Animate removal
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            onComplete(id, payload);
+          }} 
+          onDismiss={(id) => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            onDismiss(id);
+          }} 
+        />
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity onPress={handleExpand} activeOpacity={0.7}>
+      <CollapsedSmartSignalRow card={card} onReview={handleExpand} />
+    </TouchableOpacity>
+  );
+}
+
+// ============================================
+// COLLAPSED ROW UI
+// ============================================
+
+function CollapsedSmartSignalRow({ card, onReview }: { card: SmartCardType; onReview: () => void }) {
+  const icon = getSmartSignalIconName(card);
+  let title = "Pending Action";
+  let subtitle = "Tap to review";
+
+  // Customize text based on type
+  if (card.type === 'SLEEP_CONFIRM') {
+    title = "Confirm sleep estimate";
+    subtitle = "No recent data found.";
+  } else if (card.type === 'WORKOUT_LOG') {
+    const p = card.payload as WorkoutLogPayload;
+    title = "Log Workout";
+    subtitle = p.workoutType ? `${p.workoutType} detected` : "New session detected";
+  } else if (card.type === 'WORKOUT_SUGGESTION') {
+    title = "Workout Suggestion";
+    subtitle = (card.payload as WorkoutSuggestionPayload).suggestion.title;
+  } else if (card.type === 'GOALS_INTAKE') {
+    title = "Goal Setting";
+    subtitle = "Update your primary focus";
+  }
+
+  return (
+    <View style={styles.collapsedRow}>
+      <View style={styles.collapsedLeft}>
+        <Ionicons name={icon} size={20} color={colors.text.secondary} />
+        <View style={styles.collapsedText}>
+          <Text style={styles.collapsedTitle}>{title}</Text>
+          <Text style={styles.collapsedSubtitle} numberOfLines={1}>{subtitle}</Text>
+        </View>
+      </View>
+      
+      <TouchableOpacity onPress={onReview}>
+        <Text style={styles.reviewLink}>Review</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ============================================
 // CONTAINER FOR MULTIPLE CARDS
 // ============================================
 
@@ -392,8 +482,8 @@ export function SmartCardsContainer({ cards, onComplete, onDismiss }: SmartCards
   
   return (
     <View style={styles.container}>
-      {visibleCards.map((card, index) => (
-        <SmartCardComponent
+      {visibleCards.map((card) => (
+        <ExpandableSmartCard
           key={card.id}
           card={card}
           onComplete={onComplete}
@@ -410,15 +500,70 @@ export function SmartCardsContainer({ cards, onComplete, onDismiss }: SmartCards
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: spacing[5],
-    gap: spacing[4],
+    marginTop: spacing[2],
+    gap: spacing[3],
   },
-  card: {
+  // Collapsed Row
+  collapsedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+  },
+  collapsedLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    flex: 1,
+  },
+  collapsedText: {
+    flex: 1,
+  },
+  collapsedTitle: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text.primary,
+    fontSize: 14,
+  },
+  collapsedSubtitle: {
+    ...typography.meta,
+    color: colors.text.secondary,
+  },
+  reviewLink: {
+    ...typography.meta,
+    color: colors.accent.primary,
+    fontWeight: '600',
+  },
+  
+  // Expanded Wrapper
+  expandedWrapper: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
+    overflow: 'hidden',
+  },
+  expandedHeader: {
+    alignItems: 'flex-end',
+    paddingRight: spacing[2],
+    paddingTop: spacing[2],
+    marginBottom: -spacing[4], // Pull close button over card header if desired, or keep separate
+    zIndex: 10,
+  },
+  closeButton: {
+    padding: spacing[2],
+  },
+
+  // Existing Card Styles
+  card: {
     padding: spacing[4],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent.primary,
+    // Remove background/border here since wrapper handles it or we rely on composition.
+    // Actually, SmartCardComponent renders specific cards which use styles.card.
+    // We should keep styles.card but maybe remove the borderLeft which might look odd inside expanded view
+    // Let's keep it for now as "Rich Card" look.
   },
   headerRow: {
     flexDirection: 'row',

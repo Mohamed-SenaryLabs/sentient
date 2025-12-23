@@ -1,17 +1,12 @@
 /**
- * FocusScreen (Home) — PRD Compliant
+ * FocusScreen (Home) — PRD Compliant v3.0
  * 
- * Directive-First Hierarchy (PRD §C.6):
- * 1) Directive (hero) — type.hero, color.text.primary
- * 2) Focus cue (subhero) — type.subhero, color.accent.primary
- * 3) Avoid cue — section label uses color.accent.strain, body uses type.avoid
- * 4) Smart Cards (max 2) — use color.surface, radius.card
- * 5) Contextual Intel ("Why this directive?") — ContextCard component
- * 
- * Motion rules: expand/collapse only, no looping animations
+ * Implements the "Sentient V3" dark instrument design.
+ * Hierarchy: Header -> Metrics -> Directive Card -> Analyst Insight
  */
 
-import React, { useEffect } from 'react';
+import { OperatorDailyStats, SmartCard, DailyStats } from '../data/schema';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -20,11 +15,16 @@ import {
   RefreshControl, 
   LayoutAnimation, 
   Platform, 
-  UIManager 
+  UIManager,
+  TouchableOpacity
 } from 'react-native';
-import { OperatorDailyStats, SmartCard } from '../data/schema';
+import { Ionicons } from '@expo/vector-icons';
 import { SmartCardsContainer } from './SmartCard';
-import { ContextCard } from './components/ContextCard';
+// New Components
+import { MetricTile } from './components/MetricTile';
+import { DirectiveCard } from './components/DirectiveCard';
+import { AnalystInsightCard } from './components/AnalystInsightCard';
+
 import { createHomeViewModel } from './viewmodels/HomeViewModel';
 import { 
   colors, 
@@ -45,6 +45,7 @@ interface FocusScreenProps {
   smartCards?: SmartCard[];
   onCardComplete?: (cardId: string, payload?: any) => void;
   onCardDismiss?: (cardId: string) => void;
+  historicalData?: DailyStats[];
 }
 
 export function FocusScreen({ 
@@ -54,13 +55,14 @@ export function FocusScreen({
   refreshing,
   smartCards,
   onCardComplete,
-  onCardDismiss 
+  onCardDismiss,
+  historicalData 
 }: FocusScreenProps) {
   
-  // Transform data using ViewModel (Single Source of Truth)
   const viewData = createHomeViewModel(stats, status);
+  const [isInsightExpanded, setIsInsightExpanded] = useState(false);
 
-  // Animate on content changes (confirmation-only motion)
+  // Animate on content changes
   useEffect(() => {
     if (stats) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -73,110 +75,141 @@ export function FocusScreen({
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingTitle}>Sentient</Text>
         <Text style={styles.loadingText}>{viewData.loadingText}</Text>
-        {status.includes('...') && (
-          <View style={styles.loadingDots}>
-            <Text style={styles.dot}>●</Text>
-            <Text style={styles.dot}>●</Text>
-            <Text style={styles.dot}>●</Text>
-          </View>
-        )}
       </View>
     );
   }
 
+  const last7Days = historicalData?.slice(0, 7).reverse() || [];
+  const vitalityHistory = last7Days.map(d => d.stats.vitality);
+  const capacityHistory = last7Days.map(d => d.stats.adaptiveCapacity?.current || 0);
+  // Fallback to physiologicalLoad if loadDensity is 0 or missing in history (schema might vary, assuming stats structure)
+  const loadHistory = last7Days.map(d => d.stats.loadDensity || d.stats.physiologicalLoad || 0);
+
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl 
-          refreshing={refreshing} 
-          onRefresh={onRefresh} 
-          tintColor={colors.text.primary} 
-        />
-      }
-    >
-      {/* ===== HERO SECTION ===== */}
-      <View style={styles.heroSection}>
-        {/* Greeting (meta) */}
-        <Text style={styles.greeting}>{viewData.greeting}</Text>
-        
-        {/* Status indicator (meta) */}
-        {viewData.lastUpdateTime ? (
-          <Text style={styles.statusMeta}>
-            Updated {viewData.lastUpdateTime}
-          </Text>
-        ) : (
-          <Text style={styles.statusMeta}>Monitoring</Text>
-        )}
-        
-        {/* 1) DIRECTIVE (hero) */}
-        <Text style={styles.directiveHero}>{viewData.directiveLabel}</Text>
-        
-        {/* 2) FOCUS CUE (subhero) */}
-        <Text style={[styles.focusSubhero, { color: viewData.stateAccent }]}>
-          {viewData.focusCue}
-        </Text>
-      </View>
-
-      <View style={styles.divider} />
-
-      {/* Low Vitality Warning (only when vitality < 30) */}
-      {viewData.isLowVitality && (
-        <View style={styles.warningBanner}>
-          <Text style={styles.warningText}>
-            Vitality is low ({viewData.vitalityPercent}%). Recovery is recommended.
-          </Text>
+    <View style={styles.screenWrapper}>
+      {/* ... ScrollView ... */}
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={colors.text.primary} 
+          />
+        }
+      >
+        {/* ... Header ... */}
+        <View style={styles.headerSection}>
+          <View>
+             <Text style={styles.greeting}>{viewData.greeting}</Text>
+             <View style={styles.statusRow}>
+               <View style={styles.statusDot} />
+               <Text style={styles.statusText}>Monitoring</Text>
+               <View style={styles.statusDivider} />
+               <Text style={styles.statusText}>
+                 Updated {viewData.lastUpdateTime || 'Just now'}
+               </Text>
+               <View style={styles.statusDivider} />
+               <Text style={[styles.statusText, { color: colors.accent.vitality }]}>
+                 Conf: {viewData.confidenceLabel}
+               </Text>
+             </View>
+             
+             {/* State Chip */}
+             <TouchableOpacity 
+               onPress={() => setIsInsightExpanded(!isInsightExpanded)}
+               activeOpacity={0.7}
+               style={styles.stateChip}
+             >
+               <Text style={styles.stateChipText}>
+                 State · {viewData.stateValue}
+               </Text>
+             </TouchableOpacity>
+          </View>
+          
+          {/* Avatar Placeholder */}
+          <View style={styles.avatar}>
+             <Ionicons name="person" size={20} color={colors.text.secondary} />
+          </View>
         </View>
-      )}
 
-      {/* 3) AVOID CUE */}
-      <View style={styles.avoidSection}>
-        <Text style={styles.avoidLabel}>{viewData.avoidLabel}</Text>
-        <Text style={styles.avoidText}>{viewData.avoidCue}</Text>
-      </View>
+        {/* ===== METRICS ROW ===== */}
+        <View style={styles.metricsRow}>
+          <MetricTile 
+            label="VITALITY"
+            value={viewData.vitalityText}
+            textColor={colors.accent.vitality}
+            gradientColors={colors.gradients.vitality}
+            history={vitalityHistory}
+          />
+          <MetricTile 
+            label={viewData.capacityLabel}
+            value={viewData.capacityValue}
+            textColor={colors.accent.vitality}
+            gradientColors={colors.gradients.vitality}
+            history={capacityHistory}
+          />
+          <MetricTile 
+            label={viewData.loadLabel}
+            value={viewData.loadDisplayValue}
+            textColor={colors.accent.vitality}
+            gradientColors={colors.gradients.vitality}
+            history={loadHistory}
+          />
+        </View>
 
-      {/* 4) SMART CARDS (max 2) */}
-      {smartCards && smartCards.length > 0 && onCardComplete && onCardDismiss && (
-        <SmartCardsContainer
-          cards={smartCards}
-          onComplete={onCardComplete}
-          onDismiss={onCardDismiss}
+        {/* ===== DAILY DIRECTIVE CARD ===== */}
+        <DirectiveCard 
+          title={viewData.directiveLabel.split('—')[0]?.trim() || viewData.directiveLabel}
+          subtitle={viewData.focusCue}
+          description={viewData.analystSummary || "Maintain steady effort."} // Fallback if no specific desc
+          avoidText={viewData.avoidCue || "Avoid high intensity spikes."}
+          isHighRisk={viewData.isHighRisk}
         />
-      )}
 
-      {/* 5) CONTEXTUAL INTEL ("Why this directive?") */}
-      <ContextCard 
-        summary={viewData.analystSummary}
-        detail={viewData.analystDetail}
-        stateLabel={viewData.stateLabel}
-        vitalityText={viewData.vitalityText}
-        vitalityColor={viewData.vitalityColor}
-        confidenceLabel={viewData.confidenceLabel}
-        recalTime={viewData.recalTime}
-        recalReason={viewData.recalReason}
-      />
-    </ScrollView>
+        {/* ===== ANALYST INSIGHT ===== */}
+        {(viewData.analystSummary || viewData.analystDetail) && (
+           <AnalystInsightCard 
+             summary={viewData.analystSummary || "No insight available."}
+             detail={viewData.analystDetail}
+             isExpanded={isInsightExpanded}
+             onToggle={() => setIsInsightExpanded(!isInsightExpanded)}
+           />
+        )}
+
+        {/* ===== SMART CARDS (Functionality preserved) ===== */}
+        {smartCards && smartCards.length > 0 && onCardComplete && onCardDismiss && (
+          <View style={styles.smartCardsWrapper}>
+            <Text style={styles.sectionHeader}>PENDING ACTIONS</Text>
+            <SmartCardsContainer
+              cards={smartCards}
+              onComplete={onCardComplete}
+              onDismiss={onCardDismiss}
+            />
+          </View>
+        )}
+
+        {/* Bottom Padding for Nav */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-// ============================================
-// STYLES (Using tokens)
-// ============================================
-
 const styles = StyleSheet.create({
-  // Container
-  container: {
+  screenWrapper: {
     flex: 1,
     backgroundColor: colors.bg,
   },
+  container: {
+    flex: 1,
+  },
   contentContainer: {
     paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[7],
+    paddingTop: spacing[6], // 32px top
+    paddingBottom: 120, // ample space for bottom nav
   },
-  
-  // Loading state
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -184,101 +217,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingTitle: {
-    color: colors.accent.primary,
-    fontSize: typography.hero.fontSize,
-    fontWeight: typography.hero.fontWeight,
-    letterSpacing: 2,
-    marginBottom: spacing[5],
+    ...typography.hero,
+    marginBottom: spacing[4],
   },
   loadingText: {
-    color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
-    letterSpacing: 2,
-  },
-  loadingDots: {
-    flexDirection: 'row',
-    marginTop: spacing[4],
-    gap: spacing[2],
-  },
-  dot: {
-    color: colors.accent.primary,
-    fontSize: 24,
-    opacity: 0.6,
+    ...typography.meta,
   },
   
-  // Hero section
-  heroSection: {
-    marginTop: spacing[4],
+  // Header
+  headerSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: spacing[6],
   },
   greeting: {
-    color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
-    fontWeight: typography.meta.fontWeight,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: spacing[4],
-  },
-  statusMeta: {
-    fontSize: 10,
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing[1],
-  },
-  directiveHero: {
-    color: colors.text.primary,
-    fontSize: typography.hero.fontSize,
-    fontWeight: typography.hero.fontWeight,
-    letterSpacing: typography.hero.letterSpacing,
-    lineHeight: typography.hero.lineHeight,
+    ...typography.header,
     marginBottom: spacing[2],
   },
-  focusSubhero: {
-    fontSize: typography.subhero.fontSize,
-    fontWeight: typography.subhero.fontWeight,
-    lineHeight: typography.subhero.lineHeight,
-    color: colors.accent.primary,
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.default,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accent.vitality,
+    marginRight: spacing[2],
+  },
+  statusText: {
+    ...typography.meta,
+    fontSize: 10,
+  },
+  statusDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: colors.border.subtle,
+    marginHorizontal: spacing[3],
+  },
+  stateChip: {
+    backgroundColor: colors.surface2,
+    paddingHorizontal: spacing[3],
+    paddingVertical: 4, // Tighter padding
+    borderRadius: radius.max, // Higher radius (pill/badge)
+    borderWidth: 1, // Hairline only
+    borderColor: 'rgba(255,255,255,0.05)', // Very subtle hairline
+    marginTop: spacing[3],
+    alignSelf: 'flex-start',
+  },
+  stateChipText: {
+    ...typography.meta,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+  },
+
+  // Metrics
+  metricsRow: {
+    flexDirection: 'row',
+    gap: spacing[3],
     marginBottom: spacing[6],
+    height: 100, // Explicit height for row
   },
-  
-  // Warning banner (low vitality)
-  warningBanner: {
-    backgroundColor: `${colors.accent.strain}15`,
-    padding: spacing[3],
-    borderRadius: radius.subtle,
-    marginBottom: spacing[5],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent.strain,
+
+  // Smart Cards
+  smartCardsWrapper: {
+    marginTop: spacing[4],
   },
-  warningText: {
-    color: colors.accent.strain,
-    fontSize: typography.body.fontSize,
-    lineHeight: typography.body.lineHeight,
-  },
-  
-  // Avoid section
-  avoidSection: {
-    marginBottom: spacing[5],
-  },
-  avoidLabel: {
-    color: colors.accent.strain,
-    fontSize: typography.sectionLabel.fontSize,
-    fontWeight: typography.sectionLabel.fontWeight,
-    letterSpacing: typography.sectionLabel.letterSpacing,
-    textTransform: 'uppercase',
+  sectionHeader: {
+    ...typography.sectionLabel,
     marginBottom: spacing[3],
   },
-  avoidText: {
-    color: colors.accent.strain,
-    fontSize: typography.avoid.fontSize,
-    fontWeight: typography.avoid.fontWeight,
-    lineHeight: typography.avoid.lineHeight,
-  },
 });
+
