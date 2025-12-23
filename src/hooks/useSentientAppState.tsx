@@ -48,6 +48,7 @@ export interface SentientAppState {
   exportData: () => Promise<string>;
   getHistoricalData: () => Promise<OperatorDailyStats[]>;
   resetDatabase: () => Promise<void>;
+  triggerGoalsIntake: () => Promise<void>;
 }
 
 // ============================================
@@ -169,7 +170,19 @@ export function SentientProvider({ children }: SentientProviderProps) {
         addLog(`Goals updated: ${payload.currentGoals.primary.substring(0, 30)}...`);
       }
       
-      // Complete the card in DB
+      if (card.type === 'WORKOUT_SUGGESTION' && payload?.operatorAction) {
+        const action = payload.operatorAction;
+        if (action === 'ADDED') {
+          addLog(`Workout suggestion added to today: ${payload.suggestion?.title || 'Unknown'}`);
+          // TODO: Create a log entry placeholder or add to today's plan
+        } else if (action === 'SAVED') {
+          addLog(`Workout suggestion saved for later: ${payload.suggestion?.title || 'Unknown'}`);
+        } else if (action === 'DISMISSED') {
+          addLog(`Workout suggestion dismissed`);
+        }
+      }
+      
+      // Complete the card in DB (persists operator action)
       await SmartCardEngine.completeCard(cardId, payload);
       
       // Remove from local state
@@ -214,6 +227,30 @@ export function SentientProvider({ children }: SentientProviderProps) {
     setStatus('Idle');
   }, []);
 
+  const triggerGoalsIntakeFn = useCallback(async () => {
+    if (!stats) return;
+    try {
+      const goals = await getOperatorGoals();
+      const card = await SmartCardEngine.triggerGoalsIntakeManually({
+        stats,
+        date: stats.date,
+        goals
+      });
+      if (card) {
+        // Add to smart cards if not already present
+        setSmartCards(prev => {
+          const exists = prev.find(c => c.id === card.id);
+          if (exists) return prev;
+          return [...prev, card];
+        });
+        addLog('Goals intake card triggered');
+      }
+    } catch (e: any) {
+      console.error('[Settings] Failed to trigger goals intake:', e);
+      addLog(`Error: Could not trigger goals intake`);
+    }
+  }, [stats, addLog]);
+
   // ----------------------------------------
   // REFRESH WRAPPER
   // ----------------------------------------
@@ -244,6 +281,7 @@ export function SentientProvider({ children }: SentientProviderProps) {
     exportData,
     getHistoricalData: getHistoricalDataFn,
     resetDatabase: resetDatabaseAction,
+    triggerGoalsIntake: triggerGoalsIntakeFn,
   };
 
   return (

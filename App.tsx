@@ -46,6 +46,7 @@ function AppContent() {
     exportData,
     getHistoricalData,
     resetDatabase,
+    triggerGoalsIntake,
   } = useSentientAppState();
 
   const homeViewData = createHomeViewModel(stats, status || 'Initializing...');
@@ -102,6 +103,7 @@ function AppContent() {
               onExportData={exportData}
               onGetHistoricalData={getHistoricalData}
               onResetDatabase={resetDatabase}
+              onTriggerGoalsIntake={triggerGoalsIntake}
             />
           )}
         </Tab.Screen>

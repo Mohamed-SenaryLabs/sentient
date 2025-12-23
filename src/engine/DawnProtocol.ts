@@ -445,8 +445,9 @@ export class DawnProtocol {
         let shouldRegenerateFocusAvoid = true; // Default to regen for cold start
         let regenReason = 'Cold start (no cached content)';
         
-        // Cooldown protection: prevent rapid recals (30 min cooldown)
-        const RECAL_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+        // Cooldown protection: prevent rapid recals (2 hour cooldown per PRD)
+        const RECAL_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
+        const MAX_RECAL_PER_DAY = 3; // Daily cap
         
         if (existing?.logicContract?.session_focus_llm && !forceRefresh) {
             // We have cached Focus/Avoid/Insight - check for triggers
@@ -457,60 +458,122 @@ export class DawnProtocol {
                 ? JSON.parse(existing.logicContract.constraints_snapshot) 
                 : null;
             
-            // Compare directive
+            // Compare directive (materiality check - only trigger on actual changes)
             let directiveChanged = false;
+            let directiveDelta: { before: any; after: any } | null = null;
             if (cachedDirective) {
-                if (cachedDirective.category !== contract.directive.category) {
+                const categoryChanged = cachedDirective.category !== contract.directive.category;
+                const stimulusChanged = cachedDirective.stimulus_type !== contract.directive.stimulus_type;
+                
+                if (categoryChanged || stimulusChanged) {
                     directiveChanged = true;
-                    regenReason = `Directive category changed: ${cachedDirective.category} → ${contract.directive.category}`;
-                } else if (cachedDirective.stimulus_type !== contract.directive.stimulus_type) {
-                    directiveChanged = true;
-                    regenReason = `Stimulus type changed: ${cachedDirective.stimulus_type} → ${contract.directive.stimulus_type}`;
+                    directiveDelta = {
+                        before: { category: cachedDirective.category, stimulus_type: cachedDirective.stimulus_type },
+                        after: { category: contract.directive.category, stimulus_type: contract.directive.stimulus_type }
+                    };
+                    
+                    if (categoryChanged && stimulusChanged) {
+                        regenReason = `Directive changed: ${cachedDirective.category}/${cachedDirective.stimulus_type} → ${contract.directive.category}/${contract.directive.stimulus_type}`;
+                    } else if (categoryChanged) {
+                        regenReason = `Directive category changed: ${cachedDirective.category} → ${contract.directive.category}`;
+                    } else {
+                        regenReason = `Stimulus type changed: ${cachedDirective.stimulus_type} → ${contract.directive.stimulus_type}`;
+                    }
                 }
             }
             
-            // Compare constraints (deep comparison)
+            // Compare constraints (deep comparison - only trigger on material changes)
             let constraintsChanged = false;
+            let constraintsDelta: { before: any; after: any } | null = null;
             if (cachedConstraints && !directiveChanged) {
                 const currentConstraints = contract.constraints;
-                // Check if any constraint value differs
-                const allKeys = new Set([...Object.keys(cachedConstraints), ...Object.keys(currentConstraints)]);
-                for (const key of allKeys) {
-                    if (JSON.stringify((cachedConstraints as any)[key]) !== JSON.stringify((currentConstraints as any)[key])) {
-                        constraintsChanged = true;
-                        regenReason = `Constraint changed: ${key}`;
-                        break;
-                    }
+                const changes: string[] = [];
+                
+                // Check allow_impact
+                if (cachedConstraints.allow_impact !== currentConstraints.allow_impact) {
+                    changes.push(`allow_impact: ${cachedConstraints.allow_impact} → ${currentConstraints.allow_impact}`);
+                }
+                
+                // Check heart_rate_cap (handle undefined/null)
+                const cachedHrCap = cachedConstraints.heart_rate_cap ?? null;
+                const currentHrCap = currentConstraints.heart_rate_cap ?? null;
+                if (cachedHrCap !== currentHrCap) {
+                    changes.push(`heart_rate_cap: ${cachedHrCap} → ${currentHrCap}`);
+                }
+                
+                // Check required_equipment (array comparison - ignore order)
+                const cachedEq = (cachedConstraints.required_equipment || []).sort().join(',');
+                const currentEq = (currentConstraints.required_equipment || []).sort().join(',');
+                if (cachedEq !== currentEq) {
+                    changes.push(`required_equipment: [${cachedConstraints.required_equipment?.join(', ') || ''}] → [${currentConstraints.required_equipment?.join(', ') || ''}]`);
+                }
+                
+                if (changes.length > 0) {
+                    constraintsChanged = true;
+                    constraintsDelta = {
+                        before: { ...cachedConstraints },
+                        after: { ...currentConstraints }
+                    };
+                    regenReason = `Constraint changed: ${changes.join(', ')}`;
                 }
             }
             
             shouldRegenerateFocusAvoid = directiveChanged || constraintsChanged || !cachedDirective || !cachedConstraints;
             
-            // Cooldown check: block recal if too soon (unless dramatic directive change)
-            if (shouldRegenerateFocusAvoid && existing.logicContract.last_recal_at) {
-                const lastRecalTime = new Date(existing.logicContract.last_recal_at);
-                const timeSinceLastRecal = now.getTime() - lastRecalTime.getTime();
+            // Cooldown and daily cap check
+            if (shouldRegenerateFocusAvoid) {
+                const currentRecalCount = existing.logicContract.recal_count || 0;
                 
-                // Allow recal if cooldown expired OR if it's a dramatic directive change
-                const isDramaticChange = directiveChanged && (
-                    (cachedDirective.category === 'REGULATION' && contract.directive.category !== 'REGULATION') ||
-                    (cachedDirective.stimulus_type === 'FLUSH' && contract.directive.stimulus_type === 'OVERLOAD') ||
-                    (cachedDirective.stimulus_type === 'OVERLOAD' && contract.directive.stimulus_type === 'FLUSH')
-                );
-                
-                if (timeSinceLastRecal < RECAL_COOLDOWN_MS && !isDramaticChange) {
+                // Check daily cap first
+                if (currentRecalCount >= MAX_RECAL_PER_DAY) {
                     shouldRegenerateFocusAvoid = false;
-                    regenReason = `Cooldown active (${Math.round(timeSinceLastRecal / 1000 / 60)} min since last recal)`;
-                    log(`⏸️  INTRA_DAY_RECAL BLOCKED: ${regenReason}`);
+                    regenReason = 'COOLDOWN_BLOCKED';
+                    log(`⏸️  INTRA_DAY_RECAL BLOCKED: Daily cap reached (${currentRecalCount}/${MAX_RECAL_PER_DAY})`);
+                } else if (existing.logicContract.last_recal_at) {
+                    const lastRecalTime = new Date(existing.logicContract.last_recal_at);
+                    const timeSinceLastRecal = now.getTime() - lastRecalTime.getTime();
+                    
+                    // Check if same day (for daily cap)
+                    const lastRecalDate = new Date(lastRecalTime);
+                    lastRecalDate.setHours(0, 0, 0, 0);
+                    const todayDate = new Date(now);
+                    todayDate.setHours(0, 0, 0, 0);
+                    const isSameDay = lastRecalDate.getTime() === todayDate.getTime();
+                    
+                    // Reset recal_count if new day
+                    if (!isSameDay) {
+                        // New day - reset count (will be handled in persistence)
+                    }
+                    
+                    // Allow recal if cooldown expired OR if it's a critical safety state change
+                    const isCriticalSafetyChange = directiveChanged && (
+                        (cachedDirective?.category === 'REGULATION' && contract.directive.category !== 'REGULATION') ||
+                        (cachedDirective?.stimulus_type === 'FLUSH' && contract.directive.stimulus_type === 'OVERLOAD') ||
+                        (cachedDirective?.stimulus_type === 'OVERLOAD' && contract.directive.stimulus_type === 'FLUSH')
+                    );
+                    
+                    if (timeSinceLastRecal < RECAL_COOLDOWN_MS && !isCriticalSafetyChange) {
+                        shouldRegenerateFocusAvoid = false;
+                        const minutesSince = Math.round(timeSinceLastRecal / 1000 / 60);
+                        regenReason = `Cooldown active (${minutesSince} min since last recal, ${2 - (minutesSince / 60).toFixed(1)}h remaining)`;
+                        log(`⏸️  INTRA_DAY_RECAL BLOCKED: ${regenReason}`);
+                    }
                 }
             }
             
             if (!shouldRegenerateFocusAvoid) {
-                if (!regenReason.includes('Cooldown')) {
+                if (!regenReason.includes('Cooldown') && !regenReason.includes('COOLDOWN_BLOCKED')) {
                     regenReason = 'Day-stable (no material changes)';
                 }
                 log(`✓ INTRA_DAY_RECAL: ${regenReason} - using cached Focus/Avoid/Insight`);
             } else {
+                // Log pre/post values for audit/debug
+                if (directiveDelta) {
+                    log(`📊 RECAL DELTA - Directive: ${JSON.stringify(directiveDelta.before)} → ${JSON.stringify(directiveDelta.after)}`);
+                }
+                if (constraintsDelta) {
+                    log(`📊 RECAL DELTA - Constraints: ${JSON.stringify(constraintsDelta.before)} → ${JSON.stringify(constraintsDelta.after)}`);
+                }
                 log(`⚡ INTRA_DAY_RECAL TRIGGER: ${regenReason}`);
             }
         }
@@ -550,9 +613,20 @@ export class DawnProtocol {
         
         // INTRA_DAY_RECAL: Store observability metadata
         if (shouldRegenerateFocusAvoid) {
+            // Check if same day for recal_count
+            const nowDate = new Date(now);
+            nowDate.setHours(0, 0, 0, 0);
+            const lastRecalDate = existing?.logicContract?.last_recal_at 
+                ? new Date(new Date(existing.logicContract.last_recal_at).setHours(0, 0, 0, 0))
+                : null;
+            const isSameDay = lastRecalDate && lastRecalDate.getTime() === nowDate.getTime();
+            
             contract.last_recal_at = new Date().toISOString();
             contract.last_recal_reason = regenReason;
-            contract.recal_count = (existing?.logicContract?.recal_count || 0) + 1;
+            // Reset count if new day, otherwise increment
+            contract.recal_count = isSameDay 
+                ? ((existing?.logicContract?.recal_count || 0) + 1)
+                : 1;
         } else {
             // Preserve existing metadata when using cache
             contract.last_recal_at = existing?.logicContract?.last_recal_at;
@@ -592,7 +666,11 @@ export class DawnProtocol {
         currentStats.stats.alignmentScore = progression.alignmentScore;
         currentStats.stats.consistency = progression.consistencyStreak;
         
-        // 9. Save
+        // 9. Set last_refresh_at (Updated timestamp - happens on every refresh/scan)
+        // Note: This will be persisted as updated_at in the database and mapped back on read
+        currentStats.last_refresh_at = new Date().toISOString();
+        
+        // 10. Save (updated_at will be set to current timestamp, representing last refresh/scan)
         log('─── SAVE ────────────────────────────');
         await saveDailyStats(currentStats);
         log('Saved Successfully.');

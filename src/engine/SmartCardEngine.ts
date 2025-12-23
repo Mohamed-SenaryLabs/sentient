@@ -36,7 +36,8 @@ import {
   isWorkoutLogged,
   getBaselines,
   getOperatorGoals,
-  getRecentWorkoutLogCount
+  getRecentWorkoutLogCount,
+  getRecentWorkoutLogs
 } from '../data/database';
 
 // Card priority levels (higher = more important)
@@ -240,20 +241,24 @@ export class SmartCardEngine {
   
   /**
    * Workout Suggestion: Show if enough history and state allows
+   * Eligibility:
+   * - Require minimum recent logs (≥ 3 logs in last 7 days)
+   * - Must respect current Tier-1 directive/constraints
+   * - Rate limit: ≤ 1 suggestion/day unless explicitly requested
    */
   private static async checkWorkoutSuggestionEligibility(
     context: CardEligibilityContext
   ): Promise<SmartCard | null> {
     const { stats, date, recentLogCount } = context;
     
-    // Minimum log history requirement
+    // Minimum log history requirement (≥ 3 logs in last 7 days)
     const MIN_LOGS = 3;
     const logCount = recentLogCount ?? await getRecentWorkoutLogCount(7);
     if (logCount < MIN_LOGS) {
       return null;
     }
     
-    // Check if already shown today
+    // Rate limit: ≤ 1 suggestion/day
     if (await wasCardCompletedToday(date, 'WORKOUT_SUGGESTION')) {
       return null;
     }
@@ -262,7 +267,7 @@ export class SmartCardEngine {
       const existingCards = await getSmartCardsForDate(date);
       const existing = existingCards.find(c => c.type === 'WORKOUT_SUGGESTION');
       if (existing?.status === 'DISMISSED') {
-        return null; // Permanent dismiss for suggestions
+        return null; // Dismissed suggestions do not resurface same day
       }
       return existing || null;
     }
@@ -273,28 +278,95 @@ export class SmartCardEngine {
       return null;
     }
     
-    // Card will be created with suggestion payload by Trainer agent
-    // Return null here - suggestion is generated separately
-    return null;
+    // Get directive and constraints from current contract
+    const contract = stats.contract;
+    if (!contract || !contract.directive) {
+      return null;
+    }
+    
+    const directive = contract.directive;
+    const constraints = contract.constraints || {
+      allow_impact: true,
+      required_equipment: [],
+      heart_rate_cap: undefined
+    };
+    
+    // Get recent workout logs (3-7) for Trainer input
+    const recentLogs = await getRecentWorkoutLogs(7);
+    if (recentLogs.length < 3) {
+      return null;
+    }
+    
+    // Generate suggestion using Trainer agent
+    const suggestion = await Trainer.generateSuggestion(
+      stats,
+      {
+        category: directive.category,
+        stimulus_type: directive.stimulus_type
+      },
+      {
+        allow_impact: constraints.allow_impact,
+        heart_rate_cap: constraints.heart_rate_cap,
+        required_equipment: constraints.required_equipment || []
+      },
+      recentLogs
+    );
+    
+    if (!suggestion) {
+      return null;
+    }
+    
+    // Create card with suggestion payload
+    const cardId = `${date}:WORKOUT_SUGGESTION`;
+    const payload: WorkoutSuggestionPayload = {
+      type: 'WORKOUT_SUGGESTION',
+      suggestion,
+      directiveCategory: directive.category,
+      directiveStimulus: directive.stimulus_type,
+      timestamp: new Date().toISOString()
+    };
+    
+    const card: SmartCard = {
+      id: cardId,
+      date,
+      type: 'WORKOUT_SUGGESTION',
+      status: 'ACTIVE',
+      priority: PRIORITY.WORKOUT_SUGGESTION,
+      payload,
+      dismissPolicy: DISMISS_POLICY.WORKOUT_SUGGESTION,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    await saveSmartCard(card);
+    return card;
   }
   
   /**
-   * Goals Intake: Show if goals not set or stale
+   * Goals Intake: Show if goals not set, stale (>30 days), or manually triggered
+   * Trigger policy:
+   * - No goals exist, OR
+   * - updated_at older than 30 days, OR
+   * - Operator manually initiates from Settings
    */
   private static async checkGoalsIntakeEligibility(
-    context: CardEligibilityContext
+    context: CardEligibilityContext,
+    manualTrigger: boolean = false
   ): Promise<SmartCard | null> {
     const { date, goals } = context;
     
-    // Check if already completed today
-    if (await wasCardCompletedToday(date, 'GOALS_INTAKE')) {
-      return null;
+    // If manually triggered from Settings, always show (unless already completed today)
+    if (!manualTrigger) {
+      // Check if already completed today
+      if (await wasCardCompletedToday(date, 'GOALS_INTAKE')) {
+        return null;
+      }
     }
     
     // Check if goals exist and are recent
     const existingGoals = goals ?? await getOperatorGoals();
-    if (existingGoals) {
-      const goalAge = Date.now() - new Date(existingGoals.updatedAt).getTime();
+    if (existingGoals && !manualTrigger) {
+      const goalAge = Date.now() - new Date(existingGoals.updated_at).getTime();
       const daysSinceUpdate = goalAge / (1000 * 60 * 60 * 24);
       
       // Only resurface if goals are > 30 days old
@@ -306,7 +378,7 @@ export class SmartCardEngine {
     const cardId = `${date}:GOALS_INTAKE`;
     const existing = await getSmartCard(cardId);
     
-    if (existing) {
+    if (existing && !manualTrigger) {
       if (existing.status === 'DISMISSED') {
         // Resurface daily until set
         const dismissedAt = new Date(existing.dismissed_at || '');
@@ -319,11 +391,11 @@ export class SmartCardEngine {
       return existing;
     }
     
-    // Create new card
+    // Create new card (or reactivate if manually triggered)
     const payload: GoalsIntakePayload = {
       type: 'GOALS_INTAKE',
       currentGoals: existingGoals || undefined,
-      lastUpdated: existingGoals?.updatedAt
+      lastUpdated: existingGoals?.updated_at
     };
     
     const card: SmartCard = {
@@ -334,12 +406,21 @@ export class SmartCardEngine {
       priority: PRIORITY.GOALS_INTAKE,
       payload,
       dismissPolicy: DISMISS_POLICY.GOALS_INTAKE,
-      created_at: new Date().toISOString(),
+      created_at: existing?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     
     await saveSmartCard(card);
     return card;
+  }
+  
+  /**
+   * Manually trigger Goals Intake card (from Settings)
+   */
+  static async triggerGoalsIntakeManually(
+    context: CardEligibilityContext
+  ): Promise<SmartCard | null> {
+    return this.checkGoalsIntakeEligibility(context, true);
   }
   
   // ============================================

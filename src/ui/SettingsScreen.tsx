@@ -22,6 +22,7 @@ interface SettingsScreenProps {
     onExportData: () => Promise<string>;
     onGetHistoricalData: () => Promise<OperatorDailyStats[]>;
     onResetDatabase: () => Promise<void>;
+    onTriggerGoalsIntake: () => Promise<void>;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ 
@@ -30,6 +31,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     onExportData,
     onGetHistoricalData,
     onResetDatabase,
+    onTriggerGoalsIntake,
 }) => {
     const [showDataModal, setShowDataModal] = React.useState(false);
     const [historicalData, setHistoricalData] = React.useState<OperatorDailyStats[]>([]);
@@ -213,6 +215,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 <TouchableOpacity style={styles.button} onPress={onOpenDevConsole}>
                     <Text style={styles.buttonText}>Open System Console</Text>
                     <Text style={styles.buttonSubtext}>View Live Logistics & Engine Output</Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider} />
+
+                <Text style={styles.sectionTitle}>PREFERENCES</Text>
+
+                <TouchableOpacity style={styles.button} onPress={onTriggerGoalsIntake}>
+                    <Text style={styles.buttonText}>Edit Goals</Text>
+                    <Text style={styles.buttonSubtext}>Update training focus and constraints</Text>
                 </TouchableOpacity>
 
                 <View style={styles.divider} />

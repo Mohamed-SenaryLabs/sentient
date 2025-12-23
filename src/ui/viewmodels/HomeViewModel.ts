@@ -52,6 +52,12 @@ export interface HomeViewData {
   // Meta
   recalTime: string | null;
   recalReason: string | null;
+  recalCount: number;
+  hasRecalToday: boolean;
+  directiveSnapshot: any | null;
+  constraintsSnapshot: any | null;
+  currentDirective: any | null;
+  currentConstraints: any | null;
 }
 
 // ============================================
@@ -163,8 +169,9 @@ export function createHomeViewModel(
     
     // Hero
     greeting: getGreeting(),
-    lastUpdateTime: contract.last_recal_at 
-      ? formatUpdateTime(contract.last_recal_at) 
+    // "Updated" = last refresh/scan (can happen many times/day, no plan change)
+    lastUpdateTime: stats.last_refresh_at 
+      ? formatUpdateTime(stats.last_refresh_at) 
       : null,
     directiveLabel: getDirectiveLabel(directive.category, directive.stimulus_type),
     focusCue,
@@ -207,5 +214,20 @@ export function createHomeViewModel(
       ? formatUpdateTime(contract.last_recal_at) 
       : null,
     recalReason: contract.last_recal_reason || null,
+    recalCount: contract.recal_count || 0,
+    // Check if recal happened today
+    hasRecalToday: (() => {
+      if (!contract.last_recal_at) return false;
+      const recalDate = new Date(contract.last_recal_at);
+      const today = new Date();
+      recalDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      return recalDate.getTime() === today.getTime();
+    })(),
+    // Snapshot data for showing what changed
+    directiveSnapshot: contract.directive_snapshot ? JSON.parse(contract.directive_snapshot) : null,
+    constraintsSnapshot: contract.constraints_snapshot ? JSON.parse(contract.constraints_snapshot) : null,
+    currentDirective: directive,
+    currentConstraints: contract.constraints,
   };
 }

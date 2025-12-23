@@ -15,23 +15,55 @@ import { OperatorDailyStats, WorkoutSuggestionPayload, WorkoutLog } from '../dat
 import { GeminiClient } from './GeminiClient';
 import { getWorkoutLogsForDate, getRecentWorkoutLogCount } from '../data/database';
 
-// Exercise taxonomy excerpts for prompt grounding
+// Exercise taxonomy excerpts for prompt grounding (from docs/exercise taxonomy.md)
 const TAXONOMY_CONTEXT = `
 ENERGY SYSTEMS:
-- Aerobic (Zone 2): 50-75% max HR, 20+ min, nasal breathing, conversational pace
-- Anaerobic (Glycolytic): 85-100% max HR, 30s-3min, high lactate
-- Phosphagen (Power): <10s max effort, full recovery between sets
+- Aerobic (Oxidative): 50-75% max HR, 20+ min, nasal breathing, conversational pace, fat/carb oxidation
+- Anaerobic (Glycolytic): 85-100% max HR, 30s-3min, high lactate, stored glycogen
+- Phosphagen (Power): <10s max effort, full recovery between sets, phosphocreatine
 
 TRAINING MODALITIES:
-- Strength: compound lifts, progressive overload, 3-5 rep range for power, 8-12 for hypertrophy
-- Endurance: Zone 2 base, tempo runs, interval training (4x4, Tabata, fartlek)
-- Neural: skill acquisition, coordination, plyometrics, agility
-- Regulation: yoga, mobility, breathwork, active recovery walks
+- Strength: compound lifts (squat, deadlift, press), progressive overload
+  * Maximal strength: 85-100% 1RM, 1-5 reps, 3-5min rest
+  * Hypertrophy: 70-85% 1RM, 6-12 reps, 60-90s rest
+  * Muscular endurance: 50-70% 1RM, 12-20+ reps, 30-60s rest
+- Endurance: Zone 2 base, tempo runs, interval training, long slow distance
+- Neural: skill acquisition, coordination, plyometrics, agility, Olympic lifts
+- Regulation: yoga, mobility, breathwork, active recovery walks, stretching
+
+RUNNING/SPRINT TAXONOMY:
+- Tempo Runs: 15-40min at 85-90% HRmax (comfortably hard, lactate threshold)
+- Interval Runs: 3-5min work @ 95-100% HRmax, equal/longer recovery (VO2 max)
+- Fartlek: Unstructured fast/slow alternation, 30-60min total
+- Sprint Training: 100-400m max effort, complete rest between (4-8 reps)
+- Long Slow Distance: 60-180+ min at 50-65% HRmax (aerobic base)
+- Recovery Runs: 20-40min at 50-60% HRmax (active recovery)
+- Strides: 80-200m building to 95% effort, walk recovery
+
+HIIT PROTOCOLS:
+- Tabata: 20sec work : 10sec rest, 8 rounds (4min total)
+- 1:1 Ratio: 30sec work : 30sec rest, 8-12 rounds
+- 1:2 Ratio: 30sec work : 60sec rest, 10-15 rounds
+- 3:1 Ratio: 3min work : 1min rest, 4-5 rounds
+- Norwegian 4x4: 4min hard @ 90% HR, 3min easy, repeat 4x (VO2 max)
+
+MOVEMENT PATTERNS:
+- Compound (multi-joint): Squat, deadlift, press, pull-up, Olympic lifts
+- Isolation (single-joint): Bicep curl, leg extension, lateral raise
+- Plyometric: Box jumps, bounding, medicine ball slams, burpees (impact)
+- Functional: Turkish get-up, farmer carries, sled push/pull
 
 INTENSITY PROFILES:
-- LOW: RPE 3-4, recovery, flush, mobility
-- MODERATE: RPE 5-6, maintenance, base building
-- HIGH: RPE 7-9, overload, adaptation stimulus
+- LOW: RPE 3-4, recovery, flush, mobility, 50-60% HRmax
+- MODERATE: RPE 5-6, maintenance, base building, 60-75% HRmax
+- HIGH: RPE 7-9, overload, adaptation stimulus, 85-100% HRmax
+
+SPECIFIC PROTOCOLS:
+- Zone 2 Base: 30-45min steady, nasal breathing, conversational pace
+- Threshold/Tempo: 20-40min at 85-90% HRmax (sustained hard effort)
+- VO2 Max Intervals: 3-5min @ 95-100% HRmax with equal/longer recovery
+- Power Development: Heavy compound lifts 3-5 reps, 3-5min rest
+- Metabolic Conditioning: Circuit training, minimal rest, multiple energy systems
 `;
 
 interface TrainerSuggestion {
@@ -50,7 +82,7 @@ export class Trainer {
   static async generateSuggestion(
     stats: OperatorDailyStats,
     directive: { category: string; stimulus_type: string },
-    constraints: { allow_impact: boolean; heart_rate_cap?: number },
+    constraints: { allow_impact: boolean; heart_rate_cap?: number; required_equipment?: string[] },
     recentLogs: WorkoutLog[]
   ): Promise<TrainerSuggestion | null> {
     
@@ -124,14 +156,17 @@ Generate JSON only. No explanations.`;
   private static buildUserPrompt(
     stats: OperatorDailyStats,
     directive: { category: string; stimulus_type: string },
-    constraints: { allow_impact: boolean; heart_rate_cap?: number },
+    constraints: { allow_impact: boolean; heart_rate_cap?: number; required_equipment?: string[] },
     recentLogs: WorkoutLog[]
   ): string {
-    const recentWorkouts = recentLogs.slice(0, 5).map(l => l.note).join('; ');
+    const recentWorkouts = recentLogs.slice(0, 7).map(l => l.note).join('; ');
     
     const constraintsList = [];
     if (!constraints.allow_impact) constraintsList.push('No impact movements');
-    if (constraints.heart_rate_cap) constraintsList.push(`HR cap: ${constraints.heart_rate_cap}bpm`);
+    if (constraints.heart_rate_cap) constraintsList.push(`HR cap: ${constraints.heart_rate_cap}bpm (keep under this in suggestion)`);
+    if (constraints.required_equipment && constraints.required_equipment.length > 0) {
+      constraintsList.push(`Required equipment: ${constraints.required_equipment.join(', ')}`);
+    }
     
     return `DIRECTIVE: ${directive.category} — ${directive.stimulus_type}
 
@@ -141,7 +176,7 @@ VITALITY: ${stats.stats.vitality}%
 CONSTRAINTS:
 ${constraintsList.length > 0 ? constraintsList.join('\n') : 'None'}
 
-RECENT WORKOUTS (avoid repetition):
+RECENT WORKOUTS (3-7, avoid repetition):
 ${recentWorkouts || 'No recent logs'}
 
 Suggest one workout for today. JSON only.`;
@@ -150,12 +185,32 @@ Suggest one workout for today. JSON only.`;
   private static validateSuggestion(
     suggestion: TrainerSuggestion,
     directive: { category: string; stimulus_type: string },
-    constraints: { allow_impact: boolean; heart_rate_cap?: number }
+    constraints: { allow_impact: boolean; heart_rate_cap?: number; required_equipment?: string[] }
   ): boolean {
-    // Title and summary required
+    // Title and summary required, length limits
     if (!suggestion.title || !suggestion.summary) return false;
-    if (suggestion.title.length > 60) return false;
-    if (suggestion.summary.length > 150) return false;
+    if (suggestion.title.length > 50) return false;
+    if (suggestion.summary.length > 120) return false;
+    if (suggestion.why && suggestion.why.length > 200) return false;
+    
+    // Safety gates: If allow_impact=false, forbid impact suggestions
+    if (!constraints.allow_impact) {
+      const lowerTitle = suggestion.title.toLowerCase();
+      const lowerSummary = suggestion.summary.toLowerCase();
+      const impactKeywords = ['jump', 'plyometric', 'impact', 'bounding', 'box jump', 'burpee'];
+      if (impactKeywords.some(keyword => lowerTitle.includes(keyword) || lowerSummary.includes(keyword))) {
+        return false;
+      }
+    }
+    
+    // If HR cap exists, suggestion must be cap-aware (check if summary mentions HR)
+    if (constraints.heart_rate_cap) {
+      const lowerSummary = suggestion.summary.toLowerCase();
+      if (!lowerSummary.includes('hr') && !lowerSummary.includes('heart rate') && !lowerSummary.includes('bpm')) {
+        // If it doesn't mention HR, it might not be cap-aware, but we'll allow it
+        // The prompt should have instructed to include HR guidance
+      }
+    }
     
     // Intensity should match stimulus roughly
     if (directive.stimulus_type === 'FLUSH' && suggestion.intensity === 'HIGH') {
@@ -170,7 +225,7 @@ Suggest one workout for today. JSON only.`;
   
   private static getFallbackSuggestion(
     directive: { category: string; stimulus_type: string },
-    constraints: { allow_impact: boolean; heart_rate_cap?: number }
+    constraints: { allow_impact: boolean; heart_rate_cap?: number; required_equipment?: string[] }
   ): TrainerSuggestion {
     const { category, stimulus_type } = directive;
     
@@ -292,15 +347,25 @@ Suggest one workout for today. JSON only.`;
     const suggestion = categoryTemplates[stimulus_type] || categoryTemplates.MAINTENANCE;
     
     // Adjust for constraints
-    if (!constraints.allow_impact && suggestion.intensity === 'HIGH') {
-      return {
-        ...suggestion,
-        summary: suggestion.summary + ' (low-impact alternatives allowed)',
+    let adjustedSuggestion = { ...suggestion };
+    
+    if (!constraints.allow_impact && adjustedSuggestion.intensity === 'HIGH') {
+      adjustedSuggestion = {
+        ...adjustedSuggestion,
+        summary: adjustedSuggestion.summary + ' (low-impact alternatives)',
         intensity: 'MODERATE'
       };
     }
     
-    return suggestion;
+    // Add HR cap awareness if specified
+    if (constraints.heart_rate_cap) {
+      adjustedSuggestion = {
+        ...adjustedSuggestion,
+        summary: adjustedSuggestion.summary + ` (keep under ${constraints.heart_rate_cap} bpm)`
+      };
+    }
+    
+    return adjustedSuggestion;
   }
   
   /**

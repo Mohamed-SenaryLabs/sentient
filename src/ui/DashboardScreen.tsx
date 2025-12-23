@@ -296,6 +296,30 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
         )}
       </View>
 
+      {/* Plan Update Meta (optional) */}
+      {stats.logicContract?.last_recal_at && (() => {
+        const recalDate = new Date(stats.logicContract.last_recal_at);
+        const today = new Date();
+        const recalDay = new Date(recalDate);
+        recalDay.setHours(0, 0, 0, 0);
+        const todayDay = new Date(today);
+        todayDay.setHours(0, 0, 0, 0);
+        const isToday = recalDay.getTime() === todayDay.getTime();
+        
+        if (isToday) {
+          const recalTime = recalDate.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit' 
+          });
+          return (
+            <Text style={styles.planUpdateMeta}>
+              Plan updated · {recalTime}
+            </Text>
+          );
+        }
+        return null;
+      })()}
+
       {/* RECOVERY SECTION */}
       <Text style={styles.sectionHeader}>RECOVERY</Text>
       
@@ -751,6 +775,12 @@ const styles = StyleSheet.create({
     ...typography.meta,
     color: colors.text.secondary,
     marginBottom: spacing[4],
+  },
+  planUpdateMeta: {
+    ...typography.meta,
+    color: colors.text.tertiary,
+    marginBottom: spacing[3],
+    fontStyle: 'italic',
   },
   confidenceBadge: {
     paddingHorizontal: spacing[3],

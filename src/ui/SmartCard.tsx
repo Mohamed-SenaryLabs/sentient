@@ -248,15 +248,24 @@ function WorkoutSuggestionCard({ card, onComplete, onDismiss }: SmartCardProps) 
   const handleAddToToday = () => {
     onComplete(card.id, {
       ...payload,
-      accepted: true
+      operatorAction: 'ADDED'
     });
   };
   
   const handleSaveForLater = () => {
     onComplete(card.id, {
       ...payload,
-      savedForLater: true
+      operatorAction: 'SAVED'
     });
+  };
+  
+  const handleDismiss = () => {
+    // Persist DISMISSED action before dismissing
+    onComplete(card.id, {
+      ...payload,
+      operatorAction: 'DISMISSED'
+    });
+    onDismiss(card.id);
   };
   
   return (
@@ -298,16 +307,33 @@ function WorkoutSuggestionCard({ card, onComplete, onDismiss }: SmartCardProps) 
 
 function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
   const payload = card.payload as GoalsIntakePayload;
-  const [goal, setGoal] = useState(payload.currentGoals?.primary || '');
+  const existingGoals = payload.currentGoals;
+  
+  const [primaryGoal, setPrimaryGoal] = useState(existingGoals?.primary || '');
+  const [isCustomGoal, setIsCustomGoal] = useState(!existingGoals?.primary || !GOAL_PRESETS.includes(existingGoals.primary));
+  const [timeHorizon, setTimeHorizon] = useState(existingGoals?.time_horizon || '');
+  const [constraints, setConstraints] = useState(existingGoals?.constraints || '');
+  
+  const handleGoalSelect = (goal: string) => {
+    if (goal === 'custom') {
+      setIsCustomGoal(true);
+      setPrimaryGoal('');
+    } else {
+      setIsCustomGoal(false);
+      setPrimaryGoal(goal);
+    }
+  };
   
   const handleSave = () => {
-    if (goal.trim()) {
+    if (primaryGoal.trim()) {
       onComplete(card.id, {
         ...payload,
         currentGoals: {
-          primary: goal.trim(),
-          tags: inferGoalTags(goal.trim()),
-          updatedAt: new Date().toISOString()
+          primary: primaryGoal.trim(),
+          secondary: undefined, // Not in quick intake
+          time_horizon: timeHorizon.trim() || undefined,
+          constraints: constraints.trim() || undefined,
+          updated_at: new Date().toISOString()
         }
       });
     }
@@ -317,26 +343,83 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
     <View style={styles.card}>
       <CardHeader icon={getSmartSignalIconName(card)} title="What are you optimizing for?" />
       <Text style={styles.cardBody}>
-        {payload.currentGoals 
+        {existingGoals 
           ? 'Update your training focus.' 
           : 'Set your primary goal to personalize guidance.'}
       </Text>
       
-      <TextInput
-        style={styles.noteInput}
-        placeholder="e.g., Build endurance for a marathon, Gain strength..."
-        placeholderTextColor={colors.text.secondary}
-        value={goal}
-        onChangeText={setGoal}
-        multiline
-        numberOfLines={2}
-      />
+      {/* Primary Goal - Pick List or Custom */}
+      <View style={styles.goalsSection}>
+        {!isCustomGoal ? (
+          <View style={styles.goalPickList}>
+            {GOAL_PRESETS.map((preset) => (
+              <TouchableOpacity
+                key={preset}
+                style={[
+                  styles.goalOption,
+                  primaryGoal === preset && styles.goalOptionSelected
+                ]}
+                onPress={() => handleGoalSelect(preset)}
+              >
+                <Text style={[
+                  styles.goalOptionText,
+                  primaryGoal === preset && styles.goalOptionTextSelected
+                ]}>
+                  {preset}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.goalOption}
+              onPress={() => handleGoalSelect('custom')}
+            >
+              <Text style={styles.goalOptionText}>Custom</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TextInput
+            style={styles.noteInput}
+            placeholder="Describe your primary goal in one sentence..."
+            placeholderTextColor={colors.text.secondary}
+            value={primaryGoal}
+            onChangeText={setPrimaryGoal}
+            multiline
+            numberOfLines={2}
+          />
+        )}
+      </View>
+      
+      {/* Time Horizon (Optional) */}
+      <View style={styles.optionalSection}>
+        <Text style={styles.optionalLabel}>Time horizon (optional)</Text>
+        <TextInput
+          style={styles.optionalInput}
+          placeholder="e.g., 3 months, 6 months, 1 year"
+          placeholderTextColor={colors.text.secondary}
+          value={timeHorizon}
+          onChangeText={setTimeHorizon}
+        />
+      </View>
+      
+      {/* Constraints (Optional) */}
+      <View style={styles.optionalSection}>
+        <Text style={styles.optionalLabel}>Constraints or limitations (optional)</Text>
+        <TextInput
+          style={styles.optionalInput}
+          placeholder="e.g., Knee injury, limited equipment, time constraints"
+          placeholderTextColor={colors.text.secondary}
+          value={constraints}
+          onChangeText={setConstraints}
+          multiline
+          numberOfLines={2}
+        />
+      </View>
       
       <View style={styles.actionRow}>
         <TouchableOpacity 
-          style={[styles.primaryButton, !goal.trim() && styles.disabledButton]} 
+          style={[styles.primaryButton, !primaryGoal.trim() && styles.disabledButton]} 
           onPress={handleSave}
-          disabled={!goal.trim()}
+          disabled={!primaryGoal.trim()}
         >
           <Text style={styles.primaryButtonText}>Save</Text>
         </TouchableOpacity>
@@ -348,29 +431,17 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
   );
 }
 
-// Helper: infer goal tags from text
-function inferGoalTags(text: string): string[] {
-  const tags: string[] = [];
-  const lower = text.toLowerCase();
-  
-  if (lower.includes('strength') || lower.includes('strong') || lower.includes('lift')) {
-    tags.push('STRENGTH');
-  }
-  if (lower.includes('endurance') || lower.includes('cardio') || lower.includes('run') || lower.includes('marathon')) {
-    tags.push('ENDURANCE');
-  }
-  if (lower.includes('weight') || lower.includes('lean') || lower.includes('fat')) {
-    tags.push('BODY_COMP');
-  }
-  if (lower.includes('health') || lower.includes('longevity') || lower.includes('recovery')) {
-    tags.push('HEALTH');
-  }
-  if (lower.includes('performance') || lower.includes('compete') || lower.includes('race')) {
-    tags.push('PERFORMANCE');
-  }
-  
-  return tags.length > 0 ? tags : ['GENERAL'];
-}
+// Goal presets for quick selection
+const GOAL_PRESETS = [
+  'Build strength and power',
+  'Improve endurance and cardiovascular fitness',
+  'Lose weight and improve body composition',
+  'Maintain current fitness level',
+  'Recover from injury',
+  'Prepare for a specific event',
+  'Improve overall health and longevity',
+];
+
 
 // ============================================
 // EXPANDABLE SMART CARD WRAPPER
@@ -688,5 +759,48 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  goalsSection: {
+    marginBottom: spacing[3],
+  },
+  goalPickList: {
+    gap: spacing[2],
+    marginBottom: spacing[2],
+  },
+  goalOption: {
+    padding: spacing[3],
+    borderRadius: radius.input,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.bg,
+  },
+  goalOptionSelected: {
+    borderColor: colors.accent.vitality,
+    backgroundColor: `${colors.accent.vitality}15`,
+  },
+  goalOptionText: {
+    ...typography.body,
+    color: colors.text.secondary,
+  },
+  goalOptionTextSelected: {
+    color: colors.accent.vitality,
+    fontWeight: '600',
+  },
+  optionalSection: {
+    marginBottom: spacing[3],
+  },
+  optionalLabel: {
+    ...typography.meta,
+    color: colors.text.secondary,
+    marginBottom: spacing[1],
+  },
+  optionalInput: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.input,
+    padding: spacing[3],
+    color: colors.text.primary,
+    ...typography.bodySmall,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
 });

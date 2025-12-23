@@ -335,6 +335,9 @@ export interface OperatorDailyStats {
   
   // Smart Cards: workout logs linked to this day
   workoutLogs?: WorkoutLog[];
+  
+  // Metadata: Last refresh/scan timestamp (Updated) vs last recalibration (Correction)
+  last_refresh_at?: string;  // ISO timestamp of last data refresh/scan (can happen many times/day)
 }
 
 // ============================================
@@ -404,8 +407,8 @@ export interface WorkoutSuggestionPayload {
   };
   directiveCategory: string;
   directiveStimulus: string;
-  accepted?: boolean;       // True if operator added to today
-  savedForLater?: boolean;  // True if operator saved
+  operatorAction?: 'ADDED' | 'SAVED' | 'DISMISSED';  // Persisted action
+  timestamp?: string;       // When suggestion was generated
 }
 
 export interface GoalsIntakePayload {
@@ -415,10 +418,11 @@ export interface GoalsIntakePayload {
 }
 
 export interface OperatorGoals {
-  primary: string;          // Main optimization target
-  tags: string[];           // Canonical goal tags
-  description?: string;     // Free-form description
-  updatedAt: string;
+  primary: string;          // Required, 1 sentence
+  secondary?: string;       // Optional
+  time_horizon?: string;   // Optional (e.g., "3 months", "6 months", "1 year")
+  constraints?: string;     // Optional, plain language
+  updated_at: string;      // ISO timestamp
 }
 
 // Workout Log: operator's note for a workout

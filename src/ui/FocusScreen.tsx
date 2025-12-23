@@ -23,6 +23,7 @@ import { MetricTile } from './components/MetricTile';
 import { DirectiveCard } from './components/DirectiveCard';
 import { AnalystInsightCard } from './components/AnalystInsightCard';
 import { SmartCardsContainer } from './SmartCard';
+import { RecalModal } from './components/RecalModal';
 
 import { SmartCard } from '../data/schema';
 import { HomeViewData } from './viewmodels/HomeViewModel';
@@ -51,6 +52,7 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
   onRefresh,
 }) => {
   const [isInsightExpanded, setIsInsightExpanded] = useState(false);
+  const [showRecalModal, setShowRecalModal] = useState(false);
 
   // Layout Animation on mount or state change
   useEffect(() => {
@@ -74,40 +76,54 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
     >
       {/* ... Header ... */}
       <View style={styles.headerSection}>
-        {/* ... content remains same ... */}
-
-          <View>
-             <Text style={styles.greeting}>{viewData.greeting}</Text>
-             <View style={styles.statusRow}>
-               <View style={styles.statusDot} />
-               <Text style={styles.statusText}>Monitoring</Text>
-               <View style={styles.statusDivider} />
-               <Text style={styles.statusText}>
-                 Updated {viewData.lastUpdateTime || 'Just now'}
-               </Text>
-               <View style={styles.statusDivider} />
-               <Text style={[styles.statusText, { color: colors.accent.vitality }]}>
-                 Conf: {viewData.confidenceLabel}
-               </Text>
-             </View>
-             
-             {/* State Chip */}
-             <TouchableOpacity 
-               onPress={() => setIsInsightExpanded(!isInsightExpanded)}
-               activeOpacity={0.7}
-               style={styles.stateChip}
-             >
-               <Text style={styles.stateChipText}>
-                 State · {viewData.stateValue}
-               </Text>
-             </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greeting}>{viewData.greeting}</Text>
+          <View style={styles.statusRow}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>Monitoring</Text>
+            <View style={styles.statusDivider} />
+            <Text style={styles.statusText}>
+              Updated {viewData.lastUpdateTime || 'Just now'}
+            </Text>
+            <View style={styles.statusDivider} />
+            <Text style={[styles.statusText, { color: colors.accent.vitality }]}>
+              Conf: {viewData.confidenceLabel}
+            </Text>
           </View>
           
-          {/* Avatar Placeholder */}
-          <View style={styles.avatar}>
-             <Ionicons name="person" size={20} color={colors.text.secondary} />
+          {/* State and Course Correction Row */}
+          <View style={styles.stateRow}>
+            <TouchableOpacity 
+              onPress={() => setIsInsightExpanded(!isInsightExpanded)}
+              activeOpacity={0.7}
+              style={styles.stateChip}
+            >
+              <Text style={styles.stateChipText}>
+                State · {viewData.stateValue}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Course Correction Chip - only show if recal happened today */}
+            {viewData.hasRecalToday && viewData.recalTime && (
+              <TouchableOpacity 
+                onPress={() => setShowRecalModal(true)}
+                activeOpacity={0.7}
+                style={styles.recalChip}
+              >
+                <Ionicons name="refresh" size={10} color={colors.accent.peak} />
+                <Text style={styles.recalChipText} numberOfLines={1}>
+                  Correction · {viewData.recalTime}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
+        
+        {/* Avatar Placeholder */}
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={20} color={colors.text.secondary} />
+        </View>
+      </View>
 
         {/* ===== METRICS ROW ===== */}
         <View style={styles.metricsRow}>
@@ -166,6 +182,17 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
         )}
 
       {/* Bottom Padding for Nav - handled by Screen padding now but kept small for extra air if needed */}
+
+        <RecalModal
+          visible={showRecalModal}
+          onClose={() => setShowRecalModal(false)}
+          recalTime={viewData.recalTime}
+          recalReason={viewData.recalReason}
+          directiveSnapshot={viewData.directiveSnapshot}
+          constraintsSnapshot={viewData.constraintsSnapshot}
+          currentDirective={viewData.currentDirective}
+          currentConstraints={viewData.currentConstraints}
+        />
     </Screen>
   );
 }
@@ -191,6 +218,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: spacing[6],
+    gap: spacing[3],
+  },
+  headerLeft: {
+    flex: 1,
+    minWidth: 0, // Allow flex shrinking
   },
   greeting: {
     ...typography.header,
@@ -216,6 +248,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border.subtle,
     marginHorizontal: spacing[3],
   },
+  stateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing[3],
+    gap: spacing[2],
+    flexWrap: 'wrap',
+  },
   stateChip: {
     backgroundColor: colors.surface2,
     paddingHorizontal: spacing[3],
@@ -223,13 +262,31 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, // Higher radius (pill/badge)
     borderWidth: 1, // Hairline only
     borderColor: 'rgba(255,255,255,0.05)', // Very subtle hairline
-    marginTop: spacing[3],
-    alignSelf: 'flex-start',
+    flexShrink: 1,
   },
   stateChipText: {
     ...typography.meta,
     color: colors.text.secondary,
     fontWeight: '500',
+  },
+  recalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingHorizontal: spacing[2],
+    paddingVertical: 4,
+    backgroundColor: `${colors.accent.peak}15`,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.accent.peak,
+    flexShrink: 1,
+    maxWidth: '45%',
+  },
+  recalChipText: {
+    ...typography.small,
+    color: colors.accent.peak,
+    fontWeight: '600',
+    fontSize: 10,
   },
   avatar: {
     width: 40,
@@ -240,6 +297,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border.subtle,
+    flexShrink: 0, // Prevent avatar from shrinking
   },
 
   // Metrics

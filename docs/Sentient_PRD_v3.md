@@ -144,7 +144,59 @@ The plan must change if reality changes.
     3.  **Override:** Issue "Course Correction".
 *   **Analyst Output:** *"Capacity drain detected. Abort 'Overload'. New Directive: 'Regulation'."*
 
-### 3.3.1 Smart Cards (Home Interactivity Layer)
+#### 3.3.1 `INTRA_DAY_RECAL` Status Surfacing (UX + Observability)
+
+**Purpose:** Make mid‑day recalibration **visible and trustworthy** without turning Home into diagnostics. Operators should be able to tell: **Did the system course-correct today? Why? When?**
+
+##### A) Trigger policy (product definition)
+
+`INTRA_DAY_RECAL` may be triggered only when there is a **material** change in the deterministic plan inputs:
+
+- **Directive change**
+  - `DIRECTIVE.category` changes (e.g., `STRENGTH` → `ENDURANCE`)
+  - `DIRECTIVE.stimulus_type` changes (e.g., `OVERLOAD` → `MAINTENANCE`)
+- **Constraint change**
+  - Any constraint value changes (e.g., `allow_impact`, `heart_rate_cap`, required equipment)
+- **(Optional, future) Evidence shock**
+  - Clear, high-signal evidence events that would deterministically change directive/constraints (e.g., new workout logged; sleep confirmed; injury tag added)
+
+**Cooldown rule (ship gate):**
+- No more than **1 recalibration per 2 hours** unless the system enters a critical safety state.
+- Daily cap: **≤ 3** recalibrations/day (after that, hold stable and record `COOLDOWN_BLOCKED`).
+
+##### B) UI requirements (where it appears)
+
+- **Home (required):** a compact `Course Correction` chip in the status row when a recalibration occurred today.
+  - Default state: no chip (quiet).
+  - When triggered: show `Course Correction` + time (e.g., “Course correction · 13:42”).
+  - Tap → opens `CONTEXTUAL_INTEL` showing the reason line(s) and what changed.
+- **Dashboard (optional):** a small “Plan Updated” meta line at the top of `TRENDS` if a recalibration occurred today.
+- **Diagnostics/Dev Console (required):** show the full audit record (old directive/constraints → new directive/constraints; reason).
+
+##### C) Copy rules (ship gate)
+
+- Must be neutral and factual.
+- Forbidden: hype, blame, urgency language.
+- Allowed examples:
+  - “Course correction: constraints tightened after new activity.”
+  - “Course correction: recovery evidence dropped vs baseline.”
+
+##### D) Data + audit requirements (ship gate)
+
+When `INTRA_DAY_RECAL` triggers, persist:
+- `last_recal_at` (timestamp)
+- `last_recal_reason` (one line)
+- `recal_count` (int)
+- `directive_snapshot` / `constraints_snapshot` used for change detection
+
+##### E) Acceptance criteria
+
+1. If no qualifying trigger occurs, the system remains day‑stable and no UI “course correction” signal is shown.
+2. When a qualifying trigger occurs, the system updates directive/constraints deterministically and persists the recal metadata.
+3. Home surfaces a compact course correction indicator that links to a clear explanation (Contextual Intel).
+4. Recalibration never loops (cooldown + daily cap enforced).
+
+### 3.3.2 Smart Cards (Home Interactivity Layer)
 
 **Purpose:** Provide low-friction Operator interactivity on Home **without** compromising directive-first UX. Smart Cards surface only high-leverage inputs that improve the system’s evidence quality, constraints, and day-level planning.
 
@@ -197,6 +249,29 @@ The plan must change if reality changes.
   - Suggestion is directive-consistent and constraint-compliant.
   - Operator can accept (“Add to today”), save for later, or dismiss; outcome is persisted.
 
+###### 3.3.2.3.A Trainer suggestion constraints (ship gate)
+
+- **Input constraints (required):**
+  - Today’s `DIRECTIVE` (category + stimulus)
+  - Hard constraints (`allow_impact`, optional HR cap, required equipment)
+  - Recent workout log summaries (last 3–7 sessions)
+- **Output format (required, JSON):**
+  - `title` (≤ 50 chars)
+  - `summary` (≤ 120 chars, one line)
+  - `why` (optional, ≤ 200 chars; must reference directive/constraints in plain language)
+  - `duration` (optional minutes)
+  - `intensity` (optional LOW/MODERATE/HIGH; must match stimulus type)
+- **Safety constraints (required):**
+  - If `allow_impact = false`, no impact movements may be suggested.
+  - If HR cap exists, no intensity prescription may exceed it; prefer a “cap-aware” phrasing (e.g., “keep under 145 bpm”).
+  - The Trainer must not present medical advice or injury diagnosis.
+
+###### 3.3.2.3.B Rate limiting + persistence (required)
+
+- At most **1 suggestion/day** by default.
+- Persist: suggestion payload + timestamp + operator action (`ADDED` | `SAVED` | `DISMISSED`).
+- A dismissed suggestion does not reappear the same day unless a new qualifying event occurs (optional future).
+
 ##### 4) `GOALS` (Goals Intake / Update)
 - **Trigger:** No goals set OR goals are stale OR Operator initiates.
 - **Action:** Quick intake (guided prompts or micro-chat) to capture goals (e.g., fat loss, fitness, injury recovery).
@@ -204,6 +279,31 @@ The plan must change if reality changes.
 - **Acceptance criteria:**
   - Operator can set/update goals in < 30 seconds.
   - Goals are stored for future weighting/tuning (even if not yet used in scoring).
+
+###### 3.3.2.4.A Goals data model (product requirement)
+
+Store `OPERATOR_GOALS` as a durable preference object:
+
+- `primary` (required): one sentence
+- `secondary` (optional): one sentence
+- `time_horizon` (optional): e.g., 4 weeks / 12 weeks
+- `constraints` (optional): injury/limitations in plain language (non-medical)
+- `updated_at` (timestamp)
+
+##### 3.3.2.4.B Goals intake UX (ship gate)
+
+- **Mode:** “Quick intake” first; micro-chat is optional.
+- **Flow (default, ≤ 30s):**
+  1) Primary goal (pick one or type)
+  2) Time horizon (optional)
+  3) Constraints/limitations (optional)
+- **Tone:** calm, non-judgmental. No weight moralizing. No “before/after” framing.
+
+##### 3.3.2.4.C Refresh policy (required)
+
+- Stale threshold: **30 days** (show Goals card again).
+- Operator may update goals any time from Settings (non-blocking).
+- Goals changes may optionally trigger `INTRA_DAY_RECAL` only if they change deterministic constraints (future).
 
 ### 3.4 The 3-Day Strategic Arc (The Planner)
 **Requirement:** The Analyst generates a 3-Day Contract:
@@ -362,6 +462,53 @@ The Intelligence Layer is not a monolith. It is a system of specialized agents.
 6.  **The Trainer (Optional, Non‑Home):** `[Mechanism: LLM]`
     *   *Role:* Generates specific training suggestions and programming helpers grounded to the Exercise Taxonomy.
     *   *Constraint:** Trainer outputs must be constrained by Tier‑1 directive/constraints and must not override them.
+
+#### 3.5.1 Trainer Agent (Workout Suggestion) — PRD Spec
+
+**Purpose:** Provide high‑quality, constraint‑aware workout suggestions when the Operator asks for help (or via the `WORKOUT_SUGGEST` Smart Card), without changing the deterministic plan.
+
+**Non‑negotiables (ship gate):**
+- Trainer may propose **only** sessions that fit the current Tier‑1 `DIRECTIVE` + constraints.
+- Trainer may not change or reinterpret the `DIRECTIVE`.
+- Trainer may not present medical advice, injury diagnosis, or coercive motivation.
+- Output must be short, actionable, and plain language.
+
+**Inputs (required):**
+- `DIRECTIVE` (category + stimulus)
+- Constraints (`allow_impact`, optional HR cap, required equipment)
+- Recent workout log summaries (3–7 most recent)
+- Optional: today’s state label (for tone only; not for overriding constraints)
+
+**Output contract (required):**
+- JSON fields: `title`, `summary`, optional `why`, optional `duration`, optional `intensity` (see §3.3.2.3.A)
+- No additional text outside JSON when called by the system.
+
+**Persistence rules (required):**
+- Store the generated suggestion payload and the Operator action (`ADDED` | `SAVED` | `DISMISSED`) for audit and rate limiting.
+- Default rate: ≤ 1 suggestion/day unless the Operator explicitly requests another.
+
+**Acceptance criteria:**
+1. Trainer suggestions always respect `allow_impact` and HR cap constraints.
+2. Suggestion is specific enough to be executed (a named session pattern or clear structure).
+3. Suggestion never uses forbidden framing (“protocol”, “execute”, coercive tone).
+4. Suggestion can be accepted and stored without affecting Tier‑1 decisions.
+
+#### 3.5.2 Goals Intake (Operator Preferences) — PRD Spec
+
+**Purpose:** Capture operator goals as a durable preference object to tune future weighting and personalization, without requiring a long onboarding flow.
+
+**Non‑negotiables (ship gate):**
+- Goals are optional, editable, and non‑moralizing.
+- Goals must not be treated as medical guidance.
+- Goals may influence personalization only via deterministic mapping (future); they cannot override safety constraints.
+
+**Inputs/UX:**
+- Default: quick intake (≤ 30s) per §3.3.2.4.B
+- Optional: micro‑chat for refinement; must produce the same `OPERATOR_GOALS` object (§3.3.2.4.A)
+
+**Persistence + refresh:**
+- Persist `OPERATOR_GOALS` with `updated_at`.
+- Re-surface Goals card when stale (30 days) or when Operator initiates.
 
 ### 3.6 Dynamic Profiling Engine (Archetype Detection)
 **Concept:** The system does not rely on static "User Personas." Instead, it employs **Continuous Pattern Recognition** to construct a fluid Operator Profile. This ensures applicability across the entire human spectrum—from "Post-Partum Rehabilitation" to "Ultra-Endurance Competition."

@@ -351,6 +351,7 @@ export async function getDailyStats(date: string): Promise<OperatorDailyStats | 
       activeSession: result.active_session ? JSON.parse(result.active_session) : undefined,
       logicContract: result.logic_contract ? JSON.parse(result.logic_contract) : undefined,
       oracleState: result.oracle_state ? JSON.parse(result.oracle_state) : undefined,
+      last_refresh_at: result.updated_at, // Last refresh/scan timestamp (Updated)
     };
   } catch (error) {
     console.error('[Database] Error reading daily stats:', error);
@@ -941,9 +942,15 @@ export async function isWorkoutLogged(workoutId: string): Promise<boolean> {
 export async function saveOperatorGoals(goals: OperatorGoals): Promise<void> {
   if (!db) throw new Error('Database not initialized');
   
+  // Ensure updated_at is set
+  const goalsWithTimestamp = {
+    ...goals,
+    updated_at: goals.updated_at || new Date().toISOString()
+  };
+  
   await db.runAsync(
     `INSERT OR REPLACE INTO system_storage (key, value) VALUES (?, ?)`,
-    ['operator_goals', JSON.stringify(goals)]
+    ['operator_goals', JSON.stringify(goalsWithTimestamp)]
   );
 }
 
@@ -977,4 +984,25 @@ export async function getRecentWorkoutLogCount(days: number = 7): Promise<number
   );
   
   return result?.count || 0;
+}
+
+/**
+ * Get recent workout logs (for Trainer agent input)
+ */
+export async function getRecentWorkoutLogs(limit: number = 7): Promise<WorkoutLog[]> {
+  if (!db) throw new Error('Database not initialized');
+  
+  const results = await db.getAllAsync<any>(
+    'SELECT * FROM workout_logs ORDER BY created_at DESC LIMIT ?',
+    [limit]
+  );
+  
+  return results.map(r => ({
+    id: r.id,
+    date: r.date,
+    workoutId: r.workout_id,
+    note: r.note,
+    details: r.details ? JSON.parse(r.details) : undefined,
+    created_at: r.created_at
+  }));
 }
