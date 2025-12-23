@@ -78,6 +78,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 80, // Compact height
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
   },
   cardContent: {
     flex: 1,
@@ -87,8 +89,8 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.metricLabel,
-    marginBottom: 0, 
-    fontSize: 9, 
+    marginBottom: 0,
+    fontSize: 9, // Ultra-compact for metric tiles
   },
   valueContainer: {
     alignItems: 'center',
@@ -98,7 +100,7 @@ const styles = StyleSheet.create({
   },
   value: {
     ...typography.metricValue,
-    fontSize: 22, 
+    fontSize: 22, // Scaled for compact tiles (token default is 28)
     textAlign: 'center',
   },
   // Bar Strip

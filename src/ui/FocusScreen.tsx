@@ -5,102 +5,77 @@
  * Hierarchy: Header -> Metrics -> Directive Card -> Analyst Insight
  */
 
-import { OperatorDailyStats, SmartCard, DailyStats } from '../data/schema';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
   RefreshControl, 
-  LayoutAnimation, 
-  Platform, 
+  TouchableOpacity,
+  Platform,
   UIManager,
-  TouchableOpacity
+  LayoutAnimation
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SmartCardsContainer } from './SmartCard';
-// New Components
+
+import { Screen } from './components/Screen';
 import { MetricTile } from './components/MetricTile';
 import { DirectiveCard } from './components/DirectiveCard';
 import { AnalystInsightCard } from './components/AnalystInsightCard';
+import { SmartCardsContainer } from './SmartCard';
 
-import { createHomeViewModel } from './viewmodels/HomeViewModel';
-import { 
-  colors, 
-  typography, 
-  spacing, 
-  radius 
-} from './theme/tokens';
+import { SmartCard } from '../data/schema';
+import { HomeViewData } from './viewmodels/HomeViewModel';
+import { colors, spacing, radius, typography } from './theme/tokens';
 
+// Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 interface FocusScreenProps {
-  stats: OperatorDailyStats | null;
-  status: string;
-  onRefresh: () => void;
+  viewData: HomeViewData;
+  smartCards: SmartCard[];
+  onCardComplete?: (cardId: string, result: any) => Promise<void>;
+  onCardDismiss?: (cardId: string) => Promise<void>;
   refreshing: boolean;
-  smartCards?: SmartCard[];
-  onCardComplete?: (cardId: string, payload?: any) => void;
-  onCardDismiss?: (cardId: string) => void;
-  historicalData?: DailyStats[];
+  onRefresh: () => Promise<void>;
 }
 
-export function FocusScreen({ 
-  stats, 
-  status, 
-  onRefresh, 
-  refreshing,
-  smartCards,
+export const FocusScreen: React.FC<FocusScreenProps> = ({
+  viewData,
+  smartCards = [],
   onCardComplete,
   onCardDismiss,
-  historicalData 
-}: FocusScreenProps) {
-  
-  const viewData = createHomeViewModel(stats, status);
+  refreshing,
+  onRefresh,
+}) => {
   const [isInsightExpanded, setIsInsightExpanded] = useState(false);
 
-  // Animate on content changes
+  // Layout Animation on mount or state change
   useEffect(() => {
-    if (stats) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    }
-  }, [stats]);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [isInsightExpanded]);
 
-  // Loading state
-  if (viewData.isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingTitle}>Sentient</Text>
-        <Text style={styles.loadingText}>{viewData.loadingText}</Text>
-      </View>
-    );
-  }
-
-  const last7Days = historicalData?.slice(0, 7).reverse() || [];
-  const vitalityHistory = last7Days.map(d => d.stats.vitality);
-  const capacityHistory = last7Days.map(d => d.stats.adaptiveCapacity?.current || 0);
-  // Fallback to physiologicalLoad if loadDensity is 0 or missing in history (schema might vary, assuming stats structure)
-  const loadHistory = last7Days.map(d => d.stats.loadDensity || d.stats.physiologicalLoad || 0);
-
+  // Derived history data (placeholders for now as they are not in HomeViewData yet)
+  const vitalityHistory: number[] = [];
+  const capacityHistory: number[] = [];
+  const loadHistory: number[] = [];
   return (
-    <View style={styles.screenWrapper}>
-      {/* ... ScrollView ... */}
-      <ScrollView 
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={colors.text.primary} 
-          />
-        }
-      >
-        {/* ... Header ... */}
-        <View style={styles.headerSection}>
+    <Screen 
+      preset="scroll" 
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh} 
+          tintColor={colors.text.primary} 
+        />
+      }
+    >
+      {/* ... Header ... */}
+      <View style={styles.headerSection}>
+        {/* ... content remains same ... */}
+
           <View>
              <Text style={styles.greeting}>{viewData.greeting}</Text>
              <View style={styles.statusRow}>
@@ -190,26 +165,12 @@ export function FocusScreen({
           </View>
         )}
 
-        {/* Bottom Padding for Nav */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </View>
+      {/* Bottom Padding for Nav - handled by Screen padding now but kept small for extra air if needed */}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screenWrapper: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  container: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[6], // 32px top
-    paddingBottom: 120, // ample space for bottom nav
-  },
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -247,8 +208,7 @@ const styles = StyleSheet.create({
     marginRight: spacing[2],
   },
   statusText: {
-    ...typography.meta,
-    fontSize: 10,
+    ...typography.small,
   },
   statusDivider: {
     width: 1,
@@ -260,7 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
     paddingHorizontal: spacing[3],
     paddingVertical: 4, // Tighter padding
-    borderRadius: radius.max, // Higher radius (pill/badge)
+    borderRadius: radius.pill, // Higher radius (pill/badge)
     borderWidth: 1, // Hairline only
     borderColor: 'rgba(255,255,255,0.05)', // Very subtle hairline
     marginTop: spacing[3],

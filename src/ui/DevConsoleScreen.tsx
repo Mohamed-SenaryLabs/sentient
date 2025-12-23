@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
-import { colors, spacing, radius } from './theme/tokens';
+import { colors, spacing, radius, typography } from './theme/tokens';
 
 interface DevConsoleScreenProps {
   logs: string[];
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text.primary,
     fontFamily: 'Courier',
-    fontSize: 18,
+    ...typography.compactMetric,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     color: colors.text.primary,
-    fontSize: 12,
+    ...typography.meta,
     fontWeight: '600',
   },
   closeButton: {
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   closeText: {
     color: colors.text.secondary,
-    fontSize: 12,
+    ...typography.meta,
     fontWeight: '600',
   },
   logContainer: {
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   logText: {
     fontFamily: 'Courier',
     color: colors.accent.primary,
-    fontSize: 11,
+    ...typography.small,
     marginBottom: spacing[1],
   },
   headerControls: {

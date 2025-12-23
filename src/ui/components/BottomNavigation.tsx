@@ -2,11 +2,14 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme/tokens';
 
 export function BottomNavigation({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.wrapper}>      
+    <View style={[styles.wrapper, { paddingBottom: insets.bottom + spacing[3] }]}>      
       <View style={styles.container}>
         {/* Mapping screens to icons manually for the 4-icon design vs 3-screen app */}
         
@@ -56,8 +59,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg, 
     borderTopWidth: 1,
     borderTopColor: colors.border.subtle,
-    paddingBottom: 24, // Safe area
-    paddingTop: 12,
+    paddingTop: spacing[3],
   },
 
   container: {

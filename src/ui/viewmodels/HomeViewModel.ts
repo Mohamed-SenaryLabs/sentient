@@ -113,6 +113,7 @@ export function createHomeViewModel(
       capacityValue: '...',
       avoidLabel: 'AVOID',
       avoidCue: '',
+      isHighRisk: false,
       isLowVitality: false,
       vitalityColor: colors.accent.primary,
       vitalityPercent: 0,

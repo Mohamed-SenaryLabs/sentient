@@ -100,9 +100,8 @@ const styles = StyleSheet.create({
     marginTop: spacing[3],
   },
   title: {
-    color: colors.text.primary,
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...typography.compactMetric,
+    fontSize: 20, // Scaled for modal title
     letterSpacing: 1,
   },
   closeButton: {
@@ -111,8 +110,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
   },
   closeText: {
+    ...typography.bodySmall,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
   tableBorder: {
@@ -140,8 +139,7 @@ const styles = StyleSheet.create({
   cell: {
     width: 60,
     textAlign: 'center',
-    color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
+    ...typography.meta,
   },
   dateCell: {
     width: 50,
@@ -152,9 +150,9 @@ const styles = StyleSheet.create({
     width: 100,
   },
   headerCell: {
+    ...typography.small,
     color: colors.text.secondary,
-    fontWeight: 'bold',
-    fontSize: 11,
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   listContent: {

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Screen } from './components/Screen';
 import { OperatorDailyStats } from '../data/schema';
 import { colors, typography, spacing, radius, confidenceStyles } from './theme/tokens';
 
-interface BiologyScreenProps {
+interface DashboardScreenProps {
   stats: OperatorDailyStats | null;
   history: OperatorDailyStats[];
   onRefresh: () => void;
   refreshing: boolean;
 }
 
-export function BiologyScreen({ stats, history, onRefresh, refreshing }: BiologyScreenProps) {
+export function DashboardScreen({ stats, history, onRefresh, refreshing }: DashboardScreenProps) {
   const [traceExpanded, setTraceExpanded] = useState(false);
 
   if (!stats) {
@@ -21,6 +23,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
     );
   }
 
+  // ... (metrics calculation code suppressed for brevity, assume unchanged unless specified)
   const trends = stats.stats.biometric_trends;
   const directive = stats.logicContract?.directive;
   const contract = stats.logicContract;
@@ -47,8 +50,8 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
   // Helper: Get load density level
   const getLoadLevel = (density: number) => {
     if (density > 25) return { label: 'High', color: colors.accent.strain };
-    if (density > 15) return { label: 'Moderate', color: colors.accent.caution };
-    return { label: 'Low', color: colors.accent.primary };
+    if (density > 15) return { label: 'Moderate', color: colors.accent.peak };
+    return { label: 'Low', color: colors.accent.vitality };
   };
 
   // Calculate metrics
@@ -79,11 +82,9 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent.primary} />}
-      showsVerticalScrollIndicator={false}
+    <Screen 
+      preset="scroll" 
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent.vitality} />}
     >
       {/* HEADER */}
       <View style={styles.headerRow}>
@@ -96,6 +97,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
           </View>
         )}
       </View>
+
       {/* RECOVERY SECTION */}
       <Text style={styles.sectionHeader}>RECOVERY</Text>
       
@@ -160,7 +162,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
             <Text style={styles.sleepLabel}>Baseline: <Text style={styles.sleepValue}>{(sleepBaseline / 3600).toFixed(1)}h</Text></Text>
           </View>
           <View>
-            <Text style={styles.sleepLabel}>Δ: <Text style={[styles.sleepValue, { color: sleepDelta < -0.5 ? colors.accent.strain : colors.accent.primary }]}>
+            <Text style={styles.sleepLabel}>Δ: <Text style={[styles.sleepValue, { color: sleepDelta < -0.5 ? colors.accent.strain : colors.accent.vitality }]}>
               {sleepDelta > 0 ? '+' : ''}{sleepDelta.toFixed(1)}h
             </Text></Text>
           </View>
@@ -298,7 +300,7 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
             .slice(0, 10)
             .map((item, i) => (
               <View key={item.id} style={styles.logRow}>
-                <View style={[styles.logDot, { backgroundColor: item.type === 'WORKOUT' ? colors.accent.primary : colors.border.default }]} />
+                <View style={[styles.logDot, { backgroundColor: item.type === 'WORKOUT' ? colors.accent.vitality : colors.border.default }]} />
                 <View style={styles.logContent}>
                   <Text style={styles.logTitle}>{item.label}</Text>
                   <Text style={styles.logDate}>
@@ -438,20 +440,11 @@ export function BiologyScreen({ stats, history, onRefresh, refreshing }: Biology
         )}
       </TouchableOpacity>
 
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    padding: spacing[4],
-  },
-  contentContainer: {
-    paddingTop: 60,
-    paddingBottom: 100,
-  },
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -459,130 +452,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
+    ...typography.meta,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize - 2,
-    fontWeight: 'bold',
+    fontWeight: '700',
     letterSpacing: 1,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: spacing[2],
   },
   headerTitle: {
-    color: colors.text.primary,
-    fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 1,
+    ...typography.screenTitle,
   },
   subtitle: {
+    ...typography.meta,
     color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
     marginBottom: spacing[4],
   },
   confidenceBadge: {
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1],
-    borderRadius: radius.input,
+    borderRadius: radius.pill,
     borderWidth: 1,
   },
   confidenceText: {
+    ...typography.metricLabel,
     color: colors.text.primary,
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
   },
   
-  // Decision Trace
-  traceCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  traceTitle: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginBottom: spacing[2],
-  },
-  traceDirective: {
-    color: colors.text.primary,
-    fontSize: typography.body.fontSize,
-    fontWeight: '600',
-    marginBottom: spacing[3],
-  },
+
+  // ... check existing styles below this line ...
   evidenceContainer: {
     marginTop: spacing[2],
   },
-  evidenceLabel: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginBottom: spacing[2],
-  },
-  evidenceItem: {
-    color: colors.text.primary,
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: spacing[1],
-  },
-  traceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  expandIcon: {
-    color: colors.text.secondary,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  traceDetails: {
-    marginTop: spacing[4],
-    paddingTop: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  traceSection: {
-    marginBottom: spacing[4],
-  },
-  traceSectionTitle: {
-    color: colors.text.secondary,
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginBottom: spacing[2],
-  },
-  traceItem: {
-    color: colors.text.primary,
-    fontSize: typography.meta.fontSize,
-    lineHeight: 18,
-    marginBottom: spacing[1],
-  },
-  traceSubItem: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    lineHeight: 16,
-    marginLeft: spacing[3],
-    marginBottom: 3,
-  },
-  traceText: {
-    color: colors.text.primary,
-    fontSize: typography.meta.fontSize,
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
-
-  // Section Headers
+  // ...
   sectionHeader: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 1,
+    ...typography.sectionLabel,
+    color: colors.text.secondary, // Neutral labels for dashboard sections
     marginTop: spacing[5],
     marginBottom: spacing[3],
   },
@@ -594,13 +502,10 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     marginBottom: spacing[3],
     borderWidth: 1,
-    borderColor: colors.border.default,
+    borderColor: colors.border.subtle, // Consistent with panel styling rule
   },
   metricTitle: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
+    ...typography.metricLabel,
     marginBottom: spacing[3],
   },
   metricRow: {
@@ -610,22 +515,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
   },
   metricLabel: {
+    ...typography.metricLabel,
     color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
   },
   metricValue: {
+    ...typography.compactMetric,
     color: colors.text.primary,
-    fontSize: typography.body.fontSize - 2,
-    fontWeight: '600',
   },
   unit: {
+    ...typography.meta,
     color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: 'normal',
+    fontWeight: '400',
+    marginLeft: 2,
   },
   zLabel: {
+    ...typography.meta,
     color: colors.text.secondary,
-    fontSize: 11,
+    fontWeight: '400',
   },
 
   // Columns
@@ -641,22 +547,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   sleepLabel: {
+    ...typography.metricLabel,
     color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
   },
   sleepValue: {
+    ...typography.compactMetric,
     color: colors.text.primary,
-    fontSize: typography.body.fontSize - 2,
-    fontWeight: '600',
   },
 
   logDetail: {
+    ...typography.small,
     color: colors.text.secondary,
-    fontSize: 11,
   },
   sourceText: {
+    ...typography.extraSmall,
     color: colors.text.secondary,
-    fontSize: 10,
     fontStyle: 'italic',
   },
 
@@ -667,36 +572,34 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
   },
   loadLabel: {
+    ...typography.metricLabel,
     color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
   },
   loadLevel: {
-    fontSize: typography.body.fontSize - 2,
-    fontWeight: 'bold',
+    ...typography.compactMetric,
   },
   loadDetail: {
+    ...typography.meta,
     color: colors.text.primary,
-    fontSize: typography.meta.fontSize,
     marginBottom: spacing[2],
   },
   trendText: {
+    ...typography.meta,
     color: colors.text.secondary,
-    fontSize: 11,
     fontStyle: 'italic',
   },
 
   // Stress
   stressDetail: {
+    ...typography.meta,
     color: colors.text.primary,
-    fontSize: typography.meta.fontSize,
     marginBottom: spacing[2],
   },
 
   // Constitution
   constitutionValue: {
+    ...typography.compactMetricLarge,
     color: colors.text.primary,
-    fontSize: typography.body.fontSize,
-    fontWeight: '600',
     marginBottom: spacing[2],
   },
 
@@ -712,7 +615,7 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     marginBottom: spacing[2],
     borderWidth: 1,
-    borderColor: colors.border.default,
+    borderColor: colors.border.subtle, // Consistent with panel styling rule
   },
   logDot: {
     width: 8,
@@ -720,19 +623,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   logTitle: {
+    ...typography.cardTitleSmall,
     color: colors.text.primary,
-    fontSize: 13,
-    fontWeight: '600',
   },
   logDate: {
+    ...typography.meta,
     color: colors.text.secondary,
-    fontSize: 11,
     marginTop: 2,
   },
   logValue: {
-    color: colors.text.primary,
-    fontSize: typography.body.fontSize - 2,
+    ...typography.body,
     fontWeight: '600',
+    color: colors.text.primary,
   },
   logValueContainer: {
     alignItems: 'flex-end',
@@ -750,4 +652,68 @@ const styles = StyleSheet.create({
   flex1: {
     flex: 1,
   },
+
+  // Trace / Analysis
+  traceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
+  expandIcon: {
+    padding: spacing[2],
+  },
+  traceDetails: {
+    marginTop: spacing[2],
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle, // Keep subtle for internal divider
+  },
+  traceCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing[4],
+    marginBottom: spacing[5],
+    borderWidth: 1,
+    borderColor: colors.border.subtle, // Consistent with panel styling rule
+  },
+  traceSection: {
+    marginBottom: spacing[4],
+  },
+  traceSectionTitle: {
+    ...typography.meta,
+    color: colors.text.secondary,
+    marginBottom: spacing[2],
+    textTransform: 'uppercase',
+  },
+
+  traceTitle: {
+    ...typography.body,
+    color: colors.text.primary,
+    marginBottom: spacing[1],
+  },
+  traceDirective: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: spacing[3],
+  },
+  traceItem: {
+    ...typography.meta,
+    color: colors.text.primary,
+    marginBottom: spacing[2],
+  },
+  traceSubItem: {
+    ...typography.meta,
+    color: colors.text.secondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[1],
+    paddingLeft: spacing[2],
+  },
+  traceText: {
+    ...typography.meta,
+    color: colors.text.secondary,
+  },
 });
+

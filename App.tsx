@@ -11,18 +11,18 @@
 
 import React, { useState } from 'react';
 import { StatusBar } from 'react-native';
-import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { SentientProvider, useSentientAppState } from './src/hooks/useSentientAppState';
 import { FocusScreen } from './src/ui/FocusScreen';
-import { BiologyScreen } from './src/ui/BiologyScreen';
+import { DashboardScreen } from './src/ui/DashboardScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 import { DevConsoleScreen } from './src/ui/DevConsoleScreen';
 import { colors, spacing } from './src/ui/theme/tokens';
 
 import { BottomNavigation } from './src/ui/components/BottomNavigation';
+import { createHomeViewModel } from './src/ui/viewmodels/HomeViewModel';
 
 const Tab = createBottomTabNavigator();
 
@@ -48,6 +48,8 @@ function AppContent() {
     resetDatabase,
   } = useSentientAppState();
 
+  const homeViewData = createHomeViewModel(stats, status || 'Initializing...');
+
   if (showDevConsole) {
     return (
       <DevConsoleScreen 
@@ -71,21 +73,19 @@ function AppContent() {
         <Tab.Screen name="HOME">
           {() => (
             <FocusScreen 
-              stats={stats} 
-              status={status} 
+              viewData={homeViewData}
               onRefresh={() => refresh(true)}
               refreshing={isRefreshing}
               smartCards={smartCards}
               onCardComplete={completeSmartCard}
               onCardDismiss={dismissSmartCard}
-              historicalData={historicalData}
             />
           )}
         </Tab.Screen>
         
         <Tab.Screen name="DASHBOARD">
           {() => (
-            <BiologyScreen
+            <DashboardScreen
               stats={stats}
               history={historicalData}
               onRefresh={() => refresh(true)}
@@ -120,9 +120,3 @@ export default function App() {
     </SentientProvider>
   );
 }
-
-// ============================================
-// STYLES
-// ============================================
-
-const styles = StyleSheet.create({});

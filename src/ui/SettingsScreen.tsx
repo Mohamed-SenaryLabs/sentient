@@ -10,7 +10,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Share } from 'react-native';
+import { Screen } from './components/Screen';
 import { OperatorDailyStats } from '../data/schema';
 import { DataViewerModal } from './DataViewerModal';
 import { colors, typography, spacing, radius } from './theme/tokens';
@@ -72,7 +73,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     };
 
     return (
-        <ScrollView style={styles.container}>
+        <Screen preset="scroll">
             <View style={styles.settingsContainer}>
                 <Text style={styles.sectionTitle}>DEVELOPER TOOLS</Text>
 
@@ -109,49 +110,40 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onClose={() => setShowDataModal(false)}
                 data={historicalData}
             />
-        </ScrollView>
+        </Screen>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.bg,
-        padding: spacing[4],
-    },
     settingsContainer: {
         gap: spacing[5],
-        paddingBottom: spacing[7],
     },
     sectionTitle: {
+        ...typography.sectionLabel,
         color: colors.text.secondary,
-        fontSize: typography.sectionLabel.fontSize,
-        fontWeight: typography.sectionLabel.fontWeight,
         marginBottom: spacing[2],
-        letterSpacing: 1,
     },
     button: {
         backgroundColor: colors.surface,
         padding: spacing[4],
         borderRadius: radius.card,
         borderWidth: 1,
-        borderColor: colors.border.default,
+        borderColor: colors.border.subtle,
     },
     dangerButton: {
         borderColor: colors.accent.strain,
         backgroundColor: `${colors.accent.strain}15`,
     },
     buttonText: {
+        ...typography.button,
         color: colors.text.primary,
-        fontSize: typography.body.fontSize,
-        fontWeight: '600',
     },
     dangerText: {
         color: colors.accent.strain,
     },
     buttonSubtext: {
+        ...typography.meta,
         color: colors.text.secondary,
-        fontSize: typography.meta.fontSize,
         marginTop: spacing[1],
     },
     divider: {

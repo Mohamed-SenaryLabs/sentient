@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   contextButtonText: {
+    ...typography.body,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize,
     fontWeight: '500',
   },
   contextCard: {
@@ -131,31 +131,26 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
   },
   contextLabel: {
+    ...typography.sectionLabel,
     color: colors.text.secondary,
-    fontSize: typography.sectionLabel.fontSize,
-    fontWeight: typography.sectionLabel.fontWeight,
-    letterSpacing: typography.sectionLabel.letterSpacing,
-    textTransform: 'uppercase',
     marginBottom: spacing[3],
   },
   contextSummary: {
+    ...typography.body,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize,
-    lineHeight: typography.body.lineHeight,
     fontStyle: 'italic',
   },
   contextDetail: {
+    ...typography.body,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize,
-    lineHeight: typography.body.lineHeight,
     marginTop: spacing[3],
   },
   moreContextButton: {
     marginTop: spacing[2],
   },
   moreContextText: {
+    ...typography.meta,
     color: colors.accent.primary,
-    fontSize: typography.meta.fontSize,
     fontWeight: '600',
   },
   metaContainer: {
@@ -174,8 +169,7 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   metaText: {
-    color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
+    ...typography.meta,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });

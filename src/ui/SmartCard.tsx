@@ -525,10 +525,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   collapsedTitle: {
-    ...typography.body,
-    fontWeight: '600',
+    ...typography.cardTitle,
     color: colors.text.primary,
-    fontSize: 14,
   },
   collapsedSubtitle: {
     ...typography.meta,
@@ -544,6 +542,8 @@ const styles = StyleSheet.create({
   expandedWrapper: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
     overflow: 'hidden',
   },
   expandedHeader: {
@@ -591,13 +591,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2 ?? colors.bg,
   },
   cardTitle: {
+    ...typography.cardTitle,
     color: colors.text.primary,
-    fontSize: typography.body.fontSize,
-    fontWeight: '600',
   },
   cardBody: {
-    color: colors.text.secondary,
-    fontSize: typography.body.fontSize - 2,
+    ...typography.bodySmall,
     lineHeight: 20,
     marginBottom: spacing[3],
   },
@@ -608,8 +606,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing[1],
   },
   durationBadge: {
+    ...typography.meta,
     color: colors.accent.primary,
-    fontSize: typography.meta.fontSize,
     fontWeight: '600',
     backgroundColor: `${colors.accent.primary}15`,
     paddingHorizontal: spacing[2],
@@ -617,8 +615,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.subtle,
   },
   whyText: {
-    color: colors.text.secondary,
-    fontSize: typography.meta.fontSize,
+    ...typography.meta,
     fontStyle: 'italic',
     marginBottom: spacing[3],
   },
@@ -634,8 +631,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
   },
   primaryButtonText: {
+    ...typography.bodySmall,
     color: colors.text.primary,
-    fontSize: typography.body.fontSize - 2,
     fontWeight: '600',
   },
   secondaryButton: {
@@ -645,8 +642,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
   },
   secondaryButtonText: {
+    ...typography.bodySmall,
     color: colors.accent.primary,
-    fontSize: typography.body.fontSize - 2,
     fontWeight: '500',
   },
   dismissButton: {
@@ -654,8 +651,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
   },
   dismissButtonText: {
+    ...typography.bodySmall,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize - 2,
   },
   disabledButton: {
     opacity: 0.5,
@@ -672,20 +669,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     padding: spacing[3],
     color: colors.text.primary,
-    fontSize: typography.body.fontSize,
+    ...typography.body,
     borderWidth: 1,
     borderColor: colors.border.default,
   },
   inputLabel: {
+    ...typography.bodySmall,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize - 2,
   },
   noteInput: {
     backgroundColor: colors.bg,
     borderRadius: radius.input,
     padding: spacing[3],
     color: colors.text.primary,
-    fontSize: typography.body.fontSize - 2,
+    ...typography.bodySmall,
     borderWidth: 1,
     borderColor: colors.border.default,
     marginBottom: spacing[3],

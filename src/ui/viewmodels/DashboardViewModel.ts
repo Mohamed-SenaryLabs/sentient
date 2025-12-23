@@ -1,8 +1,8 @@
 /**
- * DashboardViewModel — Transforms OperatorDailyStats + history → UI-ready fields for BiologyScreen
+ * DashboardViewModel — Transforms OperatorDailyStats + history → UI-ready fields for DashboardScreen
  * 
  * This is the single source of truth for all display logic on the Dashboard screen.
- * BiologyScreen should receive this view model and render it without any business logic.
+ * DashboardScreen should receive this view model and render it without any business logic.
  */
 
 import { OperatorDailyStats } from '../../data/schema';

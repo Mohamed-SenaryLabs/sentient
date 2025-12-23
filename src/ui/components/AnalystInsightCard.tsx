@@ -75,19 +75,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[1],
   },
   headerTitle: {
-    color: colors.text.primary,
-    fontSize: 16,
+    ...typography.button,
     fontWeight: '700',
+    color: colors.text.primary,
   },
   moreContextText: {
+    ...typography.meta,
     color: colors.accent.vitality,
-    fontSize: 12,
     fontWeight: '600',
   },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     padding: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
   },
   contentRow: {
     flexDirection: 'row',
@@ -98,8 +100,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   insightText: {
+    ...typography.body,
     color: colors.text.secondary,
-    fontSize: typography.body.fontSize,
-    lineHeight: typography.body.lineHeight,
   },
 });

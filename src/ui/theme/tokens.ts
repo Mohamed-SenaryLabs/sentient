@@ -82,6 +82,15 @@ export const typography = {
     letterSpacing: -0.5,
     color: colors.text.primary,
   },
+  
+  // Standard Screen Title ("DASHBOARD", "SETTINGS")
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+    color: colors.text.primary,
+  },
 
   // Directive label (e.g., "Endurance") — Strongest
   hero: {
@@ -148,6 +157,76 @@ export const typography = {
     fontWeight: '400' as const,
     lineHeight: 22,
     color: colors.text.primary,
+  },
+  
+  // Button text
+  button: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    letterSpacing: 0.3,
+    color: colors.text.primary,
+  },
+  
+  // Strong body text (emphasized)
+  bodyStrong: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    lineHeight: 22,
+    color: colors.text.primary,
+  },
+  
+  // Small text (compact meta)
+  small: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    letterSpacing: 0.3,
+    color: colors.text.secondary,
+  },
+  
+  // Extra small text (for source attribution, etc.)
+  extraSmall: {
+    fontSize: 10,
+    fontWeight: '400' as const,
+    letterSpacing: 0.3,
+    color: colors.text.secondary,
+  },
+  
+  // Compact metric (for dashboard context)
+  compactMetric: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: colors.text.primary,
+  },
+  
+  // Compact metric large (for constitution metrics)
+  compactMetricLarge: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: colors.text.primary,
+  },
+  
+  // Card title (for card headers)
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    lineHeight: 20,
+    color: colors.text.primary,
+  },
+  
+  // Compact card title (smaller)
+  cardTitleSmall: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    lineHeight: 18,
+    color: colors.text.primary,
+  },
+  
+  // Small body text (13px - body - 2)
+  bodySmall: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    lineHeight: 18,
+    color: colors.text.secondary,
   },
 } as const;
 

@@ -13,6 +13,7 @@ interface DirectiveCardProps {
 }
 
 export function DirectiveCard({ title, subtitle, description, avoidText, isHighRisk = false }: DirectiveCardProps) {
+  // Avoid is neutral by default, only use strain color when truly high risk
   const avoidColor = isHighRisk ? colors.accent.strain : colors.text.secondary;
   return (
     <View style={styles.container}>
@@ -51,6 +52,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing[5],
     marginBottom: spacing[6],
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
   },
   headerRow: {
     flexDirection: 'row',
@@ -60,7 +63,7 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     ...typography.sectionLabel,
-    color: colors.accent.vitality, // Cyan match
+    // Uses accent.primary from token which equals vitality
   },
   titleSection: {
     marginBottom: spacing[3],
@@ -68,7 +71,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     ...typography.hero,
     color: colors.text.primary,
-    fontSize: 28, // Slightly smaller than token default to fit
+    fontSize: 28, // Scaled for card context (token default is 32)
     marginBottom: spacing[1],
   },
   subTitle: {
@@ -92,12 +95,11 @@ const styles = StyleSheet.create({
   },
   avoidLabel: {
     ...typography.sectionLabel,
-    color: colors.accent.strain,
+    // Neutral by default - color set via avoidColor prop (only strain when high risk)
     marginBottom: 0, // Reset margin since we are in a row
   },
   avoidText: {
     ...typography.avoid,
-    color: colors.text.primary, // Or keep strain color if desired, but usually text is primary/secondary
-    fontSize: 15,
+    color: colors.text.primary,
   },
 });
