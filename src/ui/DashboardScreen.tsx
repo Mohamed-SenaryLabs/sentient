@@ -116,6 +116,26 @@ function LoadDualStrip({
   );
 }
 
+function DualStrip({
+  a,
+  b,
+  colorA,
+  colorB,
+}: {
+  a: Array<number | null>;
+  b: Array<number | null>;
+  colorA: string;
+  colorB: string;
+}) {
+  return (
+    <View style={styles.loadDualWrap} pointerEvents="none">
+      <MiniBarStrip data={a} color={colorA} height={8} barWidth={3} />
+      <View style={{ height: 2 }} />
+      <MiniBarStrip data={b} color={colorB} height={10} barWidth={3} />
+    </View>
+  );
+}
+
 export function DashboardScreen({ stats, history, onRefresh, refreshing }: DashboardScreenProps) {
   const [logExpanded, setLogExpanded] = useState(false);
 
@@ -183,6 +203,17 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
     const v = d.activity?.activeMinutes;
     return typeof v === 'number' && Number.isFinite(v) ? v : null;
   });
+
+  // 7-day cadence (RPM) — average across workouts that contain RPM (e.g., cycling)
+  const seriesRpm7 = lastDays7.map((d): number | null => {
+    const rpms = (d.activity?.workouts || [])
+      .map(w => w.rpm)
+      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    if (rpms.length === 0) return null;
+    return rpms.reduce((sum, v) => sum + v, 0) / rpms.length;
+  });
+  const rpmDataCount = seriesRpm7.filter(v => typeof v === 'number' && Number.isFinite(v)).length;
+  const rpmToday = seriesRpm7[seriesRpm7.length - 1];
   
 
   // Helper: Get Z-score label
@@ -467,6 +498,33 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
             />
           </View>
         </View>
+
+        {/* Activity vs RPM (optional; only when cadence exists) */}
+        {rpmDataCount >= 3 && (
+          <>
+            <View style={styles.trendsDivider} />
+            <View style={styles.trendRow}>
+              <View style={[styles.trendIcon, { backgroundColor: `${colors.accent.vitality}14` }]}>
+                <Ionicons name="bicycle-outline" size={16} color={colors.accent.vitality} />
+              </View>
+              <View style={styles.trendInfo}>
+                <Text style={styles.trendLabel}>Cadence (7d)</Text>
+                <Text style={styles.trendMeta}>Active min vs RPM</Text>
+              </View>
+              <View style={styles.trendRight}>
+                <Text style={styles.trendValue}>
+                  {typeof rpmToday === 'number' && Number.isFinite(rpmToday) ? `${Math.round(rpmToday)} rpm` : '—'}
+                </Text>
+                <DualStrip
+                  a={seriesLoadMinutes7}
+                  b={seriesRpm7}
+                  colorA={`${colors.accent.vitality}75`}
+                  colorB={colors.accent.vitality}
+                />
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* STRESS SECTION */}
