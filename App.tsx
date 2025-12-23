@@ -97,6 +97,7 @@ function AppContent() {
         <Tab.Screen name="SETTINGS">
           {() => (
             <SettingsScreen 
+              stats={stats}
               onOpenDevConsole={() => setShowDevConsole(true)}
               onExportData={exportData}
               onGetHistoricalData={getHistoricalData}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from './components/Screen';
 import { OperatorDailyStats } from '../data/schema';
@@ -12,8 +12,111 @@ interface DashboardScreenProps {
   refreshing: boolean;
 }
 
+// ============================================
+// MICRO TREND STRIP (7-day)
+// ============================================
+function MiniBarStrip({
+  data,
+  color,
+  height = 14,
+  barWidth = 4,
+}: {
+  data: Array<number | null>;
+  color: string;
+  height?: number;
+  barWidth?: number;
+}) {
+  const numeric = data.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const max = Math.max(...numeric, 1);
+
+  return (
+    <View style={[styles.barStrip, { height }]} pointerEvents="none">
+      {data.map((val, i) => {
+        const isToday = i === data.length - 1;
+        const isMissing = val === null || !Number.isFinite(val);
+        const heightPct = isMissing ? 0.12 : Math.max(0.12, (Math.max(0, val as number) / max));
+        return (
+          <View
+            key={i}
+            style={[
+              styles.bar,
+              {
+                width: barWidth,
+                height: `${heightPct * 100}%`,
+                backgroundColor: isToday ? color : `${color}45`,
+                opacity: isMissing ? 0.25 : 0.95,
+              },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+// ============================================
+// TRENDS STRIP (14-day, with baseline line)
+// ============================================
+function TrendStrip({
+  data,
+  color,
+  baseline,
+  height = 18,
+  barWidth = 3,
+}: {
+  data: Array<number | null>;
+  color: string;
+  baseline?: number | null;
+  height?: number;
+  barWidth?: number;
+}) {
+  const numeric = data.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const max = Math.max(...numeric, (typeof baseline === 'number' && Number.isFinite(baseline) ? baseline : 0), 1);
+
+  const baselinePct =
+    typeof baseline === 'number' && Number.isFinite(baseline) ? Math.min(1, Math.max(0, baseline / max)) : null;
+  const baselineTop = baselinePct === null ? null : Math.round((1 - baselinePct) * height);
+
+  return (
+    <View style={[styles.trendStripWrap, { height }]} pointerEvents="none">
+      {baselineTop !== null && (
+        <View
+          style={[
+            styles.trendBaseline,
+            {
+              top: baselineTop,
+            },
+          ]}
+        />
+      )}
+      <MiniBarStrip data={data} color={color} height={height} barWidth={barWidth} />
+    </View>
+  );
+}
+
+// ============================================
+// LOAD TREND (7-day): Sessions + Active Minutes
+// ============================================
+function LoadDualStrip({
+  sessions,
+  minutes,
+  color,
+}: {
+  sessions: Array<number | null>;
+  minutes: Array<number | null>;
+  color: string;
+}) {
+  // Two aligned strips: sessions (dim), minutes (bright)
+  return (
+    <View style={styles.loadDualWrap} pointerEvents="none">
+      <MiniBarStrip data={sessions} color={`${color}75`} height={8} barWidth={3} />
+      <View style={{ height: 2 }} />
+      <MiniBarStrip data={minutes} color={color} height={10} barWidth={3} />
+    </View>
+  );
+}
+
 export function DashboardScreen({ stats, history, onRefresh, refreshing }: DashboardScreenProps) {
-  const [traceExpanded, setTraceExpanded] = useState(false);
   const [logExpanded, setLogExpanded] = useState(false);
 
   if (!stats) {
@@ -26,14 +129,61 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
 
   // ... (metrics calculation code suppressed for brevity, assume unchanged unless specified)
   const trends = stats.stats.biometric_trends;
-  const directive = stats.logicContract?.directive;
-  const contract = stats.logicContract;
+
+  // --- Trend series ---
+  const allDaysAsc = [stats, ...history]
+    .slice()
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .filter(d => !!d);
+
+  const lastDays7 = allDaysAsc.slice(-7);
+  const lastDays14 = allDaysAsc.slice(-14);
+
+  const seriesHRV = lastDays7.map((d): number | null => {
+    const v = d.biometrics?.hrv;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+  const seriesRHR = lastDays7.map((d): number | null => {
+    const v = d.biometrics?.restingHeartRate;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+  const seriesSleepHrs = lastDays7.map((d): number | null => {
+    const v = d.sleep?.totalDurationSeconds;
+    return typeof v === 'number' && Number.isFinite(v) ? v / 3600 : null;
+  });
+  const seriesSteps = lastDays7.map((d): number | null => {
+    const v = d.activity?.steps;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+  const seriesActiveBurn = lastDays7.map((d): number | null => {
+    const v = d.activity?.activeCalories;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+  const seriesLoadDensity = lastDays7.map((d): number | null => {
+    const v = d.stats?.loadDensity;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+
+  // 14-day series for the Trends module
+  const seriesHRV14 = lastDays14.map((d): number | null => {
+    const v = d.biometrics?.hrv;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+  const seriesSleep14 = lastDays14.map((d): number | null => {
+    const v = d.sleep?.totalDurationSeconds;
+    return typeof v === 'number' && Number.isFinite(v) ? v / 3600 : null;
+  });
+
+  // 7-day load components for Trends: sessions + active minutes
+  const seriesLoadSessions7 = lastDays7.map((d): number | null => {
+    const v = d.activity?.workouts?.length;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
+  const seriesLoadMinutes7 = lastDays7.map((d): number | null => {
+    const v = d.activity?.activeMinutes;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  });
   
-  // Helper: Format directive label
-  const getDirectiveLabel = () => {
-    if (!directive) return 'Calculating...';
-    return `${directive.category} — ${directive.stimulus_type}`;
-  };
 
   // Helper: Get Z-score label
   const getZLabel = (z: number) => {
@@ -141,6 +291,7 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
               <Text style={styles.zLabel}> ({getZLabel(trends?.hrv.today_z_score || 0)})</Text>
             </Text>
           </View>
+          <MiniBarStrip data={seriesHRV} color={colors.accent.vitality} />
         </View>
 
         {/* RHR Status */}
@@ -165,6 +316,7 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
               <Text style={styles.zLabel}> ({getZLabel(trends?.rhr.today_z_score || 0)})</Text>
             </Text>
           </View>
+          <MiniBarStrip data={seriesRHR} color={colors.accent.peak} />
         </View>
       </View>
 
@@ -189,6 +341,7 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
                    stats.sleep.source === 'ESTIMATED_7D' ? 'Estimated (7-day)' :
                    stats.sleep.source === 'DEFAULT_6H' ? 'Default (6h)' : 'Manual'}
         </Text>
+        <MiniBarStrip data={seriesSleepHrs} color={colors.accent.vitality} />
       </View>
 
       {/* MOVEMENT SECTION */}
@@ -209,6 +362,7 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
               <Text style={styles.unit}> {getTrendLabel(trends?.steps.trend)}</Text>
             </Text>
           </View>
+          <MiniBarStrip data={seriesSteps} color={colors.accent.vitality} />
         </View>
 
         <View style={[styles.metricCard, styles.flex1]}>
@@ -225,6 +379,7 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
               {Math.round(stats.activity.activeCalories)} <Text style={styles.unit}>kcal {getTrendLabel(trends?.active_calories.trend)}</Text>
             </Text>
           </View>
+          <MiniBarStrip data={seriesActiveBurn} color={colors.accent.vitality} />
         </View>
       </View>
 
@@ -242,6 +397,76 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
           Physio load: {Math.round(loadDensity)}
         </Text>
         <Text style={styles.trendText}>Trend: {stats.stats.trends?.load_trend || 'Stable'}</Text>
+        <MiniBarStrip data={seriesLoadDensity} color={colors.accent.load} />
+      </View>
+
+      {/* TRENDS (Instrument Charts) */}
+      <Text style={styles.sectionHeader}>TRENDS</Text>
+      <View style={styles.trendsCard}>
+        {/* HRV */}
+        <View style={styles.trendRow}>
+          <View style={[styles.trendIcon, { backgroundColor: `${colors.accent.vitality}18` }]}>
+            <Ionicons name="pulse-outline" size={16} color={colors.accent.vitality} />
+          </View>
+          <View style={styles.trendInfo}>
+            <Text style={styles.trendLabel}>HRV (14d)</Text>
+            <Text style={styles.trendMeta}>Baseline {trends?.hrv.baseline ? Math.round(trends.hrv.baseline) : '—'} ms</Text>
+          </View>
+          <View style={styles.trendRight}>
+            <Text style={styles.trendValue}>{Math.round(stats.biometrics.hrv)} ms</Text>
+            <TrendStrip
+              data={seriesHRV14}
+              color={colors.accent.vitality}
+              baseline={trends?.hrv.baseline ?? null}
+              height={18}
+              barWidth={3}
+            />
+          </View>
+        </View>
+
+        <View style={styles.trendsDivider} />
+
+        {/* Sleep */}
+        <View style={styles.trendRow}>
+          <View style={[styles.trendIcon, { backgroundColor: `${colors.accent.vitality}14` }]}>
+            <Ionicons name="moon-outline" size={16} color={colors.accent.vitality} />
+          </View>
+          <View style={styles.trendInfo}>
+            <Text style={styles.trendLabel}>Sleep (14d)</Text>
+            <Text style={styles.trendMeta}>Baseline {(sleepBaseline / 3600).toFixed(1)}h</Text>
+          </View>
+          <View style={styles.trendRight}>
+            <Text style={styles.trendValue}>{(sleepToday / 3600).toFixed(1)}h</Text>
+            <TrendStrip
+              data={seriesSleep14}
+              color={colors.accent.vitality}
+              baseline={sleepBaseline / 3600}
+              height={18}
+              barWidth={3}
+            />
+          </View>
+        </View>
+
+        <View style={styles.trendsDivider} />
+
+        {/* Load */}
+        <View style={styles.trendRow}>
+          <View style={[styles.trendIcon, { backgroundColor: `${colors.accent.load}14` }]}>
+            <Ionicons name="speedometer-outline" size={16} color={colors.accent.load} />
+          </View>
+          <View style={styles.trendInfo}>
+            <Text style={styles.trendLabel}>Load (7d)</Text>
+            <Text style={styles.trendMeta}>Sessions + Active min</Text>
+          </View>
+          <View style={styles.trendRight}>
+            <Text style={styles.trendValue}>{loadLevel.label}</Text>
+            <LoadDualStrip
+              sessions={seriesLoadSessions7}
+              minutes={seriesLoadMinutes7}
+              color={colors.accent.load}
+            />
+          </View>
+        </View>
       </View>
 
       {/* STRESS SECTION */}
@@ -437,121 +662,6 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
           );
         })()}
       </View>
-
-      {/* DECISION TRACE (Expandable) */}
-      <Text style={styles.sectionHeader}>DECISION TRACE</Text>
-      <TouchableOpacity 
-        style={styles.traceCard} 
-        onPress={() => setTraceExpanded(!traceExpanded)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.traceHeader}>
-          <Text style={styles.traceTitle}>Logic Chain</Text>
-          <Text style={styles.expandIcon}>{traceExpanded ? '▼' : '▶'}</Text>
-        </View>
-        
-        <Text style={styles.traceDirective}>{getDirectiveLabel()}</Text>
-        
-        {traceExpanded && (
-          <View style={styles.traceDetails}>
-            {/* 3-Day Arc */}
-            {contract?.horizon && contract.horizon.length > 0 && (
-              <View style={styles.traceSection}>
-                <Text style={styles.traceSectionTitle}>3-DAY STRATEGIC ARC</Text>
-                {contract.horizon.map((day, i) => (
-                  <Text key={i} style={styles.traceItem}>
-                    Day {day.dayOffset}: {day.directive.category} — {day.directive.stimulus_type}
-                    {day.state && ` (${day.state})`}
-                  </Text>
-                ))}
-              </View>
-            )}
-
-            {/* Vitality Calculation */}
-            <View style={styles.traceSection}>
-              <Text style={styles.traceSectionTitle}>VITALITY CALCULATION</Text>
-              <Text style={styles.traceItem}>Score: {stats.stats.vitality}%</Text>
-              <Text style={styles.traceItem}>Confidence: {stats.stats.vitalityConfidence || 'HIGH'}</Text>
-              {stats.stats.vitalityZScore !== undefined && (
-                <Text style={styles.traceItem}>Z-Score: {stats.stats.vitalityZScore.toFixed(2)}</Text>
-              )}
-              {stats.stats.isVitalityEstimated && (
-                <Text style={styles.traceItem}>⚠ Estimated (incomplete data)</Text>
-              )}
-            </View>
-
-            {/* Evidence Summary */}
-            {stats.stats.evidenceSummary && stats.stats.evidenceSummary.length > 0 && (
-              <View style={styles.traceSection}>
-                <Text style={styles.traceSectionTitle}>EVIDENCE</Text>
-                {stats.stats.evidenceSummary.map((item, i) => (
-                  <Text key={i} style={styles.traceItem}>• {item}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* System Status */}
-            <View style={styles.traceSection}>
-              <Text style={styles.traceSectionTitle}>SYSTEM STATUS</Text>
-              <Text style={styles.traceItem}>State: {stats.stats.systemStatus.current_state}</Text>
-              <Text style={styles.traceItem}>Lens: {stats.stats.systemStatus.active_lens}</Text>
-              {stats.stats.systemStatus.dominantAxes && stats.stats.systemStatus.dominantAxes.length > 0 && (
-                <Text style={styles.traceItem}>
-                  Dominant Axes: {stats.stats.systemStatus.dominantAxes.join(', ')}
-                </Text>
-              )}
-            </View>
-
-            {/* Planner Reasoning */}
-            {contract?.dominant_factors && contract.dominant_factors.length > 0 && (
-              <View style={styles.traceSection}>
-                <Text style={styles.traceSectionTitle}>PLANNER REASONING</Text>
-                <Text style={styles.traceItem}>Dominant Factors:</Text>
-                {contract.dominant_factors.map((factor, i) => (
-                  <Text key={i} style={styles.traceSubItem}>• {factor}</Text>
-                ))}
-              </View>
-            )}
-
-            {/* Analyst Insight */}
-            {stats.activeSession?.analyst_insight && (
-              <View style={styles.traceSection}>
-                <Text style={styles.traceSectionTitle}>ANALYST INSIGHT</Text>
-                <Text style={styles.traceText}>"{stats.activeSession.analyst_insight}"</Text>
-              </View>
-            )}
-
-            {/* Constraints */}
-            {contract?.constraints && (
-              <View style={styles.traceSection}>
-                <Text style={styles.traceSectionTitle}>CONSTRAINTS</Text>
-                <Text style={styles.traceItem}>
-                  Impact Allowed: {contract.constraints.allow_impact ? 'Yes' : 'No'}
-                </Text>
-                {contract.constraints.heart_rate_cap && (
-                  <Text style={styles.traceItem}>
-                    HR Cap: {contract.constraints.heart_rate_cap} bpm
-                  </Text>
-                )}
-                {contract.constraints.required_equipment && contract.constraints.required_equipment.length > 0 && (
-                  <Text style={styles.traceItem}>
-                    Equipment: {contract.constraints.required_equipment.join(', ')}
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {/* Load Density */}
-            {stats.stats.loadDensity !== undefined && (
-              <View style={styles.traceSection}>
-                <Text style={styles.traceSectionTitle}>LOAD ANALYSIS</Text>
-                <Text style={styles.traceItem}>72h Density: {Math.round(stats.stats.loadDensity)}</Text>
-                <Text style={styles.traceItem}>Trend: {stats.stats.trends?.load_trend || 'Stable'}</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </TouchableOpacity>
 
     </Screen>
   );
@@ -792,67 +902,86 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Trace / Analysis
-  traceHeader: {
+  // Micro trend strip
+  barStrip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
+    alignItems: 'flex-end',
+    gap: 2,
+    height: 14,
+    marginTop: spacing[3],
+    opacity: 0.9,
   },
-  expandIcon: {
-    padding: spacing[2],
-  },
-  traceDetails: {
-    marginTop: spacing[2],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.subtle, // Keep subtle for internal divider
-  },
-  traceCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.subtle, // Consistent with panel styling rule
-  },
-  traceSection: {
-    marginBottom: spacing[4],
-  },
-  traceSectionTitle: {
-    ...typography.meta,
-    color: colors.text.secondary,
-    marginBottom: spacing[2],
-    textTransform: 'uppercase',
+  bar: {
+    borderRadius: 1,
+    minHeight: 2,
   },
 
-  traceTitle: {
-    ...typography.body,
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  traceDirective: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.text.primary,
+  // Trends module
+  trendsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    padding: spacing[4],
     marginBottom: spacing[3],
   },
-  traceItem: {
-    ...typography.meta,
-    color: colors.text.primary,
-    marginBottom: spacing[2],
+  trendsDivider: {
+    height: 1,
+    backgroundColor: colors.border.subtle,
+    marginVertical: spacing[3],
   },
-  traceSubItem: {
-    ...typography.meta,
-    color: colors.text.secondary,
+  trendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
-    paddingLeft: spacing[2],
+    gap: spacing[3],
   },
-  traceText: {
-    ...typography.meta,
+  trendIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+  },
+  trendInfo: {
+    flex: 1,
+    minWidth: 120,
+  },
+  trendLabel: {
+    ...typography.cardTitleSmall,
+    color: colors.text.primary,
+  },
+  trendMeta: {
+    ...typography.small,
     color: colors.text.secondary,
+    marginTop: 2,
   },
+  trendRight: {
+    alignItems: 'flex-end',
+    gap: spacing[2],
+    minWidth: 120,
+  },
+  trendValue: {
+    ...typography.bodyStrong,
+    color: colors.text.primary,
+  },
+  trendStripWrap: {
+    width: 120,
+    justifyContent: 'flex-end',
+  },
+  loadDualWrap: {
+    width: 120,
+    justifyContent: 'flex-end',
+  },
+  trendBaseline: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: colors.border.default,
+    opacity: 0.9,
+  },
+
 });
 
