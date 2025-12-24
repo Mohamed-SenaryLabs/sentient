@@ -15,7 +15,9 @@ import {
   TextInput,
   LayoutAnimation,
   Platform,
-  UIManager
+  UIManager,
+  ScrollView,
+  KeyboardAvoidingView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { 
@@ -208,15 +210,16 @@ function WorkoutLogCard({ card, onComplete, onDismiss }: SmartCardProps) {
         Want to add a quick note?
       </Text>
       
-      <TextInput
-        style={styles.noteInput}
-        placeholder="e.g., Norwegian 4x4 @ 14 km/h"
-        placeholderTextColor={colors.text.secondary}
-        value={note}
-        onChangeText={setNote}
-        multiline
-        numberOfLines={2}
-      />
+        <TextInput
+          style={styles.noteInput}
+          placeholder="e.g., Norwegian 4x4 @ 14 km/h"
+          placeholderTextColor={colors.text.secondary}
+          value={note}
+          onChangeText={setNote}
+          multiline
+          numberOfLines={2}
+          blurOnSubmit={false}
+        />
       
       <View style={styles.actionRow}>
         <TouchableOpacity 
@@ -385,6 +388,7 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
             onChangeText={setPrimaryGoal}
             multiline
             numberOfLines={2}
+            blurOnSubmit={false}
           />
         )}
       </View>
@@ -412,6 +416,7 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
           onChangeText={setConstraints}
           multiline
           numberOfLines={2}
+          blurOnSubmit={false}
         />
       </View>
       
@@ -462,25 +467,37 @@ function ExpandableSmartCard({ card, onComplete, onDismiss }: SmartCardProps) {
 
   if (expanded) {
     return (
-      <View style={styles.expandedWrapper}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.expandedWrapper}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <View style={styles.expandedHeader}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
         </View>
-        <SmartCardComponent 
-          card={card} 
-          onComplete={(id, payload) => {
-            // Animate removal
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            onComplete(id, payload);
-          }} 
-          onDismiss={(id) => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            onDismiss(id);
-          }} 
-        />
-      </View>
+        <ScrollView
+          style={styles.expandedScrollView}
+          contentContainerStyle={styles.expandedScrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+        >
+          <SmartCardComponent 
+            card={card} 
+            onComplete={(id, payload) => {
+              // Animate removal
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              onComplete(id, payload);
+            }} 
+            onDismiss={(id) => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              onDismiss(id);
+            }} 
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -616,6 +633,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.subtle,
     overflow: 'hidden',
+    maxHeight: '80%', // Prevent card from taking full screen
+  },
+  expandedScrollView: {
+    flex: 1,
+  },
+  expandedScrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing[4], // Extra padding at bottom for keyboard
   },
   expandedHeader: {
     alignItems: 'flex-end',

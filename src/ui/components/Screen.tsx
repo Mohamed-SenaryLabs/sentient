@@ -53,9 +53,12 @@ export function Screen(props: ScreenProps) {
     ? Math.max(insets.top, 20) + spacing[3] 
     : 0;
 
-  // Bottom padding to avoid tab bar overlap if not handled by tab navigator or if needing extra space
-  // We'll add a default spacing, but tab navigator usually sits on top.
-  // Standardizing 80-100px bottom spacer is common for floating tab bars.
+  // Calculate bottom tab bar height:
+  // - paddingTop: spacing[3] = 12px
+  // - Icon container: icon (24px) + tab padding (spacing[2] = 8px) * 2 = 40px
+  // - paddingBottom: insets.bottom + spacing[3] = insets.bottom + 12px
+  // Total: 64px + insets.bottom + extra spacing for visual breathing room
+  const tabBarHeight = 64 + insets.bottom + spacing[4]; // 64 + insets.bottom + 16px breathing room
   const paddingBottom = safeAreaEdges.includes('bottom') ? insets.bottom : 0;
 
   const wrapperStyle = [
@@ -72,7 +75,7 @@ export function Screen(props: ScreenProps) {
           style={wrapperStyle}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: paddingBottom + spacing[8] }, // Extra space for tab bar
+            { paddingBottom: tabBarHeight }, // Account for bottom tab bar height
             contentContainerStyle,
           ]}
           keyboardShouldPersistTaps="handled"
