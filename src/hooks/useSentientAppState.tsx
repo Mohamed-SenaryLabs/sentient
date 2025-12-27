@@ -21,7 +21,8 @@ import {
   updateSleepBaseline, 
   saveOperatorGoals, 
   getOperatorGoals,
-  resetDatabase as resetDatabaseFn
+  resetDatabase as resetDatabaseFn,
+  setWelcomeCompleted
 } from '../data/database';
 
 // ============================================
@@ -182,6 +183,12 @@ export function SentientProvider({ children }: SentientProviderProps) {
         }
       }
       
+      // Handle WELCOME card completion: set welcome_completed flag
+      if (card.type === 'WELCOME') {
+        await setWelcomeCompleted();
+        addLog('Welcome card completed');
+      }
+      
       // Complete the card in DB (persists operator action)
       await SmartCardEngine.completeCard(cardId, payload);
       
@@ -194,6 +201,14 @@ export function SentientProvider({ children }: SentientProviderProps) {
 
   const dismissSmartCard = useCallback(async (cardId: string) => {
     try {
+      const card = smartCards.find(c => c.id === cardId);
+      
+      // Handle WELCOME card dismissal: set welcome_completed flag (recommended)
+      if (card?.type === 'WELCOME') {
+        await setWelcomeCompleted();
+        addLog('Welcome card dismissed');
+      }
+      
       await SmartCardEngine.dismissCard(cardId);
       
       // Remove from local state
@@ -202,7 +217,7 @@ export function SentientProvider({ children }: SentientProviderProps) {
     } catch (e: any) {
       console.error('[SmartCards] Dismiss failed:', e);
     }
-  }, [addLog]);
+  }, [smartCards, addLog]);
 
   // ----------------------------------------
   // SETTINGS ACTIONS

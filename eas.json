@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 13.2.0"
+    "version": ">= 13.2.0",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
@@ -38,5 +39,3 @@
     "production": {}
   }
 }
-
-

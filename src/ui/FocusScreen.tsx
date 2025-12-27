@@ -152,7 +152,9 @@ export const FocusScreen: React.FC<FocusScreenProps> = ({
 
         {/* ===== DAILY DIRECTIVE CARD ===== */}
         <DirectiveCard 
-          title={viewData.directiveLabel.split('—')[0]?.trim() || viewData.directiveLabel}
+          title={viewData.directiveHero}
+          modeLine={viewData.modeLine}
+          metadata={viewData.directiveMetadata}
           subtitle={viewData.focusCue}
           description={viewData.analystSummary || "Maintain steady effort."} // Fallback if no specific desc
           avoidText={viewData.avoidCue || "Avoid high intensity spikes."}

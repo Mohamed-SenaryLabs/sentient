@@ -348,7 +348,9 @@ export type SmartCardType =
   | 'SLEEP_CONFIRM'      // Missing/estimated sleep confirmation
   | 'WORKOUT_LOG'        // Log today's workout
   | 'WORKOUT_SUGGESTION' // LLM-generated workout suggestion
-  | 'GOALS_INTAKE';      // Goals setting/update
+  | 'GOALS_INTAKE'       // Goals setting/update
+  | 'WELCOME'            // Day-1 onboarding (one-time)
+  | 'WORKOUT_INSIGHT';   // Post-workout physiology insight
 
 export type SmartCardStatus = 
   | 'ACTIVE'     // Eligible and showable
@@ -379,7 +381,9 @@ export type SmartCardPayload =
   | SleepConfirmPayload
   | WorkoutLogPayload
   | WorkoutSuggestionPayload
-  | GoalsIntakePayload;
+  | GoalsIntakePayload
+  | WelcomePayload
+  | WorkoutInsightPayload;
 
 export interface SleepConfirmPayload {
   type: 'SLEEP_CONFIRM';
@@ -423,6 +427,27 @@ export interface OperatorGoals {
   time_horizon?: string;   // Optional (e.g., "3 months", "6 months", "1 year")
   constraints?: string;     // Optional, plain language
   updated_at: string;      // ISO timestamp
+}
+
+export interface WelcomePayload {
+  type: 'WELCOME';
+  headline: string;        // ≤ 32 chars
+  message: string;          // 1-2 sentences, ≤ 220 chars
+  createdAt: string;        // ISO timestamp
+}
+
+export interface WorkoutInsightPayload {
+  type: 'WORKOUT_INSIGHT';
+  workoutId: string;
+  workoutType?: string;
+  detectedAt?: string;     // ISO timestamp
+  insight: {
+    headline: string;
+    summary: string;
+    physiology?: string;
+    guidance?: string;
+  };
+  generatedAt: string;     // ISO timestamp
 }
 
 // Workout Log: operator's note for a workout

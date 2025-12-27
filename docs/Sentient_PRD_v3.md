@@ -91,6 +91,33 @@ This is a **two-layer system**:
 - Canonical tokens MAY be shown in **BIOLOGY** (data proof), developer tools, export, and diagnostics.
 - Canonical tokens MUST NOT be the primary language of the main experience. The main experience must remain human-readable and calm.
 
+#### 2.1.1 Home Language Contract
+
+**Purpose:** Define the exact language rules for Home screen display to ensure it reads like an Analyst briefing a human, while preserving strict canonical taxonomy.
+
+**3-Question Rule (Ship Gate):**
+In ≤ 5 seconds, a new user must be able to answer:
+1. **What kind of day is it?** → Hero: "<Category> Day" (e.g., "Strength Day")
+2. **How do I succeed?** → Mode line: short behavior cue derived from stimulus_type
+3. **What should I avoid?** → Avoid cue: one common mistake (not physiology)
+
+**Banned System-Speak (Home-visible text must never use):**
+- "execute", "protocol", "mission", "orders", "proceed", "maximize", "ignite", "crush", "absolutely"
+- Any coercive or command-oriented language
+- These terms are already banned in §3.4.2—enforce in UI copy too
+
+**Physiology Placement Rule:**
+- Physiology explanations belong in Analyst Insight (expanded context), not in hero or mode line
+- Home hero and mode line must focus on **behavior**, not biological mechanisms
+- Example: Mode line says "Lift heavy with full recovery" (behavior), not "Maximize myofibrillar disruption" (physiology)
+
+**5-Second Screenshot Test:**
+A screenshot of Home must immediately communicate:
+- The day type (Category Day)
+- The success behavior (Mode line)
+- The failure mode to avoid (Avoid cue)
+- No ambiguity, no jargon, no system-speak
+
 ---
 
 ## 3. The Intelligence Architecture (The Brain)
@@ -305,6 +332,67 @@ Store `OPERATOR_GOALS` as a durable preference object:
 - Operator may update goals any time from Settings (non-blocking).
 - Goals changes may optionally trigger `INTRA_DAY_RECAL` only if they change deterministic constraints (future).
 
+###### 3.3.2.X Smart Card Interaction Model (Modal-First) — Ship Gate
+
+**Purpose:** Ensure Smart Cards never disrupt Home layout stability and provide focused, keyboard-safe interaction.
+
+**Collapsed by default:**
+- Home shows Smart Cards as compact collapsed rows/panels only.
+- Cards display: Title, 1-line preview ("Tap to review" or key sentence), Status (optional) and icon.
+- Tapping collapsed card never expands inline; it opens modal.
+
+**Open behavior:**
+- Tap a card → opens Smart Card Modal (centered, focus trap).
+- One at a time: only one Smart Card modal can be open.
+- Home remains stable: opening a card must not push/shift the Home layout.
+
+**Smart Card Modal (UX spec):**
+
+**A) Placement + sizing:**
+- Centered "dialog" modal, not bottom-sheet by default.
+- Max width: visually capped (tablet-friendly); on phones it should still read as centered.
+- Max height: clamps to available viewport; content scrolls within modal (never behind keyboard).
+- Safe areas: modal respects top/bottom safe areas.
+
+**B) Keyboard safety (ship gate):**
+- When keyboard appears:
+  - Modal content must reflow/resize so the focused input and primary CTA remain visible.
+  - No text fields can be obscured.
+  - The bottom tab bar must not overlap modal actions (modal sits above it).
+
+**C) Structure (consistent across card types):**
+- Header: card title + short context line (1 line).
+- Body: card-specific content + inputs (if any).
+- Primary CTA: single decisive action (e.g., "Save", "Confirm", "Continue").
+- Secondary action: "Not now" (dismiss per policy).
+- Close affordance: top-right close (equivalent to "Not now" unless card is hard-blocking; Smart Cards should not be hard-blocking).
+
+**D) Dismiss rules:**
+- Tap outside to dismiss: allowed (same as "Not now") unless the card is in a critical safety flow (not expected for Smart Cards).
+- Swipe-to-dismiss: optional, but must not cause accidental dismissal during form scroll.
+
+**Input field behavior (forms inside modal):**
+- Inputs must be card-type specific (as today), but presented in a consistent modal grammar:
+  - Label → input → helper text (optional)
+- Validation errors inline, calm tone
+- Primary CTA disabled until valid (when applicable).
+- On submit:
+  - Modal closes
+  - Card transitions to COMPLETED
+  - Home list updates (card disappears or shows completed state depending on policy)
+
+**Accessibility / interaction (ship gate):**
+- Modal must trap focus (screen-reader friendly).
+- Close button and CTAs have clear labels.
+- Dynamic type: modal scroll must still work; CTA remains reachable.
+
+**Acceptance Criteria (QA):**
+- Open any Smart Card with inputs; keyboard appears; no overlap with keyboard or bottom menu; CTA stays visible.
+- Home does not reflow when opening/closing card.
+- Form-heavy cards remain usable on smallest supported phone size.
+- Only one modal can be open; back/close returns to Home cleanly.
+- Dismiss and complete behaviors remain consistent with Smart Card lifecycle/persistence rules.
+
 ### 3.4 The 3-Day Strategic Arc (The Planner)
 **Requirement:** The Analyst generates a 3-Day Contract:
 1.  **Today:** Execution (The strict Directive).
@@ -428,6 +516,42 @@ Even if narrative exceeds constraints, the UI must:
 - Clamp `SESSION_FOCUS` to **1–2 lines max** (no paragraphs in the hero).
 - Clamp `AVOID` to **1–2 lines max**.
 - Long-form narrative belongs only in `BIOLOGY` or an explicit details surface, never the Home hero.
+
+##### F) Home Copy Patterns (Display-Layer Requirements)
+
+**Purpose:** Define the exact Home display representation to ensure Analyst-like briefing while preserving canonical taxonomy.
+
+**Directive = "Name the Day"**
+- **Hero (required):** Must always show "<Category> Day" where Category comes from the canonical directive category
+  - Examples: "Strength Day", "Endurance Day", "Neural Day", "Regulation Day"
+- **Forbidden:** Must not show stimulus in hero (no "Strength — Overload" as hero)
+- **Optional metadata:** May show "<Category> — <Stimulus>" only as small secondary text/chip
+  - Must never replace hero prominence
+  - Example: Hero = "Strength Day", optional chip = "Strength — Overload"
+
+**Mode Line (under hero)**
+- **Deterministic mapping from stimulus_type:**
+  - `OVERLOAD` → "Lift heavy with full recovery."
+  - `MAINTENANCE` → "Steady work. Keep it crisp, not exhausting."
+  - `FLUSH` → "Easy flow. Keep cost low."
+  - `TEST` → "Measure output. Stop before form breaks."
+- **Hard limits:** Must remain within existing PRD caps (≤ 120 chars preferred; ≤ 160 max)
+- **Tone:** Behavior-focused, not physiology-focused
+
+**Focus = One Cue (Intent + Constraint)**
+- Derived from `SESSION_FOCUS` (LLM-generated or fallback)
+- Must be one tactical cue combining intent and constraint
+- Example: "Crisp reps, long rests—stop before form degrades."
+
+**Avoid = One Common Mistake (Not Physiology)**
+- Derived from `AVOID` cue (LLM-generated or fallback)
+- Must focus on a behavioral mistake, not biological explanation
+- Example: "Avoid intensity spikes—keep effort conversational." (not "Avoid excessive sympathetic activation")
+
+**Analyst Insight = Cause → Interpretation → Decision**
+- Structure: "X is strong/available, but Y is compromised, therefore the directive is Z."
+- Must explain the trade-off that led to the directive
+- Must be accessible in ≤ 5 seconds (summary visible, detail expandable)
 
 ### 3.5 Agent Coordination System
 The Intelligence Layer is not a monolith. It is a system of specialized agents.
@@ -577,8 +701,11 @@ We analyze the *relationship* between biometric inputs to determine the Operator
 
 #### A.2.3 Required Display Format
 
-- **Primary format:** `"<Category Label> — <Stimulus Label>"` (example: “Strength — Overload”)
-- **Forbidden:** “protocol”, “execute”, “briefing”, “mission”, coercive headlines (e.g., “MAXIMIZE FORCE”, “IGNITE”).
+**Decision (Ship Gate):** Home hero must always be "<Category Label> Day"
+- **Primary format (Hero):** `"<Category Label> Day"` (example: "Strength Day")
+- **Optional metadata:** Canonical pair label `"<Category Label> — <Stimulus Label>"` allowed only as optional secondary metadata (small text/chip)
+- **Forbidden in hero:** Must not show stimulus in hero (no "Strength — Overload" as hero)
+- **Forbidden language:** “protocol”, “execute”, “briefing”, “mission”, coercive headlines (e.g., “MAXIMIZE FORCE”, “IGNITE”).
 
 ### A.3 Metric Display Lock (Canonical → UI Label + Placement)
 
@@ -590,6 +717,31 @@ We analyze the *relationship* between biometric inputs to determine the Operator
 | `ADAPTIVE_CAPACITY` | Adaptive Capacity | 0–100% | Primary (Home allowed) |
 | `PHYSIOLOGICAL_LOAD` | Physiological Load | relative | Secondary (Biology-first) |
 | HRV / RHR / Sleep (raw) | (human-friendly labels) | ms / bpm / hours | Biology-first; Home via `CONTEXTUAL_INTEL` only |
+
+### A.4 Home Display Vocabulary Lock
+
+**Purpose:** Explicitly lock allowed/forbidden vocabulary for Home screen to prevent semantic drift and ensure Analyst-like briefing tone.
+
+**Forbidden Terms (Home-visible text must never use):**
+- System-speak: "execute", "protocol", "mission", "orders", "proceed", "maximize", "ignite", "crush", "absolutely"
+- Command-oriented language that implies coercion
+- These terms are already banned in §3.4.2—enforce in UI copy too
+
+**Sleep Summary Labels (Lock):**
+- **Forbidden:** "Sleep Bank" (must never appear anywhere in UI copy)
+- **Allowed:** "Sleep" or "Sleep (Last Night)" only
+- **Rationale:** "Sleep Bank" implies accumulation/debt framing, which is not how Sentient models sleep
+
+**Home Label Lock:**
+- **Hero:** Must always be "<Category> Day" (e.g., "Strength Day", "Endurance Day")
+- **Mode Line:** Deterministic mapping from stimulus_type (see §3.4.2.F)
+- **Focus/Avoid:** Must use behavior-focused language, not physiology jargon
+- **Analyst Insight:** Must use cause → interpretation → decision structure
+
+**Enforcement:**
+- All Home-visible text must pass vocabulary validation
+- No forbidden terms may appear anywhere on Home (including Smart Cards if present)
+- Canonical tokens remain unchanged in state/DB/engine outputs (display-layer only)
 
 ---
 

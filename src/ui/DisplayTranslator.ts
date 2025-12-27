@@ -68,11 +68,46 @@ const STIMULUS_MAP: Record<string, string> = {
 };
 
 /**
- * Returns the primary formatted directive label: "<Category> — <Stimulus>"
- * Example: "Strength — Overload"
+ * Returns the Home hero label: "<Category> Day"
+ * Example: "Strength Day"
+ * PRD §A.2.3: Hero must always be Category Day format
  */
-export function getDirectiveLabel(category: string, stimulus: string): string {
+export function getDirectiveHero(category: string): string {
+    const catLabel = CATEGORY_MAP[category] || category; // Fallback to raw if unknown
+    return `${catLabel} Day`;
+}
+
+/**
+ * Returns the optional metadata label: "<Category> — <Stimulus>"
+ * Example: "Strength — Overload"
+ * PRD §A.2.3: Allowed only as optional secondary metadata (small text/chip)
+ */
+export function getDirectiveMetadata(category: string, stimulus: string): string {
     const catLabel = CATEGORY_MAP[category] || category; // Fallback to raw if unknown
     const stimLabel = STIMULUS_MAP[stimulus] || stimulus;
     return `${catLabel} — ${stimLabel}`;
+}
+
+/**
+ * Returns the primary formatted directive label: "<Category> — <Stimulus>"
+ * Example: "Strength — Overload"
+ * @deprecated Use getDirectiveHero() for Home hero. This is kept for backward compatibility.
+ */
+export function getDirectiveLabel(category: string, stimulus: string): string {
+    return getDirectiveMetadata(category, stimulus);
+}
+
+/**
+ * Returns the mode line (deterministic mapping from stimulus_type)
+ * PRD §3.4.2.F: Mode line is a short behavior cue derived from stimulus_type
+ */
+export function getModeLine(stimulus: string): string {
+    const MODE_LINE_MAP: Record<string, string> = {
+        'OVERLOAD': 'Lift heavy with full recovery.',
+        'MAINTENANCE': 'Steady work. Keep it crisp, not exhausting.',
+        'FLUSH': 'Easy flow. Keep cost low.',
+        'TEST': 'Measure output. Stop before form breaks.'
+    };
+    
+    return MODE_LINE_MAP[stimulus] || 'Maintain steady effort.';
 }

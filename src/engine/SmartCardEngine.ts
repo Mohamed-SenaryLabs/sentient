@@ -21,6 +21,8 @@ import {
   WorkoutLogPayload,
   WorkoutSuggestionPayload,
   GoalsIntakePayload,
+  WelcomePayload,
+  WorkoutInsightPayload,
   OperatorDailyStats,
   OperatorGoals
 } from '../data/schema';
@@ -37,23 +39,29 @@ import {
   getBaselines,
   getOperatorGoals,
   getRecentWorkoutLogCount,
-  getRecentWorkoutLogs
+  getRecentWorkoutLogs,
+  isWelcomeCompleted,
+  setWelcomeCompleted
 } from '../data/database';
 
 // Card priority levels (higher = more important)
 const PRIORITY = {
   SLEEP_CONFIRM: 90,      // Safety/data quality - highest
   WORKOUT_LOG: 70,        // Immediate relevance
+  WORKOUT_INSIGHT: 60,    // Post-workout insight (between log and suggestion)
   WORKOUT_SUGGESTION: 50, // Enhancement
-  GOALS_INTAKE: 40        // Onboarding/periodic
+  GOALS_INTAKE: 40,       // Onboarding/periodic
+  WELCOME: 30             // Low priority (onboarding)
 } as const;
 
 // Dismiss policies
 const DISMISS_POLICY = {
   SLEEP_CONFIRM: 'RESURFACE_DAILY',       // Re-ask daily until confirmed
   WORKOUT_LOG: 'RESURFACE_ON_EVENT',      // Only on new workout
+  WORKOUT_INSIGHT: 'PERMANENT',           // One per workout, permanent
   WORKOUT_SUGGESTION: 'PERMANENT',         // Don't re-ask same day
-  GOALS_INTAKE: 'RESURFACE_DAILY'         // Re-ask daily until set
+  GOALS_INTAKE: 'RESURFACE_DAILY',        // Re-ask daily until set
+  WELCOME: 'PERMANENT'                    // One-time only
 } as const;
 
 export interface CardEligibilityContext {
@@ -91,6 +99,14 @@ export class SmartCardEngine {
     // Goals Intake
     const goalsCard = await this.checkGoalsIntakeEligibility(context);
     if (goalsCard) eligibleCards.push(goalsCard);
+    
+    // Welcome (low priority, first launch only)
+    const welcomeCard = await this.checkWelcomeEligibility(context);
+    if (welcomeCard) eligibleCards.push(welcomeCard);
+    
+    // Workout Insight (post-workout)
+    const insightCard = await this.checkWorkoutInsightEligibility(context);
+    if (insightCard) eligibleCards.push(insightCard);
     
     // 2. Sort by priority (descending)
     eligibleCards.sort((a, b) => b.priority - a.priority);
@@ -421,6 +437,150 @@ export class SmartCardEngine {
     context: CardEligibilityContext
   ): Promise<SmartCard | null> {
     return this.checkGoalsIntakeEligibility(context, true);
+  }
+  
+  /**
+   * Welcome: Show only on first launch if welcome_completed != true
+   */
+  private static async checkWelcomeEligibility(
+    context: CardEligibilityContext
+  ): Promise<SmartCard | null> {
+    const { stats, date } = context;
+    
+    // Check if welcome already completed
+    if (await isWelcomeCompleted()) {
+      return null;
+    }
+    
+    // Check for existing card (completed or dismissed)
+    const cardId = `${date}:WELCOME`;
+    const existing = await getSmartCard(cardId);
+    
+    if (existing) {
+      // If already completed or dismissed, don't show again
+      if (existing.status === 'COMPLETED' || existing.status === 'DISMISSED') {
+        return null;
+      }
+      return existing;
+    }
+    
+    // Generate welcome message via Companion agent (LLM-only, no fallback)
+    const { Companion } = await import('../intelligence/Companion');
+    const welcomeData = await Companion.generateWelcome(stats);
+    
+    // If LLM fails, return null (no fallback)
+    if (!welcomeData) {
+      return null;
+    }
+    
+    const payload: WelcomePayload = {
+      type: 'WELCOME',
+      headline: welcomeData.headline,
+      message: welcomeData.message,
+      createdAt: new Date().toISOString()
+    };
+    
+    const card: SmartCard = {
+      id: cardId,
+      date,
+      type: 'WELCOME',
+      status: 'ACTIVE',
+      priority: PRIORITY.WELCOME,
+      payload,
+      dismissPolicy: DISMISS_POLICY.WELCOME,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    await saveSmartCard(card);
+    return card;
+  }
+  
+  /**
+   * Workout Insight: Show after workout ends (within 3h), one per workout
+   */
+  private static async checkWorkoutInsightEligibility(
+    context: CardEligibilityContext
+  ): Promise<SmartCard | null> {
+    const { stats, date } = context;
+    
+    // Check if there are workouts for today
+    const workouts = stats.activity.workouts || [];
+    if (workouts.length === 0) {
+      return null;
+    }
+    
+    // Select most recent workout
+    const mostRecentWorkout = workouts[workouts.length - 1];
+    if (!mostRecentWorkout.id) {
+      return null; // Need workout ID for deduplication
+    }
+    
+    // Calculate end time: prefer explicit end, else start + duration
+    let workoutEndTime: Date;
+    if (mostRecentWorkout.startDate) {
+      const startTime = new Date(mostRecentWorkout.startDate);
+      workoutEndTime = new Date(startTime.getTime() + (mostRecentWorkout.durationSeconds * 1000));
+    } else {
+      // No start date, assume it ended recently (within last hour)
+      workoutEndTime = new Date(Date.now() - 30 * 60 * 1000); // 30 min ago
+    }
+    
+    // Check if workout ended within last 3 hours
+    const hoursSinceEnd = (Date.now() - workoutEndTime.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceEnd > 3) {
+      return null; // Too old
+    }
+    
+    // Check for existing card for this workout
+    const cardId = `${date}:WORKOUT_INSIGHT:${mostRecentWorkout.id}`;
+    const existing = await getSmartCard(cardId);
+    
+    if (existing) {
+      // If already completed or dismissed, don't show again
+      if (existing.status === 'COMPLETED' || existing.status === 'DISMISSED') {
+        return null;
+      }
+      return existing;
+    }
+    
+    // Generate insight via Companion agent (LLM-only, no fallback)
+    const { Companion } = await import('../intelligence/Companion');
+    const insightData = await Companion.generatePostWorkoutInsight(mostRecentWorkout, stats);
+    
+    // If LLM fails, return null (no fallback)
+    if (!insightData) {
+      return null;
+    }
+    
+    const payload: WorkoutInsightPayload = {
+      type: 'WORKOUT_INSIGHT',
+      workoutId: mostRecentWorkout.id,
+      workoutType: mostRecentWorkout.type,
+      detectedAt: mostRecentWorkout.startDate,
+      insight: {
+        headline: insightData.headline,
+        summary: insightData.summary,
+        physiology: insightData.physiology,
+        guidance: insightData.guidance
+      },
+      generatedAt: new Date().toISOString()
+    };
+    
+    const card: SmartCard = {
+      id: cardId,
+      date,
+      type: 'WORKOUT_INSIGHT',
+      status: 'ACTIVE',
+      priority: PRIORITY.WORKOUT_INSIGHT,
+      payload,
+      dismissPolicy: DISMISS_POLICY.WORKOUT_INSIGHT,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    await saveSmartCard(card);
+    return card;
   }
   
   // ============================================
