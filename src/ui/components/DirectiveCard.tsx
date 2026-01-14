@@ -5,16 +5,14 @@ import { colors, typography, radius, spacing } from '../theme/tokens';
 
 
 interface DirectiveCardProps {
-  title: string;  // Hero: "<Category> Day"
-  modeLine?: string;  // Mode line: deterministic behavior cue
-  metadata?: string | null;  // Optional: "<Category> — <Stimulus>"
-  subtitle: string;  // Focus cue (SESSION_FOCUS)
+  title: string;
+  subtitle: string;
   description: string;
   avoidText: string;
   isHighRisk?: boolean;
 }
 
-export function DirectiveCard({ title, modeLine, metadata, subtitle, description, avoidText, isHighRisk = false }: DirectiveCardProps) {
+export function DirectiveCard({ title, subtitle, description, avoidText, isHighRisk = false }: DirectiveCardProps) {
   // Avoid is neutral by default, only use strain color when truly high risk
   const avoidColor = isHighRisk ? colors.accent.strain : colors.text.secondary;
   return (
@@ -27,20 +25,7 @@ export function DirectiveCard({ title, modeLine, metadata, subtitle, description
 
       {/* Main Title Area */}
       <View style={styles.titleSection}>
-        {/* Hero: "<Category> Day" */}
-        <Text style={styles.heroTitle}>{title}</Text>
-        
-        {/* Optional metadata: "<Category> — <Stimulus>" (small secondary) */}
-        {metadata && (
-          <Text style={styles.metadata}>{metadata}</Text>
-        )}
-        
-        {/* Mode Line: deterministic behavior cue */}
-        {modeLine && (
-          <Text style={styles.modeLine}>{modeLine}</Text>
-        )}
-        
-        {/* Focus Cue: SESSION_FOCUS */}
+        <Text style={styles.heroTitle}>{title} <Text style={{ color: colors.text.tertiary }}>—</Text></Text>
         <Text style={styles.subTitle}>{subtitle}</Text>
       </View>
 
@@ -88,18 +73,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 28, // Scaled for card context (token default is 32)
     marginBottom: spacing[1],
-  },
-  metadata: {
-    ...typography.meta,
-    color: colors.text.tertiary,
-    marginBottom: spacing[2],
-    fontSize: 12,
-  },
-  modeLine: {
-    ...typography.body,
-    color: colors.accent.primary,
-    marginBottom: spacing[2],
-    fontStyle: 'italic',
   },
   subTitle: {
     ...typography.subhero,

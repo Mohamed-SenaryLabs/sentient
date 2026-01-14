@@ -475,9 +475,9 @@ export class DawnProtocol {
                     if (categoryChanged && stimulusChanged) {
                         regenReason = `Directive changed: ${cachedDirective.category}/${cachedDirective.stimulus_type} → ${contract.directive.category}/${contract.directive.stimulus_type}`;
                     } else if (categoryChanged) {
-                        regenReason = `Directive category changed: ${cachedDirective.category} → ${contract.directive.category}`;
+                    regenReason = `Directive category changed: ${cachedDirective.category} → ${contract.directive.category}`;
                     } else {
-                        regenReason = `Stimulus type changed: ${cachedDirective.stimulus_type} → ${contract.directive.stimulus_type}`;
+                    regenReason = `Stimulus type changed: ${cachedDirective.stimulus_type} → ${contract.directive.stimulus_type}`;
                     }
                 }
             }
@@ -509,7 +509,7 @@ export class DawnProtocol {
                 }
                 
                 if (changes.length > 0) {
-                    constraintsChanged = true;
+                        constraintsChanged = true;
                     constraintsDelta = {
                         before: { ...cachedConstraints },
                         after: { ...currentConstraints }
@@ -530,9 +530,9 @@ export class DawnProtocol {
                     regenReason = 'COOLDOWN_BLOCKED';
                     log(`⏸️  INTRA_DAY_RECAL BLOCKED: Daily cap reached (${currentRecalCount}/${MAX_RECAL_PER_DAY})`);
                 } else if (existing.logicContract.last_recal_at) {
-                    const lastRecalTime = new Date(existing.logicContract.last_recal_at);
-                    const timeSinceLastRecal = now.getTime() - lastRecalTime.getTime();
-                    
+                const lastRecalTime = new Date(existing.logicContract.last_recal_at);
+                const timeSinceLastRecal = now.getTime() - lastRecalTime.getTime();
+                
                     // Check if same day (for daily cap)
                     const lastRecalDate = new Date(lastRecalTime);
                     lastRecalDate.setHours(0, 0, 0, 0);
@@ -550,13 +550,13 @@ export class DawnProtocol {
                         (cachedDirective?.category === 'REGULATION' && contract.directive.category !== 'REGULATION') ||
                         (cachedDirective?.stimulus_type === 'FLUSH' && contract.directive.stimulus_type === 'OVERLOAD') ||
                         (cachedDirective?.stimulus_type === 'OVERLOAD' && contract.directive.stimulus_type === 'FLUSH')
-                    );
-                    
+                );
+                
                     if (timeSinceLastRecal < RECAL_COOLDOWN_MS && !isCriticalSafetyChange) {
-                        shouldRegenerateFocusAvoid = false;
+                    shouldRegenerateFocusAvoid = false;
                         const minutesSince = Math.round(timeSinceLastRecal / 1000 / 60);
                         regenReason = `Cooldown active (${minutesSince} min since last recal, ${2 - (minutesSince / 60).toFixed(1)}h remaining)`;
-                        log(`⏸️  INTRA_DAY_RECAL BLOCKED: ${regenReason}`);
+                    log(`⏸️  INTRA_DAY_RECAL BLOCKED: ${regenReason}`);
                     }
                 }
             }

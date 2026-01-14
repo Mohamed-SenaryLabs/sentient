@@ -6,7 +6,7 @@
  */
 
 import { OperatorDailyStats } from '../../data/schema';
-import { getReadableState, getDirectiveHero, getDirectiveMetadata, getModeLine } from '../DisplayTranslator';
+import { getReadableState, getDirectiveLabel } from '../DisplayTranslator';
 import { colors, getVitalityColor, stateColors } from '../theme/tokens';
 
 // ============================================
@@ -21,9 +21,7 @@ export interface HomeViewData {
   // Hero section
   greeting: string;
   lastUpdateTime: string | null;
-  directiveHero: string;  // "<Category> Day" (e.g., "Strength Day")
-  directiveMetadata: string | null;  // Optional "<Category> — <Stimulus>" for secondary display
-  modeLine: string;  // Deterministic behavior cue from stimulus_type
+  directiveLabel: string;
   focusCue: string;
   stateAccent: string;
 
@@ -111,9 +109,7 @@ export function createHomeViewModel(
       loadingText: status || stateLabel,
       greeting: getGreeting(),
       lastUpdateTime: null,
-      directiveHero: '',
-      directiveMetadata: null,
-      modeLine: '',
+      directiveLabel: '',
       focusCue: '',
       stateAccent: colors.accent.primary,
       stateValue: '...',
@@ -177,9 +173,7 @@ export function createHomeViewModel(
     lastUpdateTime: stats.last_refresh_at 
       ? formatUpdateTime(stats.last_refresh_at) 
       : null,
-    directiveHero: getDirectiveHero(directive.category),  // PRD §A.2.3: Always "<Category> Day"
-    directiveMetadata: getDirectiveMetadata(directive.category, directive.stimulus_type),  // Optional secondary
-    modeLine: getModeLine(directive.stimulus_type),  // PRD §3.4.2.F: Deterministic behavior cue
+    directiveLabel: getDirectiveLabel(directive.category, directive.stimulus_type),
     focusCue,
     stateAccent,
     

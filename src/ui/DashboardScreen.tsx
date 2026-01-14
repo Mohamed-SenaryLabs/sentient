@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from './components/Screen';
 import { OperatorDailyStats } from '../data/schema';
@@ -137,7 +137,6 @@ function DualStrip({
 }
 
 export function DashboardScreen({ stats, history, onRefresh, refreshing }: DashboardScreenProps) {
-  const [logExpanded, setLogExpanded] = useState(false);
 
   if (!stats) {
     return (
@@ -244,31 +243,6 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
   const loadDensity = stats.stats.loadDensity || 0;
   const loadLevel = getLoadLevel(loadDensity);
 
-  // Format workout type
-  const formatWorkoutType = (type: string) => {
-    if (type.includes('High Intensity')) return 'HIIT';
-    if (type.includes('Functional')) return 'Functional';
-    if (type.includes('Traditional')) return 'Strength';
-    if (type.includes('Running')) return 'Run';
-    if (type.includes('Walking')) return 'Walk';
-    return type.replace('Traditional ', '').replace('Training', '');
-  };
-
-  // Get icon for activity type
-  const getActivityIcon = (item: { type: string; label: string }) => {
-    if (item.type === 'RECOVERY') {
-      return 'leaf-outline';
-    }
-    const label = item.label.toLowerCase();
-    if (label.includes('run') || label.includes('running')) return 'walk-outline';
-    if (label.includes('strength') || label.includes('lift')) return 'barbell-outline';
-    if (label.includes('hiit') || label.includes('interval')) return 'flash-outline';
-    if (label.includes('cycle') || label.includes('bike')) return 'bicycle-outline';
-    if (label.includes('swim')) return 'water-outline';
-    if (label.includes('walk')) return 'footsteps-outline';
-    if (label.includes('functional')) return 'fitness-outline';
-    return 'fitness-outline';
-  };
 
   // Confidence styling using tokens
   const getConfidenceStyle = (confidence: string) => {
@@ -583,166 +557,6 @@ export function DashboardScreen({ stats, history, onRefresh, refreshing }: Dashb
           <Text style={styles.constitutionValue}>No data</Text>
           <Text style={styles.trendText}>(ok)</Text>
         </View>
-      </View>
-
-      {/* THE LOG */}
-      <Text style={styles.sectionHeader}>THE LOG</Text>
-      <View style={styles.logContainer}>
-        {(() => {
-          const allDays = stats ? [stats, ...history] : history;
-          
-          // Group activities by unique date
-          const daysMap = new Map<string, Array<{
-            type: string;
-            label: string;
-            date: string;
-            value: number;
-            duration: number;
-            rpm?: number;
-            minHr?: number;
-            maxHr?: number;
-            id: string;
-          }>>();
-          
-          allDays.forEach(day => {
-            const dateKey = day.date;
-            
-            // Initialize activities array for this date if not exists
-            if (!daysMap.has(dateKey)) {
-              daysMap.set(dateKey, []);
-            }
-            
-            const activities = daysMap.get(dateKey)!;
-            
-            // Add workouts
-            if (day.activity.workouts.length > 0) {
-              day.activity.workouts.forEach(workout => {
-                // Only add if not already present (avoid duplicates)
-                if (!activities.some(a => a.id === workout.id)) {
-                  activities.push({
-                    type: 'WORKOUT',
-                    label: formatWorkoutType(workout.type),
-                    date: day.date,
-                    value: workout.activeCalories,
-                    duration: workout.durationSeconds,
-                    rpm: workout.rpm,
-                    minHr: workout.minHeartRate,
-                    maxHr: workout.maxHeartRate,
-                    id: workout.id
-                  });
-                }
-              });
-            } else {
-              // Only add recovery if no workouts exist for this date
-              // Check if we already have workouts OR a recovery entry for this date
-              const hasWorkouts = activities.some(a => a.type === 'WORKOUT');
-              const recoveryId = day.date + '_rec';
-              const hasRecovery = activities.some(a => a.id === recoveryId);
-              
-              if (!hasWorkouts && !hasRecovery) {
-                activities.push({
-                  type: 'RECOVERY',
-                  label: 'Recovery',
-                  date: day.date,
-                  value: day.activity.activeCalories,
-                  duration: 0,
-                  id: recoveryId
-                });
-              }
-            }
-          });
-
-          // Convert map to array and sort by date (newest first)
-          const sortedDays = Array.from(daysMap.entries())
-            .map(([date, activities]) => ({ date, activities }))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          const daysToShow = logExpanded ? sortedDays : sortedDays.slice(0, 3);
-
-          // Normalize dates to YYYY-MM-DD for comparison (handles timezone issues)
-          // Define once outside map for efficiency
-          const normalizeDate = (dateStr: string | Date): string => {
-            // If already in YYYY-MM-DD format, return as-is
-            if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-              return dateStr;
-            }
-            const d = typeof dateStr === 'string' ? new Date(dateStr + 'T00:00:00') : dateStr;
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-          };
-          
-          const today = normalizeDate(new Date());
-          const yesterdayDate = new Date();
-          yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-          const yesterday = normalizeDate(yesterdayDate);
-
-          return (
-            <>
-              {daysToShow.map((dayGroup, dayIndex) => {
-                const dayDateStr = normalizeDate(dayGroup.date);
-                const dayDate = new Date(dayGroup.date + 'T00:00:00');
-                
-                let dayLabel: string;
-                if (dayDateStr === today) dayLabel = 'Today';
-                else if (dayDateStr === yesterday) dayLabel = 'Yesterday';
-                else dayLabel = dayDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-
-                return (
-                  <View key={dayGroup.date} style={styles.logDayGroup}>
-                    <Text style={styles.logDayHeader}>{dayLabel.toUpperCase()}</Text>
-                    {dayGroup.activities.map((item) => (
-                      <View key={item.id} style={styles.logRow}>
-                        <View style={[styles.logIconContainer, { backgroundColor: item.type === 'WORKOUT' ? `${colors.accent.vitality}20` : `${colors.border.default}20` }]}>
-                          <Ionicons 
-                            name={getActivityIcon(item) as any} 
-                            size={18} 
-                            color={item.type === 'WORKOUT' ? colors.accent.vitality : colors.text.secondary} 
-                          />
-                        </View>
-                        <View style={styles.logContent}>
-                          <Text style={styles.logTitle}>{item.label}</Text>
-                          <View style={styles.logMetaRow}>
-                            {!!item.duration && (
-                              <Text style={styles.logDetail}>{Math.round(item.duration / 60)} min</Text>
-                            )}
-                            {item.minHr !== undefined && item.maxHr !== undefined && (
-                              <Text style={styles.logDetail}>
-                                {item.duration ? ' · ' : ''}{item.minHr}-{item.maxHr} bpm
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                        <View style={styles.logValueContainer}>
-                          <Text style={styles.logValue}>{Math.round(item.value)}</Text>
-                          <Text style={styles.logUnit}>kcal</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                );
-              })}
-              
-              {sortedDays.length > 3 && (
-                <TouchableOpacity 
-                  style={styles.logExpandButton}
-                  onPress={() => setLogExpanded(!logExpanded)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.logExpandText}>
-                    {logExpanded ? 'Show Less' : `Show ${sortedDays.length - 3} More Days`}
-                  </Text>
-                  <Ionicons 
-                    name={logExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} 
-                    size={16} 
-                    color={colors.accent.vitality} 
-                  />
-                </TouchableOpacity>
-              )}
-            </>
-          );
-        })()}
       </View>
 
     </Screen>

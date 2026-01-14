@@ -427,36 +427,6 @@ export async function setFirstLaunchComplete(): Promise<void> {
 }
 
 /**
- * Check if welcome card has been completed
- */
-export async function isWelcomeCompleted(): Promise<boolean> {
-  if (!db) throw new Error('Database not initialized');
-  
-  try {
-    const result = await db.getFirstAsync<{ value: string }>(
-      'SELECT value FROM system_storage WHERE key = ?',
-      ['welcome_completed']
-    );
-    return result?.value === 'true';
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
- * Mark welcome card as completed
- */
-export async function setWelcomeCompleted(): Promise<void> {
-  if (!db) throw new Error('Database not initialized');
-  
-  await db.runAsync(
-    'INSERT OR REPLACE INTO system_storage (key, value) VALUES (?, ?)',
-    ['welcome_completed', 'true']
-  );
-  console.log('[Database] Welcome marked as completed');
-}
-
-/**
  * Save calculated baselines from Day Zero protocol
  */
 export async function saveBaselines(baselines: {

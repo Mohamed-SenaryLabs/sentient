@@ -17,21 +17,15 @@ import {
   Platform,
   UIManager,
   ScrollView,
-  KeyboardAvoidingView,
-  Modal,
-  SafeAreaView,
-  Dimensions
+  KeyboardAvoidingView
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { 
   SmartCard as SmartCardType,
   SleepConfirmPayload,
   WorkoutLogPayload,
   WorkoutSuggestionPayload,
-  GoalsIntakePayload,
-  WelcomePayload,
-  WorkoutInsightPayload
+  GoalsIntakePayload
 } from '../data/schema';
 import { 
   colors, 
@@ -77,10 +71,6 @@ function getSmartSignalIconName(card: SmartCardType): IconName {
       return 'compass-outline';
     case 'GOALS_INTAKE':
       return 'flag-outline';
-    case 'WELCOME':
-      return 'sparkles-outline';
-    case 'WORKOUT_INSIGHT':
-      return 'pulse-outline';
     default:
       return 'sparkles-outline';
   }
@@ -118,10 +108,6 @@ export function SmartCardComponent({ card, onComplete, onDismiss }: SmartCardPro
       return <WorkoutSuggestionCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
     case 'GOALS_INTAKE':
       return <GoalsIntakeCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
-    case 'WELCOME':
-      return <WelcomeCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
-    case 'WORKOUT_INSIGHT':
-      return <WorkoutInsightCard card={card} onComplete={onComplete} onDismiss={onDismiss} />;
     default:
       return null;
   }
@@ -224,16 +210,16 @@ function WorkoutLogCard({ card, onComplete, onDismiss }: SmartCardProps) {
         Want to add a quick note?
       </Text>
       
-      <TextInput
-        style={styles.noteInput}
-        placeholder="e.g., Norwegian 4x4 @ 14 km/h"
-        placeholderTextColor={colors.text.secondary}
-        value={note}
-        onChangeText={setNote}
-        multiline
-        numberOfLines={2}
+        <TextInput
+          style={styles.noteInput}
+          placeholder="e.g., Norwegian 4x4 @ 14 km/h"
+          placeholderTextColor={colors.text.secondary}
+          value={note}
+          onChangeText={setNote}
+          multiline
+          numberOfLines={2}
           blurOnSubmit={false}
-      />
+        />
       
       <View style={styles.actionRow}>
         <TouchableOpacity 
@@ -292,7 +278,7 @@ function WorkoutSuggestionCard({ card, onComplete, onDismiss }: SmartCardProps) 
           <View style={styles.iconBox}>
             <Ionicons name={getSmartSignalIconName(card)} size={18} color={colors.text.secondary} />
           </View>
-        <Text style={styles.cardTitle}>{suggestion.title}</Text>
+          <Text style={styles.cardTitle}>{suggestion.title}</Text>
         </View>
         {suggestion.duration && (
           <Text style={styles.durationBadge}>{suggestion.duration} min</Text>
@@ -394,8 +380,8 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
             </TouchableOpacity>
           </View>
         ) : (
-      <TextInput
-        style={styles.noteInput}
+          <TextInput
+            style={styles.noteInput}
             placeholder="Describe your primary goal in one sentence..."
             placeholderTextColor={colors.text.secondary}
             value={primaryGoal}
@@ -425,13 +411,13 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
         <TextInput
           style={styles.optionalInput}
           placeholder="e.g., Knee injury, limited equipment, time constraints"
-        placeholderTextColor={colors.text.secondary}
+          placeholderTextColor={colors.text.secondary}
           value={constraints}
           onChangeText={setConstraints}
-        multiline
-        numberOfLines={2}
+          multiline
+          numberOfLines={2}
           blurOnSubmit={false}
-      />
+        />
       </View>
       
       <View style={styles.actionRow}>
@@ -441,77 +427,6 @@ function GoalsIntakeCard({ card, onComplete, onDismiss }: SmartCardProps) {
           disabled={!primaryGoal.trim()}
         >
           <Text style={styles.primaryButtonText}>Save</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
-          <Text style={styles.dismissButtonText}>Not now</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-// ============================================
-// WELCOME CARD
-// ============================================
-
-function WelcomeCard({ card, onComplete, onDismiss }: SmartCardProps) {
-  const payload = card.payload as WelcomePayload;
-  
-  const handleContinue = () => {
-    onComplete(card.id);
-  };
-  
-  return (
-    <View style={styles.card}>
-      <CardHeader icon={getSmartSignalIconName(card)} title={payload.headline} />
-      <Text style={styles.cardBody}>{payload.message}</Text>
-      
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
-          <Text style={styles.primaryButtonText}>Continue</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
-          <Text style={styles.dismissButtonText}>Not now</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-// ============================================
-// WORKOUT INSIGHT CARD
-// ============================================
-
-function WorkoutInsightCard({ card, onComplete, onDismiss }: SmartCardProps) {
-  const payload = card.payload as WorkoutInsightPayload;
-  const { insight } = payload;
-  
-  const handleAcknowledge = () => {
-    onComplete(card.id);
-  };
-  
-  return (
-    <View style={styles.card}>
-      <CardHeader icon={getSmartSignalIconName(card)} title="Post-session readout" />
-      <Text style={styles.cardBody}>{insight.summary}</Text>
-      
-      {insight.physiology && (
-        <View style={styles.insightSection}>
-          <Text style={styles.insightLabel}>Physiology</Text>
-          <Text style={styles.insightText}>{insight.physiology}</Text>
-        </View>
-      )}
-      
-      {insight.guidance && (
-        <View style={styles.insightSection}>
-          <Text style={styles.insightLabel}>Guidance</Text>
-          <Text style={styles.insightText}>{insight.guidance}</Text>
-        </View>
-      )}
-      
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleAcknowledge}>
-          <Text style={styles.primaryButtonText}>Acknowledge</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.dismissButton} onPress={() => onDismiss(card.id)}>
           <Text style={styles.dismissButtonText}>Not now</Text>
@@ -534,122 +449,62 @@ const GOAL_PRESETS = [
 
 
 // ============================================
-// SMART CARD MODAL
+// EXPANDABLE SMART CARD WRAPPER
 // ============================================
 
-interface SmartCardModalProps {
-  visible: boolean;
-  card: SmartCardType;
-  onComplete: (cardId: string, payload?: any) => void;
-  onDismiss: (cardId: string) => void;
-  onClose: () => void;
-}
+function ExpandableSmartCard({ card, onComplete, onDismiss }: SmartCardProps) {
+  const [expanded, setExpanded] = useState(false);
 
-function SmartCardModal({ visible, card, onComplete, onDismiss, onClose }: SmartCardModalProps) {
-  const screenHeight = Dimensions.get('window').height;
-  const insets = useSafeAreaInsets();
-  
-  // Calculate bottom tab bar height (matches Screen.tsx calculation)
-  const tabBarHeight = 64 + insets.bottom + spacing[4]; // 64px + safe area + breathing room
-  
-  // Modal anchored above bottom menu, can extend up to 20% above center
-  // Center is at 50%, so 20% above center = 30% from top
-  const minTopPosition = screenHeight * 0.3; // 20% above center
-  const bottomSpacing = tabBarHeight + spacing[3]; // Tab bar + visual spacing
-  const maxModalHeight = screenHeight - minTopPosition - bottomSpacing;
-  
-  const handleComplete = (cardId: string, payload?: any) => {
-    onComplete(cardId, payload);
-    onClose();
+  const handleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(true);
   };
-  
-  const handleDismiss = (cardId: string) => {
-    onDismiss(cardId);
-    onClose();
+
+  const handleClose = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(false);
   };
-  
-  // Get card title and context for header
-  const getCardHeader = () => {
-    switch (card.type) {
-      case 'SLEEP_CONFIRM':
-        return { title: 'Confirm Sleep', context: 'No recent data found' };
-      case 'WORKOUT_LOG': {
-        const p = card.payload as WorkoutLogPayload;
-        return { title: 'Log Workout', context: p.workoutType || 'New session detected' };
-      }
-      case 'WORKOUT_SUGGESTION': {
-        const p = card.payload as WorkoutSuggestionPayload;
-        return { title: 'Workout Suggestion', context: p.suggestion.title };
-      }
-      case 'GOALS_INTAKE':
-        return { title: 'Goal Setting', context: 'Update your primary focus' };
-      case 'WELCOME': {
-        const p = card.payload as WelcomePayload;
-        return { title: p.headline, context: 'Welcome to Sentient' };
-      }
-      case 'WORKOUT_INSIGHT': {
-        const p = card.payload as WorkoutInsightPayload;
-        return { title: 'Session Insight', context: p.insight.headline || 'Post-workout analysis' };
-      }
-      default:
-        return { title: 'Pending Action', context: 'Tap to review' };
-    }
-  };
-  
-  const header = getCardHeader();
-  
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity 
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.modalContainer, { bottom: tabBarHeight + spacing[3], maxHeight: maxModalHeight }]}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+
+  if (expanded) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.expandedWrapper}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <View style={styles.expandedHeader}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={20} color={colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          style={styles.expandedScrollView}
+          contentContainerStyle={styles.expandedScrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
         >
-          <View 
-            style={styles.modalContent}
-            onStartShouldSetResponder={() => true}
-          >
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderLeft}>
-                <Text style={styles.modalTitle}>{header.title}</Text>
-                <Text style={styles.modalContext} numberOfLines={1}>{header.context}</Text>
-              </View>
-              <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
-                <Ionicons name="close" size={24} color={colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
-            
-            {/* Body - Scrollable */}
-            <View style={styles.modalBody}>
-              <ScrollView
-                contentContainerStyle={styles.modalBodyContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled={true}
-              >
-                <SmartCardComponent 
-                  card={card} 
-                  onComplete={handleComplete}
-                  onDismiss={handleDismiss}
-                />
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
+          <SmartCardComponent 
+            card={card} 
+            onComplete={(id, payload) => {
+              // Animate removal
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              onComplete(id, payload);
+            }} 
+            onDismiss={(id) => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              onDismiss(id);
+            }} 
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return (
+    <TouchableOpacity onPress={handleExpand} activeOpacity={0.7}>
+      <CollapsedSmartSignalRow card={card} onReview={handleExpand} />
+    </TouchableOpacity>
   );
 }
 
@@ -676,13 +531,6 @@ function CollapsedSmartSignalRow({ card, onReview }: { card: SmartCardType; onRe
   } else if (card.type === 'GOALS_INTAKE') {
     title = "Goal Setting";
     subtitle = "Update your primary focus";
-  } else if (card.type === 'WELCOME') {
-    title = "Welcome";
-    subtitle = "Tap to review";
-  } else if (card.type === 'WORKOUT_INSIGHT') {
-    const p = card.payload as WorkoutInsightPayload;
-    title = "Session Insight";
-    subtitle = p.insight.headline || "Tap to review";
   }
 
   return (
@@ -713,59 +561,24 @@ interface SmartCardsContainerProps {
 }
 
 export function SmartCardsContainer({ cards, onComplete, onDismiss }: SmartCardsContainerProps) {
-  const [openCardId, setOpenCardId] = useState<string | null>(null);
-  
   if (!cards || cards.length === 0) {
     return null;
   }
   
   // Max 2 cards
   const visibleCards = cards.slice(0, 2);
-  const openCard = visibleCards.find(c => c.id === openCardId) || null;
-  
-  const handleOpenCard = (cardId: string) => {
-    setOpenCardId(cardId);
-  };
-  
-  const handleCloseModal = () => {
-    setOpenCardId(null);
-  };
-  
-  const handleComplete = (cardId: string, payload?: any) => {
-    onComplete(cardId, payload);
-    setOpenCardId(null);
-  };
-  
-  const handleDismiss = (cardId: string) => {
-    onDismiss(cardId);
-    setOpenCardId(null);
-  };
   
   return (
-    <>
     <View style={styles.container}>
-        {visibleCards.map((card) => (
-          <TouchableOpacity 
+      {visibleCards.map((card) => (
+        <ExpandableSmartCard
           key={card.id}
-            onPress={() => handleOpenCard(card.id)}
-            activeOpacity={0.7}
-          >
-            <CollapsedSmartSignalRow card={card} onReview={() => handleOpenCard(card.id)} />
-          </TouchableOpacity>
-        ))}
-      </View>
-      
-      {/* Modal - only one can be open */}
-      {openCard && (
-        <SmartCardModal
-          visible={openCardId !== null}
-          card={openCard}
-          onComplete={handleComplete}
-          onDismiss={handleDismiss}
-          onClose={handleCloseModal}
+          card={card}
+          onComplete={onComplete}
+          onDismiss={onDismiss}
         />
-      )}
-    </>
+      ))}
+    </View>
   );
 }
 
@@ -811,6 +624,33 @@ const styles = StyleSheet.create({
     ...typography.meta,
     color: colors.accent.primary,
     fontWeight: '600',
+  },
+  
+  // Expanded Wrapper
+  expandedWrapper: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    overflow: 'hidden',
+    maxHeight: '80%', // Prevent card from taking full screen
+  },
+  expandedScrollView: {
+    flex: 1,
+  },
+  expandedScrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing[4], // Extra padding at bottom for keyboard
+  },
+  expandedHeader: {
+    alignItems: 'flex-end',
+    paddingRight: spacing[2],
+    paddingTop: spacing[2],
+    marginBottom: -spacing[4], // Pull close button over card header if desired, or keep separate
+    zIndex: 10,
+  },
+  closeButton: {
+    padding: spacing[2],
   },
 
   // Existing Card Styles
@@ -987,79 +827,5 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     borderWidth: 1,
     borderColor: colors.border.default,
-  },
-  insightSection: {
-    marginBottom: spacing[3],
-  },
-  insightLabel: {
-    ...typography.meta,
-    color: colors.text.secondary,
-    marginBottom: spacing[1],
-    fontWeight: '600',
-  },
-  insightText: {
-    ...typography.bodySmall,
-    color: colors.text.primary,
-    lineHeight: 20,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    width: '100%',
-    maxWidth: 500, // Tablet-friendly
-    alignSelf: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    overflow: 'hidden',
-    width: '100%',
-    flexDirection: 'column',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
-  },
-  modalHeaderLeft: {
-    flex: 1,
-    marginRight: spacing[2],
-  },
-  modalTitle: {
-    ...typography.cardTitle,
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  modalContext: {
-    ...typography.meta,
-    color: colors.text.secondary,
-  },
-  modalCloseButton: {
-    padding: spacing[1],
-    marginLeft: spacing[2],
-  },
-  modalBody: {
-    flex: 1,
-    minHeight: 0, // Important for ScrollView to work in flex container
-  },
-  modalBodyContent: {
-    paddingBottom: spacing[6], // Extra padding for keyboard
-    flexGrow: 1,
   },
 });

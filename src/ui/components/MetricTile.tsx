@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.metricLabel,
-    marginBottom: 0,
+    marginBottom: 0, 
     fontSize: 9, // Ultra-compact for metric tiles
   },
   valueContainer: {

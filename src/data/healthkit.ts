@@ -740,6 +740,117 @@ async function queryHeartRateStatsForInterval(startDate: Date, endDate: Date): P
 }
 
 /**
+ * Query heart rate samples for a time interval
+ * Returns individual samples with timestamp and value
+ */
+export async function queryHeartRateSamplesForInterval(
+  startDate: Date,
+  endDate: Date
+): Promise<Array<{ timestamp: Date; value: number }>> {
+  if (!Healthkit || _healthKitDisabled) return [];
+  try {
+    const samples = await Healthkit.queryQuantitySamples(
+      'HKQuantityTypeIdentifierHeartRate',
+      {
+        limit: 0, // 0 = no limit
+        unit: 'count/min',
+        filter: {
+          date: { startDate, endDate }
+        }
+      }
+    );
+    
+    if (!samples || samples.length === 0) return [];
+    
+    return samples.map((s: any) => ({
+      timestamp: new Date(s.startDate || s.date),
+      value: Math.round(s.quantity || 0)
+    })).filter((s: { timestamp: Date; value: number }) => s.value > 0);
+  } catch (e) {
+    console.error('[HealthKit] Error querying HR samples:', e);
+    return [];
+  }
+}
+
+/**
+ * Compute histogram bins from HR samples
+ * @param samples Array of HR samples with timestamp and value
+ * @param binSize BPM bin size (default 5, fallback to 10 if sample count is low)
+ * @returns Object with bins, avg, max, and binSize used
+ */
+export function computeHRHistogram(
+  samples: Array<{ timestamp: Date; value: number }>
+): {
+  bins: Array<{ range: string; minutes: number; seconds: number }>;
+  avg: number;
+  max: number;
+  min: number;
+  binSize: number;
+} {
+  if (samples.length === 0) {
+    return { bins: [], avg: 0, max: 0, min: 0, binSize: 5 };
+  }
+  
+  // Determine bin size: 5 bpm default, 10 bpm if sample count is low (< 30 samples)
+  const binSize = samples.length < 30 ? 10 : 5;
+  
+  // Calculate avg, min, max
+  const values = samples.map(s => s.value);
+  const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  
+  // Determine range bounds (round to nearest binSize)
+  const minBin = Math.floor(min / binSize) * binSize;
+  const maxBin = Math.ceil(max / binSize) * binSize;
+  
+  // Create bins
+  const binMap = new Map<number, number>(); // bpm -> seconds
+  for (let bin = minBin; bin < maxBin; bin += binSize) {
+    binMap.set(bin, 0);
+  }
+  
+  // Calculate time in each bin
+  // For each sample, determine which bin it belongs to and add its duration
+  // Since we have discrete samples, we'll estimate duration between samples
+  for (let i = 0; i < samples.length; i++) {
+    const sample = samples[i];
+    const bin = Math.floor(sample.value / binSize) * binSize;
+    
+    // Calculate duration: time until next sample, or if last sample, use average interval
+    let durationSeconds = 0;
+    if (i < samples.length - 1) {
+      durationSeconds = (samples[i + 1].timestamp.getTime() - sample.timestamp.getTime()) / 1000;
+    } else {
+      // Last sample: use average interval from previous samples
+      if (samples.length > 1) {
+        const avgInterval = (samples[samples.length - 1].timestamp.getTime() - samples[0].timestamp.getTime()) / (samples.length - 1) / 1000;
+        durationSeconds = avgInterval;
+      } else {
+        durationSeconds = 60; // Default 1 minute if only one sample
+      }
+    }
+    
+    // Clamp duration to reasonable bounds (1 second to 5 minutes)
+    durationSeconds = Math.max(1, Math.min(300, durationSeconds));
+    
+    const current = binMap.get(bin) || 0;
+    binMap.set(bin, current + durationSeconds);
+  }
+  
+  // Convert to array format
+  const bins = Array.from(binMap.entries())
+    .map(([bpm, seconds]) => ({
+      range: `${bpm}-${bpm + binSize - 1}`,
+      minutes: Math.round((seconds / 60) * 10) / 10, // Round to 1 decimal
+      seconds: Math.round(seconds)
+    }))
+    .sort((a, b) => parseInt(a.range.split('-')[0]) - parseInt(b.range.split('-')[0]));
+  
+  return { bins, avg, max, min, binSize };
+}
+
+/**
  * Fetch workouts with hydration fix
  * The HealthKit library doesn't return totalEnergyBurned in the workout object,
  * so we query Active Energy directly for each workout's time window

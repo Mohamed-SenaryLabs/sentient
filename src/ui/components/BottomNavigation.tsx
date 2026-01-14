@@ -27,10 +27,17 @@ export function BottomNavigation({ state, descriptors, navigation }: BottomTabBa
           onPress={() => navigation.navigate('DASHBOARD')} 
         />
         
-        {/* 3. SETTINGS (Person) */}
+        {/* 3. ACTIVITY (Fitness) - Activity Log */}
+        <NavButton 
+          icon="fitness-outline" 
+          isActive={state.index === 2} 
+          onPress={() => navigation.navigate('ACTIVITY')} 
+        />
+        
+        {/* 4. SETTINGS (Person) */}
         <NavButton 
           icon="person-outline" 
-          isActive={state.index === 2} 
+          isActive={state.index === 3} 
           onPress={() => navigation.navigate('SETTINGS')} 
         />
       </View>

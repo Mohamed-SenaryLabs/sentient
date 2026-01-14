@@ -17,6 +17,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SentientProvider, useSentientAppState } from './src/hooks/useSentientAppState';
 import { FocusScreen } from './src/ui/FocusScreen';
 import { DashboardScreen } from './src/ui/DashboardScreen';
+import { ActivityScreen } from './src/ui/ActivityScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 import { DevConsoleScreen } from './src/ui/DevConsoleScreen';
 import { colors, spacing } from './src/ui/theme/tokens';
@@ -87,6 +88,17 @@ function AppContent() {
         <Tab.Screen name="DASHBOARD">
           {() => (
             <DashboardScreen
+              stats={stats}
+              history={historicalData}
+              onRefresh={() => refresh(true)}
+              refreshing={isRefreshing}
+            />
+          )}
+        </Tab.Screen>
+
+        <Tab.Screen name="ACTIVITY">
+          {() => (
+            <ActivityScreen
               stats={stats}
               history={historicalData}
               onRefresh={() => refresh(true)}
